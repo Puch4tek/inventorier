@@ -24,3 +24,33 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@utility field-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1d1d1f;
+}
+
+@utility field-input {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d2d2d7;
+  background: #ffffff;
+  padding: 0.75rem 0.875rem;
+  font-size: 0.9375rem;
+  color: #1d1d1f;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+@utility field-input-placeholder {
+  color: #86868b;
+}
+
+@utility field-input-focus {
+  border-color: #1d1d1f;
+  box-shadow: 0 0 0 3px rgb(29 29 31 / 12%);
+}

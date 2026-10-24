@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  MANAGER
+  ADMIN
+}
+
+enum ItemHistoryType {
+  ITEM_CREATED
+  ITEM_UPDATED
+  QUANTITY_CHANGED
+  LOCATION_CHANGED
+  ITEM_ARCHIVED
+  ITEM_RESTORED
+  ITEM_DELETED
+}
+
+model User {
+  email         String        @unique
+  name          String
+  id            Int           @id @default(autoincrement())
+  passwordHash  String
+  role          Role          @default(USER)
+  itemHistories ItemHistory[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Item {
+  id            Int           @id @default(autoincrement())
+  barcode       String        @unique
+  name          String
+  description   String?
+  quantity      Int
+  unit          String
+  locationId    Int
+  location      Location      @relation(fields: [locationId], references: [id])
+  categoryId    Int
+  category      Category      @relation(fields: [categoryId], references: [id])
+  imageUrl      String?
+  isArchived    Boolean       @default(false)
+  saleEnabled   Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  itemHistories ItemHistory[]
+}
+
+model Location {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String?
+  parentId    Int?
+  parent      Location?  @relation("LocationHierarchy", fields: [parentId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  items       Item[]
+  children    Location[] @relation("LocationHierarchy")
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  items       Item[]
+}
+
+model ItemHistory {
+  id          Int             @id @default(autoincrement())
+  itemId      Int
+  item        Item            @relation(fields: [itemId], references: [id])
+  userId      Int
+  user        User            @relation(fields: [userId], references: [id])
+  type        ItemHistoryType
+  oldValue    String?
+  newValue    String?
+  description String?
+  createdAt   DateTime        @default(now())
+}
