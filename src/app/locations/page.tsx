@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/get-current-user";
+import { logoutAction } from "@/app/dashboard/actions";
 import { listLocations } from "@/server/locations/list-locations";
 import { LocationCreateModal } from "./location-create-modal";
 import { LocationTree } from "./location-tree";
+import { MobileNav } from "@/app/dashboard/mobile-nav";
+import { ThemeToggle } from "@/app/theme-toggle";
 
 export const instant = false;
 
@@ -17,29 +20,31 @@ export default async function LocationsPage() {
   const locations = await listLocations();
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f]">
-      <header className="border-b border-black/[0.06] bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-10">
+    <main className="app-shell pb-24 sm:pb-0">
+      <header className="app-header">
+        <div className="app-header-inner">
           <Link href="/dashboard" className="font-semibold tracking-[-0.02em]">
             Inventory App
           </Link>
-          <Link
-            href="/dashboard"
-            className="text-sm font-medium text-[#6e6e73] hover:text-[#1d1d1f]"
-          >
-            Panel główny
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <form action={logoutAction}>
+              <button type="submit" className="primary-button px-3 py-2 text-xs sm:px-4 sm:text-sm">
+                Wyloguj
+              </button>
+            </form>
+          </div>
         </div>
       </header>
 
-      <section className="mx-auto max-w-7xl px-6 py-12 sm:px-10 lg:py-16">
+      <section className="page-shell">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div>
-            <p className="text-sm font-medium text-[#6e6e73]">Magazyn</p>
-            <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em]">
+            <p className="page-kicker">Magazyn</p>
+            <h1 className="page-title">
               Lokalizacje
             </h1>
-            <p className="mt-3 text-[15px] text-[#6e6e73]">
+            <p className="page-description">
               Zarządzaj miejscami przechowywania swoich przedmiotów.
             </p>
           </div>
@@ -53,7 +58,7 @@ export default async function LocationsPage() {
         </div>
 
         {locations.length === 0 ? (
-          <section className="mt-10 rounded-3xl border border-black/[0.06] bg-white p-8 text-center shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+          <section className="panel-card mt-10 p-8 text-center">
             <h2 className="text-xl font-semibold">Brak lokalizacji</h2>
             <p className="mt-2 text-sm text-[#6e6e73]">
               Dodaj pierwsze miejsce przechowywania, aby rozpocząć.
@@ -63,6 +68,7 @@ export default async function LocationsPage() {
           <LocationTree locations={locations} />
         )}
       </section>
+      <MobileNav />
     </main>
   );
 }

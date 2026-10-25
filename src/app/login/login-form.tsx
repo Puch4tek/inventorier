@@ -44,7 +44,7 @@ export default function LoginForm() {
             {state.error ? (
                 <p
                     role="alert"
-                    className="rounded-xl bg-[#fff2f2] px-4 py-3 text-sm text-[#b42318]"
+                    className="status-error"
                 >
                     {state.error}
                 </p>
@@ -52,7 +52,7 @@ export default function LoginForm() {
             <button
                 type="submit"
                 disabled={isPending}
-                className="w-full rounded-xl bg-[#1d1d1f] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#424245] focus:outline-none focus:ring-2 focus:ring-[#1d1d1f] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="primary-button w-full py-3.5 disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {isPending ? "Logowanie..." : "Zaloguj się"}
             </button>

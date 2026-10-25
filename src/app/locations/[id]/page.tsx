@@ -1,16 +1,21 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/get-current-user";
+import { logoutAction } from "@/app/dashboard/actions";
 import { getLocation } from "@/server/locations/get-location";
 import { listLocations } from "@/server/locations/list-locations";
 import { LocationActions } from "./location-actions";
+import { MobileNav } from "@/app/dashboard/mobile-nav";
+import { ThemeToggle } from "@/app/theme-toggle";
 
 export const instant = false;
 
 export default async function LocationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await getCurrentUser();
 
@@ -19,6 +24,8 @@ export default async function LocationPage({
   }
 
   const { id } = await params;
+  const query = await searchParams;
+  const fromItem = Array.isArray(query.fromItem) ? query.fromItem[0] : query.fromItem;
   const locationId = Number(id);
 
   if (!Number.isInteger(locationId) || locationId <= 0) {
@@ -34,24 +41,32 @@ export default async function LocationPage({
   const locations = await listLocations();
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f]">
-      <header className="border-b border-black/[0.06] bg-white">
-        <div className="mx-auto max-w-5xl px-6 py-4 sm:px-10">
+    <main className="app-shell pb-24 sm:pb-0">
+      <header className="app-header">
+        <div className="app-header-inner max-w-5xl">
           <Link
-            href="/locations"
+            href={fromItem && /^\d+$/.test(fromItem) ? `/items/${fromItem}` : "/locations"}
             className="text-sm font-medium text-[#6e6e73] hover:text-[#1d1d1f]"
           >
-            ← Wróć do lokalizacji
+            ← {fromItem && /^\d+$/.test(fromItem) ? "Wróć do przedmiotu" : "Wróć do lokalizacji"}
           </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <form action={logoutAction}>
+              <button type="submit" className="primary-button px-3 py-2 text-xs sm:px-4 sm:text-sm">
+                Wyloguj
+              </button>
+            </form>
+          </div>
         </div>
       </header>
 
-      <section className="mx-auto max-w-5xl px-6 py-12 sm:px-10 lg:py-16">
-        <p className="text-sm font-medium text-[#6e6e73]">Lokalizacja</p>
-        <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em]">
+      <section className="page-shell page-shell-narrow">
+        <p className="page-kicker">Lokalizacja</p>
+        <h1 className="page-title">
           {location.name}
         </h1>
-        <p className="mt-3 text-[15px] text-[#6e6e73]">
+        <p className="page-description">
           {location.description || "Brak opisu"}
         </p>
         <LocationActions
@@ -81,7 +96,7 @@ export default async function LocationPage({
         ) : null}
 
         <div className="mt-10 space-y-5">
-          <section className="rounded-3xl border border-black/[0.06] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+          <section className="panel-card p-6">
             <h2 className="text-xl font-semibold">Podlokalizacje</h2>
             {location.children.length === 0 ? (
               <p className="mt-4 text-sm text-[#6e6e73]">
@@ -102,7 +117,7 @@ export default async function LocationPage({
             )}
           </section>
 
-          <section className="rounded-3xl border border-black/[0.06] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+          <section className="panel-card p-6">
             <h2 className="text-xl font-semibold">Przedmioty</h2>
             {location.items.length === 0 ? (
               <p className="mt-4 text-sm text-[#6e6e73]">
@@ -111,21 +126,23 @@ export default async function LocationPage({
             ) : (
               <div className="mt-4 space-y-2">
                 {location.items.map((item) => (
-                  <div
+                  <Link
                     key={item.id}
+                    href={`/items/${item.id}?fromLocation=${location.id}`}
                     className="rounded-xl bg-[#f5f5f7] px-4 py-3"
                   >
                     <p className="text-sm font-medium">{item.name}</p>
                     <p className="mt-1 text-xs text-[#6e6e73]">
                       {item.quantity} {item.unit} · {item.barcode}
                     </p>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
           </section>
         </div>
       </section>
+      <MobileNav />
     </main>
   );
 }

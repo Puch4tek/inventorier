@@ -2,6 +2,7 @@
 
 import { deleteLocation } from "@/server/locations/delete-location";
 import { updateLocation } from "@/server/locations/update-location";
+import { requireRole } from "@/server/auth/permissions";
 
 export type LocationActionState = {
   error?: string;
@@ -12,6 +13,11 @@ export async function updateLocationAction(
   _previousState: LocationActionState,
   formData: FormData,
 ): Promise<LocationActionState> {
+  try {
+    await requireRole("MANAGER");
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Brak uprawnień." };
+  }
   const idValue = formData.get("id");
   const name = formData.get("name");
   const description = formData.get("description");
@@ -56,6 +62,11 @@ export async function deleteLocationAction(
   _previousState: LocationActionState,
   formData: FormData,
 ): Promise<LocationActionState> {
+  try {
+    await requireRole("MANAGER");
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Brak uprawnień." };
+  }
   const idValue = formData.get("id");
   const id = typeof idValue === "string" ? Number(idValue) : NaN;
 

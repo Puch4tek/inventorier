@@ -45,7 +45,7 @@ export function LocationCreateModal({
       <button
         type="button"
         onClick={openModal}
-        className="rounded-xl bg-[#1d1d1f] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#424245] focus:outline-none focus:ring-2 focus:ring-[#1d1d1f] focus:ring-offset-2"
+        className="primary-button"
       >
         Dodaj lokalizację
       </button>
@@ -99,7 +99,7 @@ function LocationCreateDialog({
             role="dialog"
             aria-modal="true"
             aria-labelledby="location-modal-title"
-            className="w-full max-w-lg rounded-[2rem] border border-black/[0.06] bg-white p-7 text-[#1d1d1f] shadow-[0_24px_80px_rgba(0,0,0,0.18)] sm:p-10"
+            className="panel-card w-full max-w-lg rounded-[2rem] p-7 sm:p-10"
           >
             <div className="flex items-start justify-between gap-6">
               <div>
@@ -139,7 +139,7 @@ function LocationCreateDialog({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#424245]"
+                    className="primary-button"
                   >
                     Zamknij
                   </button>
@@ -147,7 +147,7 @@ function LocationCreateDialog({
                 <button
                   type="button"
                   onClick={onReset}
-                  className="w-full rounded-xl border border-black/[0.12] px-5 py-3 text-sm font-semibold text-[#1d1d1f] transition hover:bg-[#f5f5f7]"
+                  className="secondary-button w-full"
                 >
                   Dodaj kolejną lokalizację
                 </button>
@@ -214,14 +214,14 @@ function LocationCreateDialog({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="rounded-xl border border-black/[0.12] px-5 py-3 text-sm font-semibold text-[#1d1d1f] transition hover:bg-[#f5f5f7]"
+                    className="secondary-button"
                   >
                     Anuluj
                   </button>
                   <button
                     type="submit"
                     disabled={isPending}
-                    className="rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#424245] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="primary-button disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isPending ? "Zapisywanie..." : "Dodaj lokalizację"}
                   </button>

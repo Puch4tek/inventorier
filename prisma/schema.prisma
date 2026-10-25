@@ -44,8 +44,8 @@ model Item {
   unit          String
   locationId    Int
   location      Location      @relation(fields: [locationId], references: [id])
-  categoryId    Int
-  category      Category      @relation(fields: [categoryId], references: [id])
+  categoryId    Int?
+  category      Category?     @relation(fields: [categoryId], references: [id])
   imageUrl      String?
   isArchived    Boolean       @default(false)
   saleEnabled   Boolean       @default(false)
