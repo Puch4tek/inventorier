@@ -7,6 +7,7 @@ import { WarehouseSwitcher } from "./warehouse-switcher";
 
 type UserMenuProps = {
   name: string;
+  isAdmin: boolean;
   warehouses: { id: string; name: string }[];
   activeWarehouseId?: string;
   canManageWarehouses: boolean;
@@ -26,6 +27,7 @@ function getInitials(name: string) {
 
 export function UserMenu({
   name,
+  isAdmin,
   warehouses,
   activeWarehouseId,
   canManageWarehouses,
@@ -100,6 +102,15 @@ export function UserMenu({
           >
             Ustawienia konta
           </Link>
+          {isAdmin ? (
+            <Link
+              href="/admin"
+              onClick={() => setOpen(false)}
+              className="mt-1 block rounded-xl px-3 py-2 text-sm text-app-foreground transition hover:bg-app-surface-muted"
+            >
+              Panel administratora
+            </Link>
+          ) : null}
           {canManageWarehouses ? (
             <Link
             href="/settings/warehouses"

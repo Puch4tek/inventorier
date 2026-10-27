@@ -16,6 +16,9 @@ export async function listUsers() {
       mustChangePassword: true,
       twoFactorEnabled: true,
       createdAt: true,
+      _count: {
+        select: { passkeys: true },
+      },
     },
   }));
 }

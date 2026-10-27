@@ -72,7 +72,7 @@ export default async function ItemsPage({
 
       <section className="page-shell">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end sm:gap-5">
-          <div>
+          <div className="min-w-0">
             <p className="page-kicker">Magazyn</p>
             <h1 className="page-title">
               Przedmioty

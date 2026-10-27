@@ -80,7 +80,10 @@ export default async function AdminPage() {
                       <span className="text-app-warning">Wymaga zmiany hasła</span>
                     ) : null}
                     {listedUser.twoFactorEnabled ? (
-                      <span className="text-app-warning">Wymaga resetu uwierzytelniania dwuskładnikowego</span>
+                      <span className="text-app-muted">TOTP włączone</span>
+                    ) : null}
+                    {listedUser._count.passkeys > 0 ? (
+                      <span className="text-app-warning">Klucze dostępu: {listedUser._count.passkeys}</span>
                     ) : null}
                   </div>
                 </div>
@@ -91,6 +94,7 @@ export default async function AdminPage() {
                     isActive={listedUser.isActive}
                     mustChangePassword={listedUser.mustChangePassword}
                     twoFactorEnabled={Boolean(listedUser.twoFactorEnabled)}
+                    passkeyCount={listedUser._count.passkeys}
                   />
                 </div>
               </article>

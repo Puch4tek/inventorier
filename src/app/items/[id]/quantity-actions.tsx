@@ -63,7 +63,7 @@ export function QuantityActions({
         </form>
       </div>
 
-      {state.error ? <p role="alert" className="mt-4 rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger">{state.error}</p> : null}
+      {state.error ? <p role="alert" className="status-error mt-4">{state.error}</p> : null}
     </section>
   );
 }

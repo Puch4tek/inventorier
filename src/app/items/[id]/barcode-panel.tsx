@@ -103,11 +103,11 @@ export function CopyBarcode({
         </svg>
       </button>
       {copied ? (
-        <span className="text-xs font-medium text-green-700" role="status" aria-live="polite">
+        <span className="text-xs font-medium text-app-success" role="status" aria-live="polite">
           Skopiowano
         </span>
       ) : copyError ? (
-        <span className="text-xs font-medium text-red-700" role="alert" aria-live="assertive">
+        <span className="text-xs font-medium text-app-danger" role="alert" aria-live="assertive">
           Nie udało się skopiować
         </span>
       ) : null}

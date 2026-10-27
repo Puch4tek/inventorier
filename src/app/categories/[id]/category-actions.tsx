@@ -36,7 +36,7 @@ function EditModal({ category, onClose }: { category: CategoryActionsProps["cate
           <input type="hidden" name="id" value={category.id} />
           <div><label htmlFor="edit-category-name" className="field-label">Nazwa</label><input id="edit-category-name" name="name" defaultValue={category.name} required className="field-input" /></div>
           <div><label htmlFor="edit-category-description" className="field-label">Opis</label><textarea id="edit-category-description" name="description" defaultValue={category.description ?? ""} rows={4} className="field-input resize-none" /></div>
-          {state.error ? <p role="alert" className="rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger">{state.error}</p> : null}
+          {state.error ? <p role="alert" className="status-error">{state.error}</p> : null}
           <div className="flex justify-end gap-3"><Button variant="secondary" type="button" onClick={onClose} className="px-5 py-3 text-sm">Anuluj</Button><Button variant="primary" type="submit" disabled={isPending} className="px-5 py-3 text-sm disabled:opacity-50">{isPending ? "Zapisywanie..." : "Zapisz zmiany"}</Button></div>
         </form>
       )}
@@ -51,7 +51,7 @@ function DeleteModal({ category, onClose }: { category: CategoryActionsProps["ca
   return (
     <Dialog title="Usuń kategorię" onClose={onClose} disabled={isPending}>
       <p className="text-sm leading-6 text-app-muted">Czy na pewno chcesz usunąć kategorię <strong className="text-app-foreground">{category.name}</strong>? Usunięcie jest możliwe tylko bez przypisanych przedmiotów.</p>
-      {state.error ? <p role="alert" className="mt-5 rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger">{state.error}</p> : null}
+      {state.error ? <p role="alert" className="status-error mt-5">{state.error}</p> : null}
       <form action={formAction} className="mt-8 flex justify-end gap-3"><input type="hidden" name="id" value={category.id} /><button type="button" onClick={onClose} className="rounded-xl border border-app-border-strong px-5 py-3 text-sm font-semibold transition hover:bg-app-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent">Anuluj</button><Button variant="danger" type="submit" disabled={isPending} className="px-5 py-3 text-sm font-semibold transition disabled:opacity-50">{isPending ? "Usuwanie..." : "Usuń kategorię"}</Button></form>
     </Dialog>
   );

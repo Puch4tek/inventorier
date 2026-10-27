@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/get-current-user";
 import { PasswordForm, ProfileForm } from "./settings-forms";
 import { AccountTabs } from "./account-tabs";
+import { getSecuritySettings } from "@/server/security/get-security-settings";
+import { SecuritySettings } from "./security-settings";
 
 export const instant = false;
 
@@ -18,7 +20,12 @@ export default async function SettingsPage({
   }
   const params = await searchParams;
   const rawTab = Array.isArray(params.tab) ? params.tab[0] : params.tab;
-  const tab = rawTab === "password" || rawTab === "email" ? rawTab : "profile";
+  const tab =
+    rawTab === "password" || rawTab === "email" || rawTab === "security"
+      ? rawTab
+      : "profile";
+  const securitySettings =
+    tab === "security" ? await getSecuritySettings(user.id) : null;
 
   return (
     <main className="app-shell pb-24 sm:pb-0">
@@ -73,6 +80,9 @@ export default async function SettingsPage({
               {user.email}
             </p>
           </section>
+          ) : null}
+          {tab === "security" && securitySettings ? (
+            <SecuritySettings initialSettings={securitySettings} />
           ) : null}
         </div>
       </section>

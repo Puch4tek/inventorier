@@ -154,7 +154,7 @@ function EditLocationModal({
             </select>
           </div>
           {state.error ? (
-            <p role="alert" className="rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger">
+            <p role="alert" className="status-error">
               {state.error}
             </p>
           ) : null}
@@ -208,7 +208,7 @@ function DeleteLocationModal({
         jest możliwa tylko wtedy, gdy nie ma ona dzieci ani przedmiotów.
       </p>
       {state.error ? (
-        <p role="alert" className="mt-5 rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger">
+        <p role="alert" className="status-error mt-5">
           {state.error}
         </p>
       ) : null}

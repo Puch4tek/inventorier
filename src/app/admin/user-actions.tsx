@@ -18,11 +18,13 @@ export function UserActions({
   isActive,
   mustChangePassword,
   twoFactorEnabled,
+  passkeyCount,
 }: {
   userId: string;
   isActive: boolean;
   mustChangePassword: boolean;
   twoFactorEnabled: boolean;
+  passkeyCount: number;
 }) {
   const [resetState, resetAction, isResetting] = useActionState(
     resetUserPasswordAction,
@@ -66,13 +68,13 @@ export function UserActions({
       {statusState.success ? <p role="status" className="text-xs text-app-success">{statusState.success}</p> : null}
       {passwordState.error ? <p role="alert" className="text-xs text-app-danger">{passwordState.error}</p> : null}
       {passwordState.success ? <p role="status" className="text-xs text-app-success">{passwordState.success}</p> : null}
-      {twoFactorEnabled ? (
+      {twoFactorEnabled || passkeyCount > 0 ? (
         <form action={twoFactorAction} onSubmit={(event) => {
-          if (!window.confirm("Zresetować uwierzytelnianie dwuskładnikowe i wylogować wszystkie sesje użytkownika?")) event.preventDefault();
+          if (!window.confirm("Reset usunie TOTP i kody zapasowe, zarejestrowane klucze dostępu, zaufane urządzenia oraz wyzwania logowania, a także unieważni istniejące sesje użytkownika. Uwaga: weryfikacja logowania rozpoczęta przed resetem może zakończyć się równolegle. Kontynuować?")) event.preventDefault();
         }}>
           <input type="hidden" name="userId" value={userId} />
           <Button variant="secondary" type="submit" disabled={isResettingTwoFactor} className="px-3 py-2 text-xs">
-            {isResettingTwoFactor ? "Resetowanie..." : "Resetuj uwierzytelnianie dwuskładnikowe"}
+            {isResettingTwoFactor ? "Resetowanie..." : "Resetuj metody uwierzytelniania"}
           </Button>
         </form>
       ) : null}
@@ -83,10 +85,11 @@ export function UserActions({
         <input
           name="password"
           type="password"
+          aria-label="Nowe hasło użytkownika"
           minLength={8}
           required
           placeholder="Nowe hasło (min. 8 znaków)"
-          className="field-input mt-0 min-w-52 flex-1"
+          className="field-input mt-0 min-w-0 flex-1 basis-52"
         />
         <Button variant="secondary"
           type="submit"

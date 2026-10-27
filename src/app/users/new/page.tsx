@@ -21,9 +21,9 @@ export default async function NewUserPage() {
               <p className="text-sm font-semibold tracking-[0.22em] text-app-inverse-muted uppercase">
                 Inventory App
               </p>
-              <h1 className="mt-16 max-w-sm text-5xl font-semibold leading-[1.05] tracking-[-0.04em]">
+              <p className="mt-16 max-w-sm text-5xl font-semibold leading-[1.05] tracking-[-0.04em]">
                 Zacznij porządkować swój magazyn.
-              </h1>
+              </p>
             </div>
             <p className="max-w-sm text-sm leading-6 text-app-inverse-muted">
               Jedno miejsce na przedmioty, lokalizacje i historię zmian.
@@ -33,9 +33,9 @@ export default async function NewUserPage() {
           <div className="p-7 sm:p-12">
             <div className="mb-10">
               <p className="text-sm font-medium text-app-muted">Pierwszy krok</p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-[-0.03em]">
+              <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em]">
                 Utwórz konto
-              </h2>
+              </h1>
               <p className="mt-3 text-[15px] leading-6 text-app-muted">
                 {registrationEnabled
                   ? "Załóż konto, aby rozpocząć pracę z aplikacją."

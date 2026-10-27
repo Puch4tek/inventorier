@@ -61,4 +61,4 @@ unset DATABASE_URL
 export DATABASE_URL="$TEST_DATABASE_URL"
 node --conditions=react-server --experimental-strip-types \
   --import ./tests/register-ts-runtime-loader.mjs \
-  --test tests/warehouse-schema.test.mjs tests/warehouse-locks.test.mjs
+  --test tests/warehouse-schema.test.mjs tests/warehouse-locks.test.mjs tests/passkey-config.test.mjs tests/mfa-auth.test.mjs

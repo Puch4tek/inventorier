@@ -61,17 +61,17 @@ export async function AppHeader({
                 warehouses={warehouses}
                 activeId={currentWarehouse?.warehouse.id}
               />
-              <Link
-                href="/dashboard"
-                className={getButtonClassName(
-                  "secondary",
-                  "px-3 py-2 text-xs sm:px-4 sm:text-sm",
-                )}
-              >
-                Panel główny
-              </Link>
+              <span className="hidden sm:block">
+                <Link
+                  href="/dashboard"
+                  className={getButtonClassName("secondary", "px-4 py-2 text-sm")}
+                >
+                  Panel główny
+                </Link>
+              </span>
               <UserMenu
                 name={user.name}
+                isAdmin={user.role === "ADMIN"}
                 warehouses={warehouses}
                 activeWarehouseId={currentWarehouse?.warehouse.id}
                 canManageWarehouses={

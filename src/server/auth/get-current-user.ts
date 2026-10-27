@@ -14,7 +14,7 @@ export async function getActiveSession() {
       query: { disableCookieCache: true },
     });
   } catch (error) {
-    if (isAPIError(error) && (error.body?.code === "ACCOUNT_DISABLED" || error.body?.code === "TWO_FACTOR_RESET_REQUIRED")) {
+    if (isAPIError(error) && error.body?.code === "ACCOUNT_DISABLED") {
       return null;
     }
     throw error;
@@ -30,10 +30,9 @@ export async function getActiveSession() {
       role: true,
       isActive: true,
       mustChangePassword: true,
-      twoFactorEnabled: true,
     },
   });
-  return user?.isActive && !user.twoFactorEnabled ? { user, session: session.session } : null;
+  return user?.isActive ? { user, session: session.session } : null;
 }
 
 export async function getActiveSessionUser() {

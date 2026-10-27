@@ -24,7 +24,7 @@ export async function resetUserTwoFactorAction(
     if (typeof userId !== "string" || !userId) return { error: "Nieprawidłowy użytkownik." };
     await resetUserTwoFactor(userId, currentUser.id);
     revalidatePath("/admin");
-    return { success: "Ustawienia uwierzytelniania dwuskładnikowego zresetowano, a sesje wylogowano." };
+    return { success: "Metody uwierzytelniania dwuskładnikowego usunięto, a istniejące sesje unieważniono." };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Nie udało się zresetować uwierzytelniania." };
   }

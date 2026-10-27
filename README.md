@@ -66,13 +66,29 @@ Historia przedmiotów zachowuje nazwę użytkownika z chwili zdarzenia również
 usunięciu jego konta. Migracja bootstrapu tworzy pustą bazę; istniejące dane
 nie są migrowane. Wcześniejsze zmiany nazwy nie są dostępne do odtworzenia.
 
-Funkcje uwierzytelniania dwuskładnikowego i kluczy dostępu są obecnie
-niedostępne. Konta, dla których wcześniej włączono uwierzytelnianie
-dwuskładnikowe, nie mogą się logować ani używać istniejących sesji do czasu
-resetu tego ustawienia przez administratora w panelu użytkowników. Reset usuwa
-dane uwierzytelniania dwuskładnikowego i wylogowuje wszystkie sesje konta.
-Jeśli wszyscy administratorzy mają włączone to ustawienie, odzyskanie dostępu
-wymaga interwencji operatora bazy danych przed wdrożeniem.
+Użytkownik może w ustawieniach konta włączyć TOTP z aplikacji
+uwierzytelniającej, zapisać jednorazowe kody zapasowe i zarządzać swoimi
+passkeys. Logowanie hasłem z aktywnym TOTP wymaga kodu z aplikacji albo kodu
+zapasowego; passkey jest osobną metodą logowania bez hasła i może być używany,
+nawet jeśli TOTP jest włączone. Zaufanie temu urządzeniu jest opcjonalne i
+trwa do 30 dni, odnawiane przy kolejnym logowaniu. Administrator może zresetować
+czynniki MFA/passkeys użytkownika, co unieważnia jego sesje.
+
+WebAuthn w produkcji wymaga HTTPS i stabilnej domeny. Ustaw
+`PASSKEY_RP_ID` na domenę bez schematu ani portu (np. `example.com`),
+`PASSKEY_ORIGIN` na dokładny origin aplikacji (np.
+`https://inventory.example.com`) oraz `BETTER_AUTH_URL` na ten sam origin.
+RP ID musi być hostem originu albo jego nadrzędną domeną. W środowisku lokalnym
+domyślne ustawienia używają `http://localhost:3000` i RP ID `localhost`.
+Zmiana RP ID uniemożliwi używanie wcześniej zarejestrowanych passkeys.
+
+Przed wdrożeniem w istniejącej instalacji zastosuj migrację
+`20261027160000_reset_legacy_two_factor`: resetuje ona stare konfiguracje TOTP,
+wyzwania, zaufane urządzenia i sesje użytkowników z `twoFactorEnabled = true`.
+Zachowuje istniejące passkeys. Zatrzymaj poprzednią wersję aplikacji, wykonaj
+kopię zapasową i zastosuj migrację przed uruchomieniem nowego kodu. Nie
+uruchamiaj ponownie tej migracji ręcznie po ponownej aktywacji TOTP.
+Migracja bootstrapu pozostaje przeznaczona wyłącznie dla nowych, pustych baz.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

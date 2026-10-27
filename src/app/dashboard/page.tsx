@@ -57,19 +57,11 @@ export default async function DashboardPage() {
                 {user.email}
               </p>
             </div>
-            {user.role === "ADMIN" ? (
-              <Link
-                href="/admin"
-                className={getButtonClassName("secondary", "px-4 py-3 text-sm")}
-              >
-                Panel administratora
-              </Link>
-            ) : null}
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-2 sm:mt-12 sm:gap-5">
-          <Link href="/items">
+        <div className="mt-5 grid auto-rows-fr grid-cols-2 gap-2 sm:mt-12 sm:auto-rows-auto sm:gap-5">
+          <Link href="/items" className="min-w-0">
             <DashboardCard
               title="Przedmioty"
               value={counts.activeItems.toString()}
@@ -77,7 +69,7 @@ export default async function DashboardPage() {
               accent="bg-app-info-surface"
             />
           </Link>
-          <Link href="/locations">
+          <Link href="/locations" className="min-w-0">
             <DashboardCard
               title="Lokalizacje"
               value={counts.locations.toString()}
@@ -85,7 +77,7 @@ export default async function DashboardPage() {
               accent="bg-app-success-surface"
             />
           </Link>
-          <Link href="/categories">
+          <Link href="/categories" className="min-w-0">
             <DashboardCard
               title="Kategorie"
               value={counts.categories.toString()}
@@ -257,7 +249,7 @@ function DashboardCard({
   accent: string;
 }) {
   return (
-    <article className="group rounded-2xl border border-app-border bg-app-surface p-4 shadow-card transition hover:-translate-y-0.5 hover:shadow-card-hover sm:rounded-3xl sm:p-6">
+    <article className="group h-full min-w-0 rounded-2xl border border-app-border bg-app-surface p-4 shadow-card transition hover:-translate-y-0.5 hover:shadow-card-hover sm:rounded-3xl sm:p-6">
       <div className={`mb-4 h-1.5 w-8 rounded-full sm:mb-6 sm:h-2 sm:w-12 ${accent}`} />
       <p className="text-xs font-medium text-app-muted sm:text-sm">{title}</p>
       <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:mt-5 sm:text-4xl">

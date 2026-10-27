@@ -4,9 +4,14 @@ const tabs = [
   { id: "profile", label: "Profil" },
   { id: "password", label: "Hasło" },
   { id: "email", label: "E-mail" },
+  { id: "security", label: "Bezpieczeństwo" },
 ] as const;
 
-export function AccountTabs({ active }: { active: (typeof tabs)[number]["id"] }) {
+export function AccountTabs({
+  active,
+}: {
+  active: (typeof tabs)[number]["id"];
+}) {
   return (
     <nav className="mt-8 flex gap-1 overflow-x-auto rounded-2xl border border-app-border bg-app-surface-muted p-1" aria-label="Ustawienia konta">
       {tabs.map((tab) => (

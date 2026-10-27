@@ -22,6 +22,7 @@
     "next": "16.4.3",
     "pg": "^8.23.1",
     "prisma": "^7.10.1",
+    "pwa-asset-generator": "^8.1.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "^0.0.1"

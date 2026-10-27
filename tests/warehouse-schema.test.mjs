@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { after, before, test } from "node:test";
 import pg from "pg";
@@ -275,4 +276,130 @@ test("fresh-install bootstrap refuses a populated schema without deleting its ma
   } finally {
     await verify.end();
   }
+});
+
+test("legacy MFA migration resets only enrolled users and preserves passkeys", async () => {
+  const suffix = randomUUID();
+  const legacyUserId = `legacy-mfa-${suffix}`;
+  const currentUserId = `current-mfa-${suffix}`;
+  const legacyChallenge = `2fa-challenge-${suffix}`;
+  const currentChallenge = `2fa-challenge-current-${suffix}`;
+
+  await client.query(
+    `INSERT INTO "user" ("id", "email", "name", "updatedAt", "twoFactorEnabled")
+     VALUES
+       ($1, $2, 'Legacy MFA', now(), true),
+       ($3, $4, 'Current account', now(), false)`,
+    [
+      legacyUserId,
+      `${suffix}@legacy.test.invalid`,
+      currentUserId,
+      `${suffix}@current.test.invalid`,
+    ],
+  );
+  await client.query(
+    `INSERT INTO "twoFactor" ("id", "secret", "backupCodes", "userId")
+     VALUES ($1, 'encrypted-secret', 'encrypted-codes', $2),
+            ($3, 'encrypted-secret', 'encrypted-codes', $4)`,
+    [`legacy-factor-${suffix}`, legacyUserId, `current-factor-${suffix}`, currentUserId],
+  );
+  await client.query(
+    `INSERT INTO "passkey" ("id", "publicKey", "userId", "credentialID", "counter", "deviceType", "backedUp")
+     VALUES ($1, 'public-key', $2, $3, 0, 'singleDevice', false)`,
+    [`legacy-passkey-${suffix}`, legacyUserId, `credential-${suffix}`],
+  );
+  await client.query(
+    `INSERT INTO "session" ("id", "userId", "expiresAt", "token", "updatedAt")
+     VALUES ($1, $2, now() + interval '1 day', $3, now()),
+            ($4, $5, now() + interval '1 day', $6, now())`,
+    [
+      `legacy-session-${suffix}`,
+      legacyUserId,
+      `legacy-token-${suffix}`,
+      `current-session-${suffix}`,
+      currentUserId,
+      `current-token-${suffix}`,
+    ],
+  );
+  await client.query(
+    `INSERT INTO "verification" ("id", "identifier", "value", "expiresAt", "updatedAt")
+     VALUES
+       ($1, $2, $3, now() + interval '10 minutes', now()),
+       ($4, $5, '2', now() + interval '10 minutes', now()),
+       ($6, $7, $3, now() + interval '10 minutes', now()),
+       ($8, $9, $10, now() + interval '10 minutes', now()),
+       ($11, $12, $13, now() + interval '10 minutes', now()),
+       ($14, $15, $16, now() + interval '10 minutes', now())`,
+    [
+      `legacy-challenge-row-${suffix}`,
+      legacyChallenge,
+      legacyUserId,
+      `legacy-attempt-row-${suffix}`,
+      `2fa-attempts-${legacyChallenge}`,
+      `legacy-otp-row-${suffix}`,
+      `2fa-otp-${legacyChallenge}`,
+      `legacy-trust-row-${suffix}`,
+      `trust-device-${suffix}`,
+      legacyUserId,
+      `current-challenge-row-${suffix}`,
+      currentChallenge,
+      currentUserId,
+      `current-attempt-row-${suffix}`,
+      `2fa-attempts-${currentChallenge}`,
+      "2",
+    ],
+  );
+  await client.query(
+    `INSERT INTO "verification" ("id", "identifier", "value", "expiresAt", "updatedAt")
+     VALUES ($1, $2, $3, now() + interval '10 minutes', now())`,
+    [
+      `current-trust-row-${suffix}`,
+      `trust-device-current-${suffix}`,
+      currentUserId,
+    ],
+  );
+
+  const migration = await readFile(
+    "prisma/migrations/20261027160000_reset_legacy_two_factor/migration.sql",
+    "utf8",
+  );
+  await client.query(migration);
+
+  const legacy = await client.query(
+    `SELECT u."twoFactorEnabled",
+            (SELECT count(*)::int FROM "twoFactor" WHERE "userId" = u."id") AS factors,
+            (SELECT count(*)::int FROM "session" WHERE "userId" = u."id") AS sessions,
+            (SELECT count(*)::int FROM "passkey" WHERE "userId" = u."id") AS passkeys,
+            (SELECT count(*)::int FROM "verification"
+              WHERE "value" = u."id"
+                AND ("identifier" LIKE '2fa-%' OR "identifier" LIKE 'trust-device-%')) AS challenges
+     FROM "user" u WHERE u."id" = $1`,
+    [legacyUserId],
+  );
+  assert.deepEqual(legacy.rows[0], {
+    twoFactorEnabled: false,
+    factors: 0,
+    sessions: 0,
+    passkeys: 1,
+    challenges: 0,
+  });
+
+  const current = await client.query(
+    `SELECT u."twoFactorEnabled",
+            (SELECT count(*)::int FROM "twoFactor" WHERE "userId" = u."id") AS factors,
+            (SELECT count(*)::int FROM "session" WHERE "userId" = u."id") AS sessions,
+            (SELECT count(*)::int FROM "verification"
+              WHERE "value" = u."id"
+                AND ("identifier" LIKE '2fa-%' OR "identifier" LIKE 'trust-device-%')) AS verifications
+     FROM "user" u WHERE u."id" = $1`,
+    [currentUserId],
+  );
+  assert.deepEqual(current.rows[0], {
+    twoFactorEnabled: false,
+    factors: 1,
+    sessions: 1,
+    verifications: 2,
+  });
+
+  await client.query(migration);
 });

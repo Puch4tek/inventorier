@@ -36,16 +36,23 @@ export function LocationTree({ locations }: LocationTreeProps) {
 function LocationTreeItem({
   node,
   level,
+  parentName,
 }: {
   node: LocationNode;
   level: number;
+  parentName?: string;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <article
         className="rounded-2xl border border-app-border bg-app-surface p-5 shadow-card"
-        style={{ marginLeft: `${level * 2}rem` }}
+        style={{ marginLeft: `${Math.min(level, 3) * 1.5}rem` }}
       >
+        {parentName ? (
+          <p className={level > 3 ? "mb-2 break-words text-xs text-app-muted" : "sr-only"}>
+            Lokalizacja nadrzędna: {parentName}
+          </p>
+        ) : null}
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
           <div>
             <div className="flex items-center gap-2">
@@ -56,7 +63,7 @@ function LocationTreeItem({
               ) : null}
               <Link
                 href={`/locations/${node.id}`}
-                className="text-lg font-semibold tracking-[-0.02em] hover:underline"
+                className="min-w-0 break-words text-lg font-semibold tracking-[-0.02em] hover:underline"
               >
                 {node.name}
               </Link>
@@ -65,7 +72,7 @@ function LocationTreeItem({
               {node.description || "Brak opisu"}
             </p>
           </div>
-          <div className="flex gap-4 text-xs text-app-muted">
+          <div className="flex flex-wrap gap-4 text-xs text-app-muted">
             <span>Przedmioty: {node.itemCount}</span>
             <span>Podlokalizacje: {node.childCount}</span>
           </div>
@@ -75,7 +82,7 @@ function LocationTreeItem({
       {node.children.length > 0 ? (
         <div className="mt-3 space-y-3">
           {node.children.map((child) => (
-            <LocationTreeItem key={child.id} node={child} level={level + 1} />
+            <LocationTreeItem key={child.id} node={child} level={level + 1} parentName={node.name} />
           ))}
         </div>
       ) : null}

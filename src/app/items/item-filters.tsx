@@ -68,6 +68,7 @@ export function ItemFilters({
       >
       <input
         name="search"
+        aria-label="Szukaj przedmiotu"
         key={searchParams.toString()}
         defaultValue={searchParams.get("search") ?? ""}
         placeholder="Szukaj przedmiotu..."
@@ -75,6 +76,7 @@ export function ItemFilters({
       />
       <select
         name="locationId"
+        aria-label="Filtruj według lokalizacji"
         defaultValue={searchParams.get("locationId") ?? ""}
         onChange={(event) => updateFilter("locationId", event.target.value)}
         className="field-input field-select mt-0"
@@ -88,6 +90,7 @@ export function ItemFilters({
       </select>
       <select
         name="categoryId"
+        aria-label="Filtruj według kategorii"
         defaultValue={searchParams.get("categoryId") ?? ""}
         onChange={(event) => updateFilter("categoryId", event.target.value)}
         className="field-input field-select mt-0"
@@ -102,6 +105,7 @@ export function ItemFilters({
       </select>
       <select
         name="sort"
+        aria-label="Sortowanie"
         value={`${["quantity", "updatedAt"].includes(searchParams.get("sortBy") ?? "") ? searchParams.get("sortBy") : "name"}-${searchParams.get("sortDirection") === "desc" ? "desc" : "asc"}`}
         onChange={(event) => {
           const [sortBy, sortDirection] = event.target.value.split("-");
@@ -119,12 +123,13 @@ export function ItemFilters({
         <option value="updatedAt-desc">Ostatnio zmienione</option>
         <option value="updatedAt-asc">Najdawniej zmienione</option>
       </select>
-      <div className="flex gap-3 sm:col-span-2 lg:col-span-5">
+      <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-5">
         <select
           name="archived"
+          aria-label="Stan archiwizacji"
           defaultValue={searchParams.get("archived") ?? "active"}
           onChange={(event) => updateFilter("archived", event.target.value)}
-          className="field-input field-select mt-0 max-w-xs"
+          className="field-input field-select mt-0 min-w-0 sm:max-w-xs"
         >
           <option value="active">Aktywne</option>
           <option value="archived">Zarchiwizowane</option>
