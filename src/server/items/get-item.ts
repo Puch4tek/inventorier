@@ -1,16 +1,16 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
+import { requireCurrentWarehouse } from "@/server/warehouses/current-warehouse";
+import { withWarehouseRead } from "@/server/warehouses/permissions";
 
 export async function getItem(itemId: number) {
     if (!Number.isInteger(itemId) || itemId <= 0) {
         throw new Error("Valid item ID is required");
     }
 
-    const item = await prisma.item.findUnique({
-        where: {
-            id: itemId,
-        },
+    const current = await requireCurrentWarehouse();
+    const item = await withWarehouseRead(current, (transaction) => transaction.item.findFirst({
+        where: { id: itemId, location: { warehouseId: current.warehouse.id } },
         select: {
             id: true,
             name: true,
@@ -27,6 +27,7 @@ export async function getItem(itemId: number) {
             },
             categoryId: true,
             category: {
+                where: { warehouseId: current.warehouse.id },
                 select: {
                     id: true,
                     name: true,
@@ -45,17 +46,15 @@ export async function getItem(itemId: number) {
                     newValue: true,
                     description: true,
                     createdAt: true,
-                    user: {
-                        select: { id: true, name: true },
-                    },
+                    actorName: true,
                 },
             },
         },
-    });
+    }));
 
     if (!item) {
         throw new Error("Item not found");
     }
 
-    return item;
+    return { ...item, categoryId: item.category?.id ?? null };
 }

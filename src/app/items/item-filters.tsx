@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/button";
+import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type Option = { id: number; name: string };
@@ -13,6 +15,23 @@ export function ItemFilters({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const filtersRef = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    const filters = filtersRef.current;
+    if (!filters) return;
+
+    const desktopQuery = window.matchMedia("(min-width: 640px)");
+    const syncOpenState = () => {
+      if (desktopQuery.matches) {
+        filters.open = true;
+      }
+    };
+
+    syncOpenState();
+    desktopQuery.addEventListener("change", syncOpenState);
+    return () => desktopQuery.removeEventListener("change", syncOpenState);
+  }, []);
 
   function updateFilter(name: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -22,8 +41,19 @@ export function ItemFilters({
   }
 
   return (
-    <form
-      onSubmit={(event) => {
+    <details ref={filtersRef} className="filters-panel panel-card group mt-5 p-4 sm:mt-8 sm:p-5">
+      <summary className="flex cursor-pointer list-none items-center justify-between font-semibold sm:hidden">
+        <span>Filtry i wyszukiwanie</span>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="h-6 w-6 shrink-0 fill-current text-app-muted transition-transform group-open:rotate-180"
+        >
+          <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+        </svg>
+      </summary>
+      <form
+        onSubmit={(event) => {
         event.preventDefault();
         const params = new URLSearchParams(searchParams.toString());
         const nextSearch = new FormData(event.currentTarget)
@@ -34,8 +64,8 @@ export function ItemFilters({
         else params.delete("search");
         router.push(`/items?${params.toString()}`);
       }}
-      className="panel-card mt-8 grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-5"
-    >
+        className="mt-3 grid gap-3 sm:mt-0 sm:grid-cols-2 lg:grid-cols-5"
+      >
       <input
         name="search"
         key={searchParams.toString()}
@@ -47,7 +77,7 @@ export function ItemFilters({
         name="locationId"
         defaultValue={searchParams.get("locationId") ?? ""}
         onChange={(event) => updateFilter("locationId", event.target.value)}
-        className="field-input mt-0"
+        className="field-input field-select mt-0"
       >
         <option value="">Wszystkie lokalizacje</option>
         {locations.map((location) => (
@@ -60,7 +90,7 @@ export function ItemFilters({
         name="categoryId"
         defaultValue={searchParams.get("categoryId") ?? ""}
         onChange={(event) => updateFilter("categoryId", event.target.value)}
-        className="field-input mt-0"
+        className="field-input field-select mt-0"
       >
         <option value="">Wszystkie kategorie</option>
         <option value="none">Bez kategorii</option>
@@ -72,7 +102,7 @@ export function ItemFilters({
       </select>
       <select
         name="sort"
-        defaultValue={searchParams.get("sort") ?? "name-asc"}
+        value={`${["quantity", "updatedAt"].includes(searchParams.get("sortBy") ?? "") ? searchParams.get("sortBy") : "name"}-${searchParams.get("sortDirection") === "desc" ? "desc" : "asc"}`}
         onChange={(event) => {
           const [sortBy, sortDirection] = event.target.value.split("-");
           const params = new URLSearchParams(searchParams.toString());
@@ -80,7 +110,7 @@ export function ItemFilters({
           params.set("sortDirection", sortDirection);
           router.push(`/items?${params.toString()}`);
         }}
-        className="field-input mt-0"
+        className="field-input field-select mt-0"
       >
         <option value="name-asc">Nazwa A-Z</option>
         <option value="name-desc">Nazwa Z-A</option>
@@ -94,18 +124,19 @@ export function ItemFilters({
           name="archived"
           defaultValue={searchParams.get("archived") ?? "active"}
           onChange={(event) => updateFilter("archived", event.target.value)}
-          className="field-input mt-0 max-w-xs"
+          className="field-input field-select mt-0 max-w-xs"
         >
           <option value="active">Aktywne</option>
           <option value="archived">Zarchiwizowane</option>
         </select>
-        <button
+        <Button variant="primary"
           type="submit"
-          className="primary-button"
+          className="px-5 py-3 text-sm font-semibold transition"
         >
           Szukaj
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="secondary"
           type="button"
           onClick={(event) => {
             const form = event.currentTarget.form;
@@ -113,7 +144,6 @@ export function ItemFilters({
               const searchInput = form.elements.namedItem("search");
               const locationInput = form.elements.namedItem("locationId");
               const categoryInput = form.elements.namedItem("categoryId");
-              const sortInput = form.elements.namedItem("sort");
               const archivedInput = form.elements.namedItem("archived");
 
               if (searchInput instanceof HTMLInputElement) {
@@ -125,9 +155,6 @@ export function ItemFilters({
               if (categoryInput instanceof HTMLSelectElement) {
                 categoryInput.value = "";
               }
-              if (sortInput instanceof HTMLSelectElement) {
-                sortInput.value = "name-asc";
-              }
               if (archivedInput instanceof HTMLSelectElement) {
                 archivedInput.value = "active";
               }
@@ -135,11 +162,12 @@ export function ItemFilters({
 
             router.replace("/items");
           }}
-          className="secondary-button"
+          className="px-5 py-3 text-sm"
         >
           Wyczyść
-        </button>
+        </Button>
       </div>
-    </form>
+      </form>
+    </details>
   );
 }

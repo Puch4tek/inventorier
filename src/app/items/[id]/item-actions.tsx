@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/button";
+import { Modal } from "@/components/modal";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -19,7 +21,6 @@ type ItemActionsProps = {
     id: number;
     name: string;
     description: string | null;
-    quantity: number;
     unit: string;
     locationId: number;
     categoryId: number | null;
@@ -41,28 +42,30 @@ export function ItemActions({
   const [restoreOpen, setRestoreOpen] = useState(false);
 
   return (
-    <div className="mt-8 flex flex-wrap gap-3">
+    <div className="mt-4 flex flex-wrap gap-3">
       {item.isArchived ? (
-        <button
+        <Button
+          variant="primary"
           type="button"
           onClick={() => setRestoreOpen(true)}
-          className="rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#424245]"
+          className="px-5 py-3 text-sm"
         >
           Przywróć
-        </button>
+        </Button>
       ) : (
         <>
-          <button
+          <Button
+            variant="primary"
             type="button"
             onClick={() => setEditOpen(true)}
-            className="rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#424245]"
+            className="px-5 py-3 text-sm"
           >
             Edytuj
-          </button>
+          </Button>
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
-            className="rounded-xl border border-[#d92d20]/30 px-5 py-3 text-sm font-semibold text-[#b42318] transition hover:bg-[#fff2f2]"
+            className="rounded-xl border border-app-danger/30 px-5 py-3 text-sm font-semibold text-app-danger transition hover:bg-app-danger-surface"
           >
             Archiwizuj
           </button>
@@ -114,15 +117,15 @@ function RestoreItemDialog({
 
   return (
     <Dialog title="Przywróć przedmiot" onClose={onClose} disabled={isPending}>
-      <p className="text-sm leading-6 text-[#6e6e73]">
+      <p className="text-sm leading-6 text-app-muted">
         Czy na pewno chcesz przywrócić przedmiot{" "}
-        <strong className="text-[#1d1d1f]">{item.name}</strong>? Pojawi się
+        <strong className="text-app-foreground">{item.name}</strong>? Pojawi się
         ponownie na aktywnej liście.
       </p>
       {state.error ? (
         <p
           role="alert"
-          className="mt-5 rounded-xl bg-[#fff2f2] px-4 py-3 text-sm text-[#b42318]"
+          className="mt-5 rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger"
         >
           {state.error}
         </p>
@@ -132,17 +135,18 @@ function RestoreItemDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-black/[0.12] px-5 py-3 text-sm font-semibold text-[#1d1d1f]"
+          className="rounded-xl border border-app-border-strong px-5 py-3 text-sm font-semibold text-app-foreground"
         >
           Anuluj
         </button>
-        <button
+        <Button
+          variant="primary"
           type="submit"
           disabled={isPending}
-          className="rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          className="px-5 py-3 text-sm disabled:opacity-50"
         >
           {isPending ? "Przywracanie..." : "Przywróć"}
-        </button>
+        </Button>
       </form>
     </Dialog>
   );
@@ -167,19 +171,20 @@ function EditItemDialog({
   }, [router, state.success]);
 
   return (
-    <Dialog title="Edytuj przedmiot" onClose={onClose} disabled={isPending}>
+    <Dialog  title="Edytuj przedmiot" onClose={onClose} disabled={isPending}>
       {state.success ? (
         <div className="space-y-5">
-          <p className="rounded-xl bg-[#effaf3] px-4 py-3 text-sm text-[#18794e]">
+          <p className="rounded-xl bg-app-success-surface px-4 py-3 text-sm text-app-success">
             {state.success}
           </p>
-          <button
+          <Button
+            variant="primary"
             type="button"
             onClick={onClose}
-            className="w-full rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#424245]"
+            className="w-full px-5 py-3 text-sm"
           >
             Zamknij
-          </button>
+          </Button>
         </div>
       ) : (
         <form action={formAction} className="space-y-5">
@@ -208,22 +213,7 @@ function EditItemDialog({
               className="field-input resize-none"
             />
           </div>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div>
-              <label htmlFor="edit-item-quantity" className="field-label">
-                Ilość
-              </label>
-              <input
-                id="edit-item-quantity"
-                name="quantity"
-                type="number"
-                min="0"
-                step="1"
-                defaultValue={item.quantity}
-                required
-                className="field-input"
-              />
-            </div>
+          <div>
             <div>
               <label htmlFor="edit-item-unit" className="field-label">
                 Jednostka
@@ -246,7 +236,7 @@ function EditItemDialog({
               name="locationId"
               defaultValue={item.locationId}
               required
-              className="field-input"
+              className="field-input field-select"
             >
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>
@@ -263,7 +253,7 @@ function EditItemDialog({
               id="edit-item-category"
               name="categoryId"
               defaultValue={item.categoryId?.toString() ?? ""}
-              className="field-input"
+              className="field-input field-select"
             >
               <option value="">Brak kategorii</option>
               {categories.map((category) => (
@@ -276,7 +266,7 @@ function EditItemDialog({
           {state.error ? (
             <p
               role="alert"
-              className="rounded-xl bg-[#fff2f2] px-4 py-3 text-sm text-[#b42318]"
+              className="rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger"
             >
               {state.error}
             </p>
@@ -285,17 +275,18 @@ function EditItemDialog({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-black/[0.12] px-5 py-3 text-sm font-semibold text-[#1d1d1f] transition hover:bg-[#f5f5f7]"
+              className="rounded-xl border border-app-border-strong px-5 py-3 text-sm font-semibold text-app-foreground transition hover:bg-app-surface-muted"
             >
               Anuluj
             </button>
-            <button
+            <Button
+              variant="primary"
               type="submit"
               disabled={isPending}
-              className="rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#424245] disabled:cursor-not-allowed disabled:opacity-50"
+              className="px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? "Zapisywanie..." : "Zapisz zmiany"}
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -324,15 +315,15 @@ function ArchiveItemDialog({
 
   return (
     <Dialog title="Archiwizuj przedmiot" onClose={onClose} disabled={isPending}>
-      <p className="text-sm leading-6 text-[#6e6e73]">
+      <p className="text-sm leading-6 text-app-muted">
         Czy na pewno chcesz zarchiwizować przedmiot{" "}
-        <strong className="text-[#1d1d1f]">{item.name}</strong>? Zniknie z
+        <strong className="text-app-foreground">{item.name}</strong>? Zniknie z
         aktywnej listy przedmiotów, ale historia zostanie zachowana.
       </p>
       {state.error ? (
         <p
           role="alert"
-          className="mt-5 rounded-xl bg-[#fff2f2] px-4 py-3 text-sm text-[#b42318]"
+          className="mt-5 rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger"
         >
           {state.error}
         </p>
@@ -342,17 +333,17 @@ function ArchiveItemDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-black/[0.12] px-5 py-3 text-sm font-semibold text-[#1d1d1f] transition hover:bg-[#f5f5f7]"
+          className="rounded-xl border border-app-border-strong px-5 py-3 text-sm font-semibold text-app-foreground transition hover:bg-app-surface-muted"
         >
           Anuluj
         </button>
-        <button
+        <Button variant="danger"
           type="submit"
           disabled={isPending}
-          className="rounded-xl bg-[#b42318] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#8f1d14] disabled:cursor-not-allowed disabled:opacity-50"
+          className="px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPending ? "Archiwizowanie..." : "Archiwizuj"}
-        </button>
+        </Button>
       </form>
     </Dialog>
   );
@@ -370,18 +361,9 @@ function Dialog({
   disabled: boolean;
 }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5 py-8 backdrop-blur-sm"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !disabled) onClose();
-      }}
-    >
+    <Modal labelledBy="item-dialog-title" onClose={onClose} disabled={disabled}>
       <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="item-dialog-title"
-        className="max-h-[calc(100vh-4rem)] w-full max-w-lg overflow-y-auto rounded-[2rem] border border-black/[0.06] bg-white p-7 text-[#1d1d1f] shadow-[0_24px_80px_rgba(0,0,0,0.18)] sm:p-10"
+        className="max-h-[calc(100vh-4rem)] w-full max-w-lg overflow-y-auto rounded-[2rem] border border-app-border bg-app-surface p-7 text-app-foreground shadow-modal sm:p-10"
       >
         <div className="flex items-start justify-between gap-6">
           <h2
@@ -395,13 +377,13 @@ function Dialog({
             aria-label="Zamknij"
             onClick={onClose}
             disabled={disabled}
-            className="rounded-full px-3 py-1 text-2xl leading-none text-[#6e6e73] transition hover:bg-[#f5f5f7] hover:text-[#1d1d1f] disabled:opacity-50"
+            className="rounded-full px-3 py-1 text-2xl leading-none text-app-muted transition hover:bg-app-surface-muted hover:text-app-foreground disabled:opacity-50"
           >
             &times;
           </button>
         </div>
         <div className="mt-6">{children}</div>
       </section>
-    </div>
+    </Modal>
   );
 }

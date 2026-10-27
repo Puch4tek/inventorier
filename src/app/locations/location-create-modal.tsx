@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/button";
+import { Modal } from "@/components/modal";
 import { useActionState, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -42,13 +44,13 @@ export function LocationCreateModal({
 
   return (
     <>
-      <button
+      <Button variant="primary"
         type="button"
         onClick={openModal}
-        className="primary-button"
+        className="px-5 py-3 text-sm font-semibold transition"
       >
         Dodaj lokalizację
-      </button>
+      </Button>
 
       {isOpen ? (
         <LocationCreateDialog
@@ -86,24 +88,13 @@ function LocationCreateDialog({
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5 py-8 backdrop-blur-sm"
-        role="presentation"
-        onMouseDown={(event) => {
-          if (event.target === event.currentTarget && !isPending) {
-            onClose();
-          }
-        }}
-      >
+      <Modal labelledBy="location-modal-title" onClose={onClose} disabled={isPending}>
           <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="location-modal-title"
             className="panel-card w-full max-w-lg rounded-[2rem] p-7 sm:p-10"
           >
             <div className="flex items-start justify-between gap-6">
               <div>
-                <p className="text-sm font-medium text-[#6e6e73]">
+                <p className="text-sm font-medium text-app-muted">
                   Lokalizacje
                 </p>
                 <h2
@@ -117,13 +108,14 @@ function LocationCreateDialog({
                 type="button"
                 aria-label="Zamknij"
                 onClick={onClose}
-                className="rounded-full px-3 py-1 text-2xl leading-none text-[#6e6e73] transition hover:bg-[#f5f5f7] hover:text-[#1d1d1f]"
+                disabled={isPending}
+                className="rounded-full px-3 py-1 text-2xl leading-none text-app-muted transition hover:bg-app-surface-muted hover:text-app-foreground"
               >
                 &times;
               </button>
             </div>
 
-            <p className="mt-3 text-[15px] leading-6 text-[#6e6e73]">
+            <p className="mt-3 text-[15px] leading-6 text-app-muted">
               Utwórz miejsce, w którym przechowujesz swoje przedmioty.
             </p>
 
@@ -131,26 +123,27 @@ function LocationCreateDialog({
               <div className="mt-8 space-y-5">
                 <p
                   role="status"
-                  className="rounded-xl bg-[#effaf3] px-4 py-3 text-sm text-[#18794e]"
+                  className="rounded-xl bg-app-success-surface px-4 py-3 text-sm text-app-success"
                 >
                   Lokalizacja została utworzona.
                 </p>
                 <div className="flex justify-end">
-                  <button
+                  <Button variant="primary"
                     type="button"
                     onClick={onClose}
-                    className="primary-button"
+                    disabled={isPending}
+                    className="px-5 py-3 text-sm font-semibold transition"
                   >
                     Zamknij
-                  </button>
+                  </Button>
                 </div>
-                <button
+                <Button variant="secondary"
                   type="button"
                   onClick={onReset}
-                  className="secondary-button w-full"
+                  className="px-5 py-3 text-sm font-semibold transition w-full"
                 >
                   Dodaj kolejną lokalizację
-                </button>
+                </Button>
               </div>
             ) : (
               <form action={formAction} className="mt-8 space-y-5">
@@ -171,13 +164,13 @@ function LocationCreateDialog({
                 <div>
                   <label htmlFor="location-parent" className="field-label">
                     Lokalizacja nadrzędna{" "}
-                    <span className="text-[#6e6e73]">(opcjonalnie)</span>
+                    <span className="text-app-muted">(opcjonalnie)</span>
                   </label>
                   <select
                     id="location-parent"
                     name="parentId"
                     defaultValue=""
-                    className="field-input"
+                    className="field-input field-select"
                   >
                     <option value="">Brak — lokalizacja główna</option>
                     {locations.map((location) => (
@@ -190,7 +183,7 @@ function LocationCreateDialog({
 
                 <div>
                   <label htmlFor="location-description" className="field-label">
-                    Opis <span className="text-[#6e6e73]">(opcjonalnie)</span>
+                    Opis <span className="text-app-muted">(opcjonalnie)</span>
                   </label>
                   <textarea
                     id="location-description"
@@ -204,32 +197,33 @@ function LocationCreateDialog({
                 {state.error ? (
                   <p
                     role="alert"
-                    className="rounded-xl bg-[#fff2f2] px-4 py-3 text-sm text-[#b42318]"
+                    className="rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger"
                   >
                     {state.error}
                   </p>
                 ) : null}
 
                 <div className="flex justify-end gap-3">
-                  <button
+                  <Button variant="secondary"
                     type="button"
                     onClick={onClose}
-                    className="secondary-button"
+                    disabled={isPending}
+                    className="px-5 py-3 text-sm font-semibold transition"
                   >
                     Anuluj
-                  </button>
-                  <button
+                  </Button>
+                  <Button variant="primary"
                     type="submit"
                     disabled={isPending}
-                    className="primary-button disabled:cursor-not-allowed disabled:opacity-50"
+                    className="px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isPending ? "Zapisywanie..." : "Dodaj lokalizację"}
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}
           </section>
-      </div>
+      </Modal>
     </>
   );
 }

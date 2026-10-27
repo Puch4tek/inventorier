@@ -1,14 +1,15 @@
+import { AppHeader } from "@/components/app-header";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/get-current-user";
-import { logoutAction } from "@/app/dashboard/actions";
 import { listCategories } from "@/server/categories/list-categories";
 import { listLocations } from "@/server/locations/list-locations";
 import { listItems } from "@/server/items/list-items";
+import { requireCurrentWarehouse } from "@/server/warehouses/current-warehouse";
+import { canManageWarehouseData } from "@/server/warehouses/permissions";
 import { ItemCreateModal } from "./item-create-modal";
 import { ItemFilters } from "./item-filters";
 import { MobileNav } from "@/app/dashboard/mobile-nav";
-import { ThemeToggle } from "@/app/theme-toggle";
 
 export const instant = false;
 
@@ -50,7 +51,7 @@ export default async function ItemsPage({
       ? locationId
       : undefined;
 
-  const [items, locations, categories] = await Promise.all([
+  const [items, locations, categories, current] = await Promise.all([
     listItems({
       search: getParam("search"),
       locationId: validLocationId,
@@ -61,43 +62,33 @@ export default async function ItemsPage({
     }),
     listLocations(),
     listCategories(),
+    requireCurrentWarehouse(),
   ]);
+  const canManage = canManageWarehouseData(current);
 
   return (
     <main className="app-shell pb-24 sm:pb-0">
-      <header className="app-header">
-        <div className="app-header-inner">
-          <Link href="/dashboard" className="font-semibold tracking-[-0.02em]">
-            Inventory App
-          </Link>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <form action={logoutAction}>
-              <button type="submit" className="primary-button px-3 py-2 text-xs sm:px-4 sm:text-sm">
-                Wyloguj
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       <section className="page-shell">
-        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end sm:gap-5">
           <div>
             <p className="page-kicker">Magazyn</p>
             <h1 className="page-title">
               Przedmioty
             </h1>
-            <p className="page-description">
+            <p className="page-description hidden sm:block">
               {archived
                 ? "Przeglądaj przedmioty znajdujące się w archiwum."
                 : "Przeglądaj wszystkie aktywne przedmioty."}
             </p>
           </div>
-          <ItemCreateModal
-            locations={locations.map(({ id, name }) => ({ id, name }))}
-            categories={categories}
-          />
+          {canManage ? (
+            <ItemCreateModal
+              locations={locations.map(({ id, name }) => ({ id, name }))}
+              categories={categories}
+            />
+          ) : null}
         </div>
 
         <ItemFilters
@@ -106,34 +97,31 @@ export default async function ItemsPage({
         />
 
         {items.length === 0 ? (
-          <section className="panel-card mt-10 p-8 text-center">
-            <h2 className="text-xl font-semibold">Brak przedmiotów</h2>
-            <p className="mt-2 text-sm text-[#6e6e73]">
-              Dodaj pierwszy przedmiot, aby pojawił się na liście.
+          <section className="panel-card mt-5 p-6 text-center">
+            <h2 className="text-l font-semibold">Brak przedmiotów</h2>
+            <p className="mt-2 text-sm text-app-muted">
+              {canManage ? "Dodaj pierwszy przedmiot, aby pojawił się na liście." : "W tym magazynie nie ma przedmiotów."}
             </p>
           </section>
         ) : (
-          <section className="panel-card mt-10 overflow-hidden">
-            <div className="divide-y divide-black/[0.06]">
+          <section className="panel-card mt-5 overflow-hidden transition hover:bg-app-surface-subtle sm:mt-10">
+            <div className="divide-y divide-app-border">
               {items.map((item) => (
                 <Link
                   key={item.id}
                   href={`/items/${item.id}`}
-                  className="block px-6 py-5 transition hover:bg-[#f5f5f7] sm:px-8"
+                  className="block px-4 py-3 transition sm:px-8 sm:py-5"
                 >
-                  <div className="flex flex-col justify-between gap-2 sm:flex-row">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
                       <h2 className="font-semibold">{item.name}</h2>
-                      <p className="mt-1 text-sm text-[#6e6e73]">
-                        {item.quantity} {item.unit} · {item.barcode}
+                      <p className="mt-1 truncate text-xs text-app-muted sm:text-sm">
+                        {item.location.name} · {item.category?.name ?? "Bez kategorii"}
                       </p>
                     </div>
-                    <div className="text-sm text-[#6e6e73] sm:text-right">
-                      <p>{item.location.name}</p>
-                      <p className="mt-1">
-                        {item.category?.name ?? "Bez kategorii"}
-                      </p>
-                    </div>
+                    <p className="shrink-0 text-sm font-semibold sm:text-base">
+                      {item.quantity} {item.unit}
+                    </p>
                   </div>
                 </Link>
               ))}

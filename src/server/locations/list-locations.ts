@@ -1,9 +1,12 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
+import { requireCurrentWarehouse } from "@/server/warehouses/current-warehouse";
+import { withWarehouseRead } from "@/server/warehouses/permissions";
 
 export async function listLocations() {
-  return prisma.location.findMany({
+  const current = await requireCurrentWarehouse();
+  const locations = await withWarehouseRead(current, (transaction) => transaction.location.findMany({
+    where: { warehouseId: current.warehouse.id },
     orderBy: {
       name: "asc",
     },
@@ -11,14 +14,22 @@ export async function listLocations() {
       id: true,
       name: true,
       description: true,
-      parentId: true,
+      parent: {
+        where: { warehouseId: current.warehouse.id },
+        select: { id: true },
+      },
       createdAt: true,
       _count: {
         select: {
           items: true,
-          children: true,
+          children: { where: { warehouseId: current.warehouse.id } },
         },
       },
     },
-  });
+  }));
+
+  return locations.map(({ parent, ...location }) => ({
+    ...location,
+    parentId: parent?.id ?? null,
+  }));
 }

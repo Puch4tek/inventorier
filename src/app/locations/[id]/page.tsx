@@ -1,12 +1,13 @@
+import { AppHeader } from "@/components/app-header";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/get-current-user";
-import { logoutAction } from "@/app/dashboard/actions";
 import { getLocation } from "@/server/locations/get-location";
 import { listLocations } from "@/server/locations/list-locations";
+import { requireCurrentWarehouse } from "@/server/warehouses/current-warehouse";
+import { canManageWarehouseData } from "@/server/warehouses/permissions";
 import { LocationActions } from "./location-actions";
 import { MobileNav } from "@/app/dashboard/mobile-nav";
-import { ThemeToggle } from "@/app/theme-toggle";
 
 export const instant = false;
 
@@ -38,28 +39,17 @@ export default async function LocationPage({
     notFound();
   }
 
-  const locations = await listLocations();
+  const current = await requireCurrentWarehouse();
+  const canManage = canManageWarehouseData(current);
+  const locations = canManage ? await listLocations() : [];
 
   return (
     <main className="app-shell pb-24 sm:pb-0">
-      <header className="app-header">
-        <div className="app-header-inner max-w-5xl">
-          <Link
-            href={fromItem && /^\d+$/.test(fromItem) ? `/items/${fromItem}` : "/locations"}
-            className="text-sm font-medium text-[#6e6e73] hover:text-[#1d1d1f]"
-          >
-            ← {fromItem && /^\d+$/.test(fromItem) ? "Wróć do przedmiotu" : "Wróć do lokalizacji"}
-          </Link>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <form action={logoutAction}>
-              <button type="submit" className="primary-button px-3 py-2 text-xs sm:px-4 sm:text-sm">
-                Wyloguj
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        maxWidth="max-w-5xl"
+        backHref={fromItem && /^\d+$/.test(fromItem) ? `/items/${fromItem}` : "/locations"}
+        backLabel={fromItem && /^\d+$/.test(fromItem) ? "Wróć do przedmiotu" : "Wróć do lokalizacji"}
+      />
 
       <section className="page-shell page-shell-narrow">
         <p className="page-kicker">Lokalizacja</p>
@@ -69,7 +59,7 @@ export default async function LocationPage({
         <p className="page-description">
           {location.description || "Brak opisu"}
         </p>
-        <LocationActions
+        {canManage ? <LocationActions
           location={{
             id: location.id,
             name: location.name,
@@ -81,14 +71,14 @@ export default async function LocationPage({
             name,
             parentId,
           }))}
-        />
+        /> : null}
 
         {location.parent ? (
-          <p className="mt-5 text-sm text-[#6e6e73]">
+          <p className="mt-5 text-sm text-app-muted">
             Rodzic:{" "}
             <Link
               href={`/locations/${location.parent.id}`}
-              className="font-medium text-[#1d1d1f] hover:underline"
+              className="font-medium text-app-foreground hover:underline"
             >
               {location.parent.name}
             </Link>
@@ -99,7 +89,7 @@ export default async function LocationPage({
           <section className="panel-card p-6">
             <h2 className="text-xl font-semibold">Podlokalizacje</h2>
             {location.children.length === 0 ? (
-              <p className="mt-4 text-sm text-[#6e6e73]">
+              <p className="mt-4 text-sm text-app-muted">
                 Brak podlokalizacji.
               </p>
             ) : (
@@ -108,7 +98,7 @@ export default async function LocationPage({
                   <Link
                     key={child.id}
                     href={`/locations/${child.id}`}
-                    className="block rounded-xl bg-[#f5f5f7] px-4 py-3 text-sm font-medium hover:bg-[#e8e8ed]"
+                    className="block rounded-xl bg-app-surface-muted px-4 py-3 text-sm font-medium hover:bg-app-surface-subtle"
                   >
                     {child.name}
                   </Link>
@@ -120,7 +110,7 @@ export default async function LocationPage({
           <section className="panel-card p-6">
             <h2 className="text-xl font-semibold">Przedmioty</h2>
             {location.items.length === 0 ? (
-              <p className="mt-4 text-sm text-[#6e6e73]">
+              <p className="mt-4 text-sm text-app-muted">
                 Brak przedmiotów w tej lokalizacji.
               </p>
             ) : (
@@ -129,10 +119,10 @@ export default async function LocationPage({
                   <Link
                     key={item.id}
                     href={`/items/${item.id}?fromLocation=${location.id}`}
-                    className="rounded-xl bg-[#f5f5f7] px-4 py-3"
+                    className="rounded-xl bg-app-surface-muted px-4 py-3"
                   >
                     <p className="text-sm font-medium">{item.name}</p>
-                    <p className="mt-1 text-xs text-[#6e6e73]">
+                    <p className="mt-1 text-xs text-app-muted">
                       {item.quantity} {item.unit} · {item.barcode}
                     </p>
                   </Link>

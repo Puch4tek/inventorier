@@ -1,0 +1,12 @@
+{
+  "name": "Inventorier",
+  "short_name": "Inventorier",
+  "description": "Inventorier is a web application that allows users to manage and track their inventory items efficiently.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+
+  ]
+}

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
+import { requireWarehouseDataManager, withWarehouseMutation } from "@/server/warehouses/permissions";
 
 type CreateLocationInput = {
     name: string;
@@ -9,6 +9,7 @@ type CreateLocationInput = {
 };
 
 export async function createLocation(input: CreateLocationInput) {
+    const current = await requireWarehouseDataManager();
     const name = input.name.trim();
     const description = input.description?.trim() || null;
 
@@ -23,23 +24,18 @@ export async function createLocation(input: CreateLocationInput) {
         throw new Error("Parent location ID must be a positive integer");
     }
 
-    if (input.parentId !== undefined) {
-        const parentLocation = await prisma.location.findUnique({
-            where: {
-                id: input.parentId,
-            },
-            select: {
-                id: true,
-            },
-        });
-
-        if (!parentLocation) {
-            throw new Error("Parent location does not exist");
+    return withWarehouseMutation(current, true, async (transaction) => {
+        if (input.parentId !== undefined) {
+            const parentLocation = await transaction.location.findFirst({
+                where: { id: input.parentId, warehouseId: current.warehouse.id },
+                select: { id: true },
+            });
+            if (!parentLocation) throw new Error("Parent location does not exist");
         }
-    }
 
-    return prisma.location.create({
+        return transaction.location.create({
         data: {
+            warehouseId: current.warehouse.id,
             name,
             description,
             parentId: input.parentId ?? null,
@@ -51,5 +47,6 @@ export async function createLocation(input: CreateLocationInput) {
             parentId: true,
             createdAt: true,
         },
+        });
     });
 }

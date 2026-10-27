@@ -1,30 +1,14 @@
 import "server-only";
 
-import { getCurrentUser } from "./get-current-user";
+import { requireCurrentUser } from "./get-current-user";
+import type { Role } from "@/generated/prisma/client";
 
-export type AppRole = "USER" | "MANAGER" | "ADMIN";
-
-const roleRank: Record<AppRole, number> = {
-  USER: 1,
-  MANAGER: 2,
-  ADMIN: 3,
-};
-
-export function hasMinimumRole(
-  role: AppRole,
-  minimumRole: AppRole,
-): boolean {
-  return roleRank[role] >= roleRank[minimumRole];
-}
+export type AppRole = Role;
 
 export async function requireRole(minimumRole: AppRole) {
-  const user = await getCurrentUser();
-  if (!user) {
-    throw new Error("Musisz być zalogowany.");
-  }
-  if (!hasMinimumRole(user.role, minimumRole)) {
+  const user = await requireCurrentUser();
+  if (minimumRole === "ADMIN" && user.role !== "ADMIN") {
     throw new Error("Nie masz uprawnień do wykonania tej operacji.");
   }
   return user;
 }
-

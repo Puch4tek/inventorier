@@ -1,11 +1,10 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
-import { getLocation } from "@/server/locations/get-location";
 import { generateBarcode } from "./generate-barcode";
+import { requireWarehouseDataManager, withWarehouseMutation } from "@/server/warehouses/permissions";
+import { Prisma } from "@/generated/prisma/client";
 
 export type CreateItemInput = {
-    userId: number;
     name: string;
     description?: string;
     quantity: number;
@@ -16,11 +15,8 @@ export type CreateItemInput = {
 }
 
 export async function createItem(input: CreateItemInput) {
-    const { userId, name, description, quantity, unit, locationId, categoryId, imageUrl } = input;
-
-    if (!Number.isInteger(userId) || userId <= 0) {
-        throw new Error("Prawidłowy użytkownik jest wymagany");
-    }
+    const current = await requireWarehouseDataManager();
+    const { name, description, quantity, unit, locationId, categoryId, imageUrl } = input;
 
     if (typeof name !== "string" || !name.trim()) {
         throw new Error("Nazwa jest wymagana");
@@ -52,59 +48,78 @@ export async function createItem(input: CreateItemInput) {
     ) {
         throw new Error("ID kategorii musi być liczbą dodatnią");
     }
-    const location = await getLocation(locationId);
-    if (!location) {
-        throw new Error("Lokalizacja nie istnieje");
-    }
-
-    if (categoryId !== undefined && categoryId !== null) {
-        const category = await prisma.category.findUnique({
-            where: { id: categoryId },
-            select: { id: true },
-        });
-        if (!category) {
-            throw new Error("Kategoria nie istnieje");
-        }
-    }
-
     // Zaimplementuj handling dla imageUrl, jeśli jest wymagane dodatkowe sprawdzenie
 
-    const barcode = generateBarcode();
+    for (let attempt = 0; attempt < 10; attempt++) {
+        try {
+            return await withWarehouseMutation(current, true, async (transaction) => {
+                const location = await transaction.location.findFirst({
+                    where: { id: locationId, warehouseId: current.warehouse.id },
+                    select: { id: true },
+                });
+                if (!location) throw new Error("Lokalizacja nie istnieje");
 
-    return prisma.$transaction(async (transaction) => {
-        const item = await transaction.item.create({
-            data: {
-                name: normalizedName,
-                description: normalizedDescription,
-                barcode,
-                quantity,
-                unit: normalizedUnit,
-                locationId,
-                categoryId: categoryId ?? null,
-                imageUrl: imageUrl?.trim() || null,
-            },
-            select: {
-                id: true,
-                name: true,
-                description: true,
-                quantity: true,
-                unit: true,
-                locationId: true,
-                categoryId: true,
-                imageUrl: true,
-                barcode: true,
-            },
-        });
+                if (categoryId !== undefined && categoryId !== null) {
+                    const category = await transaction.category.findFirst({
+                        where: { id: categoryId, warehouseId: current.warehouse.id },
+                        select: { id: true },
+                    });
+                    if (!category) throw new Error("Kategoria nie istnieje");
+                }
 
-        await transaction.itemHistory.create({
-            data: {
-                itemId: item.id,
-                userId,
-                type: "ITEM_CREATED",
-                description: "Utworzono przedmiot",
-            },
-        });
+                const item = await transaction.item.create({
+                    data: {
+                        name: normalizedName,
+                        description: normalizedDescription,
+                        barcode: generateBarcode(),
+                        quantity,
+                        unit: normalizedUnit,
+                        locationId,
+                        categoryId: categoryId ?? null,
+                        imageUrl: imageUrl?.trim() || null,
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                        quantity: true,
+                        unit: true,
+                        locationId: true,
+                        categoryId: true,
+                        imageUrl: true,
+                        barcode: true,
+                    },
+                });
 
-        return item;
-    });
+                await transaction.itemHistory.create({
+                    data: {
+                        itemId: item.id,
+                        userId: current.user.id,
+                        actorName: current.user.name,
+                        type: "ITEM_CREATED",
+                        description: "Utworzono przedmiot",
+                    },
+                });
+
+                return item;
+            });
+        } catch (error) {
+            if (!isBarcodeCollision(error)) throw error;
+            if (attempt === 9) {
+                throw new Error("Nie udało się wygenerować unikalnego kodu kreskowego po 10 próbach.", { cause: error });
+            }
+        }
+    }
+    throw new Error("Nie udało się wygenerować kodu kreskowego.");
+}
+
+function isBarcodeCollision(error: unknown): boolean {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002" || error.meta?.modelName !== "Item") return false;
+    const adapterError = error.meta?.driverAdapterError;
+    if (typeof adapterError !== "object" || adapterError === null || !("cause" in adapterError)) return false;
+    const cause = adapterError.cause;
+    if (typeof cause !== "object" || cause === null || !("kind" in cause) || cause.kind !== "UniqueConstraintViolation" || !("constraint" in cause)) return false;
+    const constraint = cause.constraint;
+    return typeof constraint === "object" && constraint !== null &&
+        "index" in constraint && constraint.index === "Item_barcode_key";
 }

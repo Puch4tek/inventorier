@@ -37,7 +37,7 @@ export function MobileNav() {
   return (
     <nav
       aria-label="Nawigacja panelu"
-      className="mobile-nav fixed inset-x-0 bottom-0 z-40 border-t border-black/[0.08] bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-md sm:hidden"
+      className="mobile-nav fixed inset-x-0 bottom-0 z-40 border-t border-app-border bg-app-surface/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-card backdrop-blur-md sm:hidden"
     >
       <div className="mx-auto grid max-w-md grid-cols-5">
         {items.map((item) => {
@@ -52,14 +52,14 @@ export function MobileNav() {
               aria-current={active ? "page" : undefined}
               className={`flex min-w-0 flex-col items-center gap-1.5 rounded-xl px-1 py-1 text-[11px] font-medium transition ${
                 active
-                  ? "text-[#1d1d1f]"
-                  : "text-[#86868b] hover:text-[#1d1d1f]"
+                  ? "text-foreground"
+                  : "text-app-subtle hover:text-app-foreground"
               }`}
             >
               <span
                 aria-hidden="true"
                 className={`flex h-9 w-9 items-center justify-center rounded-lg text-2xl leading-none ${
-                  active ? "bg-[#f0f0f2]" : ""
+                  active ? "bg-app-surface-subtle" : ""
                 }`}
               >
                 <svg

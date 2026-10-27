@@ -1,5 +1,7 @@
 import { getCurrentUser } from "@/server/auth/get-current-user";
-import { prisma } from "@/lib/db/prisma";
+import { getCurrentWarehouse } from "@/server/warehouses/current-warehouse";
+import { withWarehouseRead } from "@/server/warehouses/permissions";
+import { WarehouseAccessError } from "@/server/warehouses/transaction-lock";
 import * as bwipjs from "bwip-js/node";
 
 export async function GET(
@@ -15,10 +17,25 @@ export async function GET(
     return new Response("Invalid item ID", { status: 400 });
   }
 
-  const item = await prisma.item.findUnique({
-    where: { id: itemId },
-    select: { barcode: true },
-  });
+  let current;
+  try {
+    current = await getCurrentWarehouse();
+  } catch (error) {
+    if (error instanceof WarehouseAccessError) return new Response("No active warehouse", { status: 403 });
+    throw error;
+  }
+  if (!current) return new Response("No active warehouse", { status: 403 });
+
+  let item;
+  try {
+    item = await withWarehouseRead(current, (transaction) => transaction.item.findFirst({
+      where: { id: itemId, location: { warehouseId: current.warehouse.id } },
+      select: { barcode: true },
+    }));
+  } catch (error) {
+    if (error instanceof WarehouseAccessError) return new Response("No active warehouse", { status: 403 });
+    throw error;
+  }
 
   if (!item) {
     return new Response("Item not found", { status: 404 });
@@ -43,7 +60,7 @@ export async function GET(
       return new Response(Uint8Array.from(png), {
         headers: {
           "Content-Type": "image/png",
-          "Cache-Control": "private, max-age=3600",
+          "Cache-Control": "private, no-store",
         },
       });
     }
@@ -53,7 +70,7 @@ export async function GET(
       return new Response(svg, {
         headers: {
           "Content-Type": "image/svg+xml",
-          "Cache-Control": "private, max-age=3600",
+          "Cache-Control": "private, no-store",
         },
       });
     }

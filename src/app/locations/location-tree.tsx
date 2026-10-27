@@ -43,14 +43,14 @@ function LocationTreeItem({
   return (
     <div>
       <article
-        className="rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]"
+        className="rounded-2xl border border-app-border bg-app-surface p-5 shadow-card"
         style={{ marginLeft: `${level * 2}rem` }}
       >
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
           <div>
             <div className="flex items-center gap-2">
               {level > 0 ? (
-                <span className="text-[#a1a1a6]" aria-hidden="true">
+                <span className="text-app-subtle" aria-hidden="true">
                   ↳
                 </span>
               ) : null}
@@ -61,11 +61,11 @@ function LocationTreeItem({
                 {node.name}
               </Link>
             </div>
-            <p className="mt-2 text-sm leading-6 text-[#6e6e73]">
+            <p className="mt-2 text-sm leading-6 text-app-muted">
               {node.description || "Brak opisu"}
             </p>
           </div>
-          <div className="flex gap-4 text-xs text-[#6e6e73]">
+          <div className="flex gap-4 text-xs text-app-muted">
             <span>Przedmioty: {node.itemCount}</span>
             <span>Podlokalizacje: {node.childCount}</span>
           </div>

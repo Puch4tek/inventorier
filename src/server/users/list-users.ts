@@ -1,16 +1,21 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
+import { requireRole } from "@/server/auth/permissions";
+import { withAdminRead } from "@/server/warehouses/permissions";
 
 export async function listUsers() {
-  return prisma.user.findMany({
+  const actor = await requireRole("ADMIN");
+  return withAdminRead(actor.id, (transaction) => transaction.user.findMany({
     orderBy: [{ role: "desc" }, { name: "asc" }],
     select: {
       id: true,
       name: true,
       email: true,
       role: true,
+      isActive: true,
+      mustChangePassword: true,
+      twoFactorEnabled: true,
       createdAt: true,
     },
-  });
+  }));
 }

@@ -1,30 +1,35 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
+import { requireCurrentWarehouse } from "@/server/warehouses/current-warehouse";
+import { withWarehouseRead } from "@/server/warehouses/permissions";
 
 export async function getDashboardStats() {
+  const current = await requireCurrentWarehouse();
+  const warehouseId = current.warehouse.id;
   const [
     activeItems,
     archivedItems,
     locations,
     categories,
-    quantity,
+    quantities,
     uncategorizedItems,
     recentItems,
-  ] = await Promise.all([
-    prisma.item.count({ where: { isArchived: false } }),
-    prisma.item.count({ where: { isArchived: true } }),
-    prisma.location.count(),
-    prisma.category.count(),
-    prisma.item.aggregate({
-      where: { isArchived: false },
+  ] = await withWarehouseRead(current, (transaction) => Promise.all([
+    transaction.item.count({ where: { isArchived: false, location: { warehouseId } } }),
+    transaction.item.count({ where: { isArchived: true, location: { warehouseId } } }),
+    transaction.location.count({ where: { warehouseId } }),
+    transaction.category.count({ where: { warehouseId } }),
+    transaction.item.groupBy({
+      by: ["unit"],
+      where: { isArchived: false, location: { warehouseId } },
       _sum: { quantity: true },
+      orderBy: { unit: "asc" },
     }),
-    prisma.item.count({
-      where: { isArchived: false, categoryId: null },
+    transaction.item.count({
+      where: { isArchived: false, categoryId: null, location: { warehouseId } },
     }),
-    prisma.item.findMany({
-      where: { isArchived: false },
+    transaction.item.findMany({
+      where: { isArchived: false, location: { warehouseId } },
       orderBy: { createdAt: "desc" },
       take: 5,
       select: {
@@ -34,10 +39,10 @@ export async function getDashboardStats() {
         unit: true,
         createdAt: true,
         location: { select: { name: true } },
-        category: { select: { name: true } },
+        category: { where: { warehouseId }, select: { name: true } },
       },
     }),
-  ]);
+  ]));
 
   return {
     counts: {
@@ -45,9 +50,9 @@ export async function getDashboardStats() {
       archivedItems,
       locations,
       categories,
-      totalQuantity: quantity._sum.quantity ?? 0,
       uncategorizedItems,
     },
+    quantities: quantities.map(({ unit, _sum }) => ({ unit, quantity: _sum.quantity ?? 0 })),
     recentItems,
   };
 }

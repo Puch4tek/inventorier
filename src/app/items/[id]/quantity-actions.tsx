@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -10,9 +11,11 @@ import {
 export function QuantityActions({
   itemId,
   quantity,
+  inputId = "exact-quantity",
 }: {
   itemId: number;
   quantity: number;
+  inputId?: string;
 }) {
   const [state, setState] = useState<ItemActionState>({});
   const [isPending, startTransition] = useTransition();
@@ -29,39 +32,38 @@ export function QuantityActions({
   }
 
   return (
-    <section className="rounded-3xl border border-black/[0.06] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-      <p className="text-sm font-medium text-[#6e6e73]">Szybka zmiana ilości</p>
-      <p className="mt-2 text-3xl font-semibold">{quantity}</p>
-      <p className="mt-1 text-sm text-[#6e6e73]">
+    <section className="panel-card rounded-2xl p-3 sm:rounded-3xl sm:p-6">
+      <p className="text-xs font-medium text-app-muted sm:text-sm">Ilość</p>
+      <p className="mt-1 hidden text-sm text-app-muted sm:block">
         Użyj przycisków podczas pracy w terenie albo wpisz nową ilość.
       </p>
 
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-2 flex w-full items-center gap-1 sm:mt-5 sm:gap-3">
         <form action={submit}>
           <input type="hidden" name="id" value={itemId} />
           <input type="hidden" name="delta" value="-1" />
-          <button type="submit" disabled={isPending || quantity === 0} className="rounded-xl border border-black/[0.12] px-5 py-3 text-lg font-semibold transition hover:bg-[#f5f5f7] disabled:cursor-not-allowed disabled:opacity-40">
+          <button type="submit" disabled={isPending || quantity === 0} className="h-10 w-10 rounded-lg border border-app-border bg-app-surface p-0 text-sm font-semibold text-app-foreground transition hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-40 sm:h-12 sm:w-12 sm:rounded-xl sm:text-lg">
             −1
           </button>
         </form>
         <form action={submit}>
           <input type="hidden" name="id" value={itemId} />
           <input type="hidden" name="delta" value="1" />
-          <button type="submit" disabled={isPending} className="rounded-xl bg-[#1d1d1f] px-5 py-3 text-lg font-semibold text-white transition hover:bg-[#424245] disabled:cursor-not-allowed disabled:opacity-50">
+          <Button type="submit" variant="primary" disabled={isPending} className="h-10 w-10 rounded-lg p-0 text-sm disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:w-12 sm:rounded-xl sm:text-lg">
             +1
-          </button>
+          </Button>
         </form>
-        <form action={submit} className="flex flex-1 gap-3">
+        <form action={submit} className="flex min-w-0 flex-1 gap-1 sm:gap-3">
           <input type="hidden" name="id" value={itemId} />
-          <label htmlFor="exact-quantity" className="sr-only">Nowa ilość</label>
-          <input id="exact-quantity" name="quantity" type="number" min="0" step="1" defaultValue={quantity} className="field-input mt-0 min-w-0 flex-1" />
-          <button type="submit" disabled={isPending} className="rounded-xl border border-black/[0.12] px-4 py-3 text-sm font-semibold transition hover:bg-[#f5f5f7] disabled:cursor-not-allowed disabled:opacity-50">
+          <label htmlFor={inputId} className="sr-only">Nowa ilość</label>
+          <input id={inputId} name="quantity" type="number" min="0" step="1" defaultValue={quantity} className="field-input mt-0 min-w-0 flex-1 px-2 py-2 text-center sm:px-3 sm:py-3" />
+          <button type="submit" disabled={isPending} className="rounded-lg border border-app-border-strong px-2.5 py-2 text-xs font-semibold transition hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm">
             Ustaw
           </button>
         </form>
       </div>
 
-      {state.error ? <p role="alert" className="mt-4 rounded-xl bg-[#fff2f2] px-4 py-3 text-sm text-[#b42318]">{state.error}</p> : null}
+      {state.error ? <p role="alert" className="mt-4 rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger">{state.error}</p> : null}
     </section>
   );
 }

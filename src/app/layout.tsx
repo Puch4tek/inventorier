@@ -27,7 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <script
           dangerouslySetInnerHTML={{
-            __html: `(() => { const s = localStorage.getItem("inventory-theme"); const d = s === "dark" || (s !== "light" && matchMedia("(prefers-color-scheme: dark)").matches); document.documentElement.dataset.theme = d ? "dark" : "light"; })();`,
+            __html: `(() => { const s = localStorage.getItem("inventory-theme"); const dark = s === "dark" || (s !== "light" && matchMedia("(prefers-color-scheme: dark)").matches); document.documentElement.classList.toggle("dark", dark); })();`,
           }}
         />
         {children}

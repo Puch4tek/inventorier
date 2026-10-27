@@ -1,7 +1,6 @@
 "use server";
 
 import {createLocation} from "@/server/locations/create-location";
-import { requireRole } from "@/server/auth/permissions";
 
 export type NewLocationActionState = {
     error?: string;
@@ -12,11 +11,6 @@ export async function newLocationAction(
     _previousState: NewLocationActionState,
     formData: FormData,
 ): Promise<NewLocationActionState> {
-    try {
-        await requireRole("MANAGER");
-    } catch (error) {
-        return { error: error instanceof Error ? error.message : "Brak uprawnień." };
-    }
     const name = formData.get("name");
     const description = formData.get("description");
     const parentId = formData.get("parentId");

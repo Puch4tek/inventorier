@@ -1,6 +1,10 @@
 "use server";
 
 import { createUser } from "@/server/users/create-user";
+import {
+    isRegistrationEnabled,
+    REGISTRATION_DISABLED_MESSAGE,
+} from "@/server/settings/registration";
 
 export type CreateUserState = {
     error?: string;
@@ -27,6 +31,15 @@ export async function createUserAction(
 
     if (password !== passwordConfirmation) {
         return { error: "Hasła muszą być takie same." };
+    }
+
+    try {
+        if (!(await isRegistrationEnabled())) {
+            return { error: REGISTRATION_DISABLED_MESSAGE };
+        }
+    } catch (error) {
+        console.error("Nie udało się sprawdzić ustawienia rejestracji:", error);
+        return { error: "Nie udało się sprawdzić dostępności rejestracji. Spróbuj ponownie później." };
     }
 
     try {

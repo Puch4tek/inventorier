@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/button";
+import { Modal } from "@/components/modal";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -35,17 +37,18 @@ export function LocationActions({
 
   return (
     <div className="mt-8 flex flex-wrap gap-3">
-      <button
+      <Button
+        variant="primary"
         type="button"
         onClick={() => setEditOpen(true)}
-        className="rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#424245]"
+        className="px-5 py-3 text-sm"
       >
         Edytuj
-      </button>
+      </Button>
       <button
         type="button"
         onClick={() => setDeleteOpen(true)}
-        className="rounded-xl border border-[#d92d20]/30 px-5 py-3 text-sm font-semibold text-[#b42318] transition hover:bg-[#fff2f2]"
+        className="rounded-xl border border-app-danger/30 px-5 py-3 text-sm font-semibold text-app-danger transition hover:bg-app-danger-surface"
       >
         Usuń
       </button>
@@ -93,16 +96,17 @@ function EditLocationModal({
     <Dialog title="Edytuj lokalizację" onClose={onClose} disabled={isPending}>
       {state.success ? (
         <div className="space-y-5">
-          <p className="rounded-xl bg-[#effaf3] px-4 py-3 text-sm text-[#18794e]">
+          <p className="rounded-xl bg-app-success-surface px-4 py-3 text-sm text-app-success">
             {state.success}
           </p>
-          <button
+          <Button
+            variant="primary"
             type="button"
             onClick={onClose}
-            className="w-full rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#424245]"
+            className="w-full px-5 py-3 text-sm"
           >
             Zamknij
-          </button>
+          </Button>
         </div>
       ) : (
         <form action={formAction} className="space-y-5">
@@ -139,7 +143,7 @@ function EditLocationModal({
               id="edit-location-parent"
               name="parentId"
               defaultValue={location.parentId?.toString() ?? ""}
-              className="field-input"
+              className="field-input field-select"
             >
               <option value="">Brak — lokalizacja główna</option>
               {parentOptions.map((option) => (
@@ -150,7 +154,7 @@ function EditLocationModal({
             </select>
           </div>
           {state.error ? (
-            <p role="alert" className="rounded-xl bg-[#fff2f2] px-4 py-3 text-sm text-[#b42318]">
+            <p role="alert" className="rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger">
               {state.error}
             </p>
           ) : null}
@@ -158,17 +162,18 @@ function EditLocationModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-black/[0.12] px-5 py-3 text-sm font-semibold text-[#1d1d1f] transition hover:bg-[#f5f5f7]"
+              className="rounded-xl border border-app-border-strong px-5 py-3 text-sm font-semibold text-app-foreground transition hover:bg-app-surface-muted"
             >
               Anuluj
             </button>
-            <button
+            <Button
+              variant="primary"
               type="submit"
               disabled={isPending}
-              className="rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#424245] disabled:cursor-not-allowed disabled:opacity-50"
+              className="px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? "Zapisywanie..." : "Zapisz zmiany"}
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -197,13 +202,13 @@ function DeleteLocationModal({
 
   return (
     <Dialog title="Usuń lokalizację" onClose={onClose} disabled={isPending}>
-      <p className="text-sm leading-6 text-[#6e6e73]">
+      <p className="text-sm leading-6 text-app-muted">
         Czy na pewno chcesz usunąć lokalizację{" "}
-        <strong className="text-[#1d1d1f]">{location.name}</strong>? Operacja
+        <strong className="text-app-foreground">{location.name}</strong>? Operacja
         jest możliwa tylko wtedy, gdy nie ma ona dzieci ani przedmiotów.
       </p>
       {state.error ? (
-        <p role="alert" className="mt-5 rounded-xl bg-[#fff2f2] px-4 py-3 text-sm text-[#b42318]">
+        <p role="alert" className="mt-5 rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger">
           {state.error}
         </p>
       ) : null}
@@ -212,17 +217,17 @@ function DeleteLocationModal({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-black/[0.12] px-5 py-3 text-sm font-semibold text-[#1d1d1f] transition hover:bg-[#f5f5f7]"
+          className="rounded-xl border border-app-border-strong px-5 py-3 text-sm font-semibold text-app-foreground transition hover:bg-app-surface-muted"
         >
           Anuluj
         </button>
-        <button
+        <Button variant="danger"
           type="submit"
           disabled={isPending}
-          className="rounded-xl bg-[#b42318] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#8f1d14] disabled:cursor-not-allowed disabled:opacity-50"
+          className="px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPending ? "Usuwanie..." : "Usuń lokalizację"}
-        </button>
+        </Button>
       </form>
     </Dialog>
   );
@@ -240,30 +245,21 @@ function Dialog({
   disabled: boolean;
 }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-5 py-8 backdrop-blur-sm"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !disabled) onClose();
-      }}
-    >
+    <Modal labelledBy="location-dialog-title" onClose={onClose} disabled={disabled}>
       <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="location-dialog-title"
-        className="w-full max-w-lg rounded-[2rem] border border-black/[0.06] bg-white p-7 text-[#1d1d1f] shadow-[0_24px_80px_rgba(0,0,0,0.18)] sm:p-10"
+        className="w-full max-w-lg rounded-[2rem] border border-app-border bg-app-surface p-7 text-app-foreground shadow-modal sm:p-10"
       >
         <div className="flex items-start justify-between gap-6">
           <h2 id="location-dialog-title" className="text-2xl font-semibold tracking-[-0.03em]">
             {title}
           </h2>
-          <button type="button" aria-label="Zamknij" onClick={onClose} className="text-2xl text-[#6e6e73]">
+          <button type="button" aria-label="Zamknij" onClick={onClose} disabled={disabled} className="text-2xl text-app-muted">
             &times;
           </button>
         </div>
         <div className="mt-6">{children}</div>
       </section>
-    </div>
+    </Modal>
   );
 }
 

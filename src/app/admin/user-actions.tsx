@@ -1,15 +1,29 @@
 "use client";
 
+import { Button } from "@/components/button";
 import { useActionState } from "react";
 import {
   deleteUserAction,
+  requirePasswordChangeAction,
+  setUserStatusAction,
   resetUserPasswordAction,
+  resetUserTwoFactorAction,
   type AdminActionState,
 } from "./actions";
 
 const initialState: AdminActionState = {};
 
-export function UserActions({ userId }: { userId: number }) {
+export function UserActions({
+  userId,
+  isActive,
+  mustChangePassword,
+  twoFactorEnabled,
+}: {
+  userId: string;
+  isActive: boolean;
+  mustChangePassword: boolean;
+  twoFactorEnabled: boolean;
+}) {
   const [resetState, resetAction, isResetting] = useActionState(
     resetUserPasswordAction,
     initialState,
@@ -18,9 +32,52 @@ export function UserActions({ userId }: { userId: number }) {
     deleteUserAction,
     initialState,
   );
+  const [statusState, statusAction, isChangingStatus] = useActionState(
+    setUserStatusAction,
+    initialState,
+  );
+  const [passwordState, passwordAction, isRequiringPasswordChange] = useActionState(
+    requirePasswordChangeAction,
+    initialState,
+  );
+  const [twoFactorState, twoFactorAction, isResettingTwoFactor] = useActionState(
+    resetUserTwoFactorAction,
+    initialState,
+  );
 
   return (
-    <div className="mt-4 space-y-3 border-t border-black/[0.06] pt-4">
+    <div className="mt-4 space-y-3 border-t border-app-border pt-4">
+      <div className="flex flex-wrap gap-2">
+        <form action={statusAction}>
+          <input type="hidden" name="userId" value={userId} />
+          <input type="hidden" name="active" value={String(!isActive)} />
+          <Button variant="secondary" type="submit" disabled={isChangingStatus} className="text-sm font-semibold transition px-3 py-2 text-xs disabled:opacity-50">
+            {isChangingStatus ? "Zapisywanie..." : isActive ? "Zablokuj konto" : "Odblokuj konto"}
+          </Button>
+        </form>
+        <form action={passwordAction}>
+          <input type="hidden" name="userId" value={userId} />
+          <Button variant="secondary" type="submit" disabled={isRequiringPasswordChange || mustChangePassword} className="text-sm font-semibold transition px-3 py-2 text-xs disabled:opacity-50">
+            {mustChangePassword ? "Zmiana hasła wymagana" : isRequiringPasswordChange ? "Zapisywanie..." : "Wymuś zmianę hasła"}
+          </Button>
+        </form>
+      </div>
+      {statusState.error ? <p role="alert" className="text-xs text-app-danger">{statusState.error}</p> : null}
+      {statusState.success ? <p role="status" className="text-xs text-app-success">{statusState.success}</p> : null}
+      {passwordState.error ? <p role="alert" className="text-xs text-app-danger">{passwordState.error}</p> : null}
+      {passwordState.success ? <p role="status" className="text-xs text-app-success">{passwordState.success}</p> : null}
+      {twoFactorEnabled ? (
+        <form action={twoFactorAction} onSubmit={(event) => {
+          if (!window.confirm("Zresetować uwierzytelnianie dwuskładnikowe i wylogować wszystkie sesje użytkownika?")) event.preventDefault();
+        }}>
+          <input type="hidden" name="userId" value={userId} />
+          <Button variant="secondary" type="submit" disabled={isResettingTwoFactor} className="px-3 py-2 text-xs">
+            {isResettingTwoFactor ? "Resetowanie..." : "Resetuj uwierzytelnianie dwuskładnikowe"}
+          </Button>
+        </form>
+      ) : null}
+      {twoFactorState.error ? <p role="alert" className="text-xs text-app-danger">{twoFactorState.error}</p> : null}
+      {twoFactorState.success ? <p role="status" className="text-xs text-app-success">{twoFactorState.success}</p> : null}
       <form action={resetAction} className="flex flex-wrap gap-2">
         <input type="hidden" name="userId" value={userId} />
         <input
@@ -29,30 +86,30 @@ export function UserActions({ userId }: { userId: number }) {
           minLength={8}
           required
           placeholder="Nowe hasło (min. 8 znaków)"
-          className="min-w-52 flex-1 rounded-lg border border-black/[0.12] px-3 py-2 text-sm"
+          className="field-input mt-0 min-w-52 flex-1"
         />
-        <button
+        <Button variant="secondary"
           type="submit"
           disabled={isResetting}
-          className="secondary-button px-3 py-2 text-xs disabled:opacity-50"
+          className="text-sm font-semibold transition px-3 py-2 text-xs disabled:opacity-50"
         >
           {isResetting ? "Resetowanie..." : "Resetuj hasło"}
-        </button>
+        </Button>
       </form>
-      {resetState.error ? <p role="alert" className="text-xs text-[#b42318]">{resetState.error}</p> : null}
-      {resetState.success ? <p role="status" className="text-xs text-[#18794e]">{resetState.success}</p> : null}
+      {resetState.error ? <p role="alert" className="text-xs text-app-danger">{resetState.error}</p> : null}
+      {resetState.success ? <p role="status" className="text-xs text-app-success">{resetState.success}</p> : null}
       <form action={deleteAction}>
         <input type="hidden" name="userId" value={userId} />
         <button
           type="submit"
           disabled={isDeleting}
-          className="danger-button px-3 py-2 text-xs disabled:opacity-50"
+          className="inline-flex items-center justify-center rounded-xl border border-app-danger/[0.32] bg-app-surface text-sm font-semibold text-app-danger transition hover:bg-app-danger-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-danger px-3 py-2 text-xs disabled:opacity-50"
         >
           {isDeleting ? "Usuwanie..." : "Usuń użytkownika"}
         </button>
       </form>
-      {deleteState.error ? <p role="alert" className="text-xs text-[#b42318]">{deleteState.error}</p> : null}
-      {deleteState.success ? <p role="status" className="text-xs text-[#18794e]">{deleteState.success}</p> : null}
+      {deleteState.error ? <p role="alert" className="text-xs text-app-danger">{deleteState.error}</p> : null}
+      {deleteState.success ? <p role="status" className="text-xs text-app-success">{deleteState.success}</p> : null}
     </div>
   );
 }

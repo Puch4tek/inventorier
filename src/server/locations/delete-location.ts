@@ -1,27 +1,25 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
+import { requireWarehouseDataManager, withWarehouseMutation } from "@/server/warehouses/permissions";
 
 export async function deleteLocation(id: number) {
+  if (!Number.isInteger(id) || id <= 0) throw new Error("Location ID is required");
 
-    const location = await prisma.location.findUnique({
-        where: { id },
-        select: {
-            id: true,
-            name: true,
-            _count: {
-                select: {
-                    items: true,
-                    children: true,
-                },
-            },
-        },
-    })
-    if (!location) {
-        throw new Error("Location not found");
-    }
+  const current = await requireWarehouseDataManager();
+  return withWarehouseMutation(current, true, async (transaction) => {
+    const location = await transaction.location.findFirst({
+      where: { id, warehouseId: current.warehouse.id },
+      select: {
+        id: true,
+        _count: { select: { items: true, children: true } },
+      },
+    });
+    if (!location) throw new Error("Location not found");
     if (location._count.items > 0 || location._count.children > 0) {
-        throw new Error("Location has items or children");
+      throw new Error("Location has items or children");
     }
-    return prisma.location.delete({ where: { id } });
+    return transaction.location.delete({
+      where: { id, warehouseId: current.warehouse.id },
+    });
+  });
 }

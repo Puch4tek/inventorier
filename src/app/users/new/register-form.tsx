@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/button";
 import { useActionState } from "react";
 import { createUserAction, type CreateUserState } from "./actions";
 
@@ -93,13 +94,13 @@ export function RegisterForm() {
         </p>
       ) : null}
 
-      <button
+      <Button variant="primary"
         type="submit"
         disabled={isPending}
-        className="primary-button w-full py-3.5 disabled:cursor-not-allowed disabled:opacity-50"
+        className="px-5 text-sm font-semibold transition w-full py-3.5 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isPending ? "Tworzenie konta..." : "Utwórz konto"}
-      </button>
+      </Button>
     </form>
   );
 }

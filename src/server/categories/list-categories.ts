@@ -1,9 +1,12 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
+import { requireCurrentWarehouse } from "@/server/warehouses/current-warehouse";
+import { withWarehouseRead } from "@/server/warehouses/permissions";
 
 export async function listCategories() {
-  return prisma.category.findMany({
+  const current = await requireCurrentWarehouse();
+  return withWarehouseRead(current, (transaction) => transaction.category.findMany({
+    where: { warehouseId: current.warehouse.id },
     orderBy: {
       name: "asc",
     },
@@ -13,9 +16,9 @@ export async function listCategories() {
       description: true,
       _count: {
         select: {
-          items: true,
+          items: { where: { location: { warehouseId: current.warehouse.id } } },
         },
       },
     },
-  });
+  }));
 }

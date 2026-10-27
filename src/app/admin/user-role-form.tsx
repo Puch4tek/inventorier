@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/button";
 import { useActionState } from "react";
 import { updateUserRoleAction, type AdminActionState } from "./actions";
 
@@ -9,8 +10,8 @@ export function UserRoleForm({
   userId,
   role,
 }: {
-  userId: number;
-  role: "USER" | "MANAGER" | "ADMIN";
+  userId: string;
+  role: "USER" | "ADMIN";
 }) {
   const [state, formAction, isPending] = useActionState(
     updateUserRoleAction,
@@ -23,31 +24,29 @@ export function UserRoleForm({
       <select
         name="role"
         defaultValue={role}
-        className="rounded-lg border border-black/[0.12] bg-white px-3 py-2 text-sm"
-        aria-label="Rola użytkownika"
+        className="field-input field-select mt-0"
+        aria-label="Rola systemowa użytkownika"
       >
         <option value="USER">Użytkownik</option>
-        <option value="MANAGER">Manager</option>
         <option value="ADMIN">Administrator</option>
       </select>
-      <button
+      <Button variant="primary"
         type="submit"
         disabled={isPending}
-        className="rounded-lg bg-[#1d1d1f] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#424245] disabled:opacity-50"
+        className="text-sm font-semibold transition px-3 py-2 text-xs disabled:opacity-50"
       >
         {isPending ? "Zapisywanie..." : "Zapisz"}
-      </button>
+      </Button>
       {state.error ? (
-        <span role="alert" className="basis-full text-xs text-[#b42318]">
+        <span role="alert" className="basis-full text-xs text-app-danger">
           {state.error}
         </span>
       ) : null}
       {state.success ? (
-        <span role="status" className="basis-full text-xs text-[#18794e]">
+        <span role="status" className="basis-full text-xs text-app-success">
           {state.success}
         </span>
       ) : null}
     </form>
   );
 }
-

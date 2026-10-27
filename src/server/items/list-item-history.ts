@@ -1,14 +1,19 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
+import { requireCurrentWarehouse } from "@/server/warehouses/current-warehouse";
+import { withWarehouseRead } from "@/server/warehouses/permissions";
 
 export async function listItemHistory(itemId: number) {
   if (!Number.isInteger(itemId) || itemId <= 0) {
     throw new Error("Prawidłowe ID przedmiotu jest wymagane");
   }
 
-  return prisma.itemHistory.findMany({
-    where: { itemId },
+  const current = await requireCurrentWarehouse();
+  return withWarehouseRead(current, (transaction) => transaction.itemHistory.findMany({
+    where: {
+      itemId,
+      item: { location: { warehouseId: current.warehouse.id } },
+    },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -17,9 +22,8 @@ export async function listItemHistory(itemId: number) {
       newValue: true,
       description: true,
       createdAt: true,
-      user: {
-        select: { id: true, name: true },
-      },
+      actorName: true,
+      userId: true,
     },
-  });
+  }));
 }

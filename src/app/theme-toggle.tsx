@@ -33,13 +33,13 @@ export function ThemeToggle() {
     if (theme === "system") {
       const media = window.matchMedia("(prefers-color-scheme: dark)");
       const update = () => {
-        document.documentElement.dataset.theme = media.matches ? "dark" : "light";
+        document.documentElement.classList.toggle("dark", media.matches);
       };
       update();
       media.addEventListener("change", update);
       return () => media.removeEventListener("change", update);
     }
-    document.documentElement.dataset.theme = theme;
+    document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 
   function changeTheme(nextTheme: Theme) {

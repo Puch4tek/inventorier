@@ -1,6 +1,7 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
+import { requireCurrentWarehouse } from "@/server/warehouses/current-warehouse";
+import { withWarehouseRead } from "@/server/warehouses/permissions";
 
 export type ListItemsOptions = {
     search?: string;
@@ -12,6 +13,7 @@ export type ListItemsOptions = {
 };
 
 export async function listItems(options: ListItemsOptions = {}) {
+    const current = await requireCurrentWarehouse();
     const {
         search,
         locationId,
@@ -23,9 +25,14 @@ export async function listItems(options: ListItemsOptions = {}) {
 
     const normalizedSearch = search?.trim();
     const where = {
+        location: { warehouseId: current.warehouse.id },
         isArchived: archived,
         ...(locationId !== undefined ? { locationId } : {}),
-        ...(categoryId !== undefined ? { categoryId } : {}),
+        ...(categoryId === null
+          ? { categoryId: null }
+          : categoryId !== undefined
+            ? { category: { id: categoryId, warehouseId: current.warehouse.id } }
+            : {}),
         ...(normalizedSearch
           ? {
               OR: [
@@ -39,6 +46,7 @@ export async function listItems(options: ListItemsOptions = {}) {
                 },
                 {
                   category: {
+                    warehouseId: current.warehouse.id,
                     name: { contains: normalizedSearch, mode: "insensitive" as const },
                   },
                 },
@@ -47,7 +55,7 @@ export async function listItems(options: ListItemsOptions = {}) {
           : {}),
     };
 
-    return prisma.item.findMany({
+    const items = await withWarehouseRead(current, (transaction) => transaction.item.findMany({
         where,
         orderBy: {
           [sortBy]: sortDirection,
@@ -68,6 +76,7 @@ export async function listItems(options: ListItemsOptions = {}) {
             },
             categoryId: true,
             category: {
+                where: { warehouseId: current.warehouse.id },
                 select: {
                     id: true,
                     name: true,
@@ -78,5 +87,7 @@ export async function listItems(options: ListItemsOptions = {}) {
             updatedAt: true,
             imageUrl: true,
         },
-    });
+    }));
+
+    return items.map((item) => ({ ...item, categoryId: item.category?.id ?? null }));
 }

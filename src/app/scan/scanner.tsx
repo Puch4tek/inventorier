@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/button";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { useEffect, useRef, useState } from "react";
@@ -113,7 +114,7 @@ export function Scanner() {
 
   return (
     <div className="space-y-5">
-      <div className="relative overflow-hidden rounded-2xl bg-[#1d1d1f]">
+      <div className="relative overflow-hidden rounded-2xl bg-app-background">
         <video
           ref={videoRef}
           className={`aspect-video w-full object-cover ${
@@ -124,43 +125,44 @@ export function Scanner() {
         />
         {isScanning ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="h-28 w-[80%] rounded-xl border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.28)] sm:h-36" />
+            <div className="h-28 w-[80%] rounded-xl border-2 border-app-inverse/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.28)] sm:h-36" />
           </div>
         ) : null}
         {!isScanning ? (
-          <div className="flex aspect-video items-center justify-center px-6 text-center text-sm text-white/70">
+          <div className="flex aspect-video items-center justify-center px-6 text-center text-sm text-app-accent/70">
             Kamera jest wyłączona
           </div>
         ) : null}
       </div>
       {scanStatus ? (
-        <p aria-live="polite" className="text-center text-sm text-[#6e6e73]">
+        <p aria-live="polite" className="text-center text-sm text-app-muted">
           {scanStatus}
         </p>
       ) : null}
 
       <div className="flex flex-wrap gap-3">
         {isScanning ? (
-          <button
+          <Button variant="secondary"
             type="button"
             onClick={stopCamera}
-            className="rounded-xl border border-black/[0.12] px-5 py-3 text-sm font-semibold transition hover:bg-[#f5f5f7]"
+            className="px-5 py-3 text-sm font-semibold transition"
           >
             Zatrzymaj kamerę
-          </button>
+          </Button>
         ) : (
-          <button
+          <Button
+            variant="primary"
             type="button"
             onClick={() => void startCamera()}
             disabled={isLookingUp}
-            className="rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#424245] disabled:opacity-50"
+            className="px-5 py-3 text-sm disabled:opacity-50"
           >
             Uruchom kamerę
-          </button>
+          </Button>
         )}
       </div>
 
-      <div className="border-t border-black/[0.06] pt-5">
+      <div className="border-t border-app-border pt-5">
         <label htmlFor="manual-barcode" className="field-label">
           Wpisz kod ręcznie
         </label>
@@ -179,18 +181,18 @@ export function Scanner() {
             className="field-input mt-0 flex-1 font-mono"
             autoComplete="off"
           />
-          <button
+          <Button variant="secondary"
             type="submit"
             disabled={isLookingUp}
-            className="rounded-xl border border-black/[0.12] px-5 py-3 text-sm font-semibold transition hover:bg-[#f5f5f7] disabled:opacity-50"
+            className="px-5 py-3 text-sm font-semibold transition disabled:opacity-50"
           >
             {isLookingUp ? "Szukam..." : "Otwórz"}
-          </button>
+          </Button>
         </form>
       </div>
 
       {error ? (
-        <p role="alert" className="rounded-xl bg-[#fff2f2] px-4 py-3 text-sm text-[#b42318]">
+        <p role="alert" className="status-error">
           {error}
         </p>
       ) : null}
