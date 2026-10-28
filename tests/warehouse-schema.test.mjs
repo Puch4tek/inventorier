@@ -23,6 +23,7 @@ const adminUrl = new URL(testUrl);
 adminUrl.pathname = "/postgres";
 const freshDatabase = `${url.pathname.slice(1)}_fresh`;
 const populatedDatabase = `${url.pathname.slice(1)}_populated`;
+const legacyDatabase = `${url.pathname.slice(1)}_legacy`;
 const bootstrapConfig = "tests/bootstrap-prisma.config.ts";
 let client;
 
@@ -47,19 +48,23 @@ async function createDatabase(name) {
   }
 }
 
-function deployBootstrap(name) {
-  const env = { ...process.env, TEST_DATABASE_URL: databaseUrl(name) };
-  delete env.DATABASE_URL;
+function prismaCommand(name, args, config = bootstrapConfig) {
+  const env = { ...process.env, TEST_DATABASE_URL: databaseUrl(name), DATABASE_URL: databaseUrl(name) };
   return spawnSync(
     "node_modules/.bin/prisma",
-    ["migrate", "deploy", "--config", bootstrapConfig],
+    [...args, "--config", config],
     { cwd: process.cwd(), env, encoding: "utf8" },
   );
+}
+
+function deployBootstrap(name) {
+  return prismaCommand(name, ["migrate", "deploy"]);
 }
 
 before(async () => {
   await createDatabase(freshDatabase);
   await createDatabase(populatedDatabase);
+  await createDatabase(legacyDatabase);
   const result = deployBootstrap(freshDatabase);
   assert.equal(result.error, undefined, result.error?.message);
   assert.equal(
@@ -74,11 +79,71 @@ after(async () => {
   await client?.end();
   const admin = await connectTo(adminUrl.toString());
   try {
-    for (const name of [freshDatabase, populatedDatabase]) {
+    for (const name of [freshDatabase, populatedDatabase, legacyDatabase]) {
       await admin.query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
     }
   } finally {
     await admin.end();
+  }
+});
+
+test("bootstrap and ordinary deployments share migration history", async () => {
+  const result = prismaCommand(freshDatabase, ["migrate", "deploy"], "prisma7.config.ts");
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+});
+
+test("legacy snapshot can be baselined without rerunning the MFA reset or losing data", async () => {
+  const snapshot = prismaCommand(legacyDatabase, ["migrate", "deploy"], "tests/legacy-bootstrap-prisma.config.ts");
+  assert.equal(snapshot.status, 0, `${snapshot.stdout}\n${snapshot.stderr}`);
+  const legacy = await connectTo(databaseUrl(legacyDatabase));
+  try {
+    const user = randomUUID();
+    await legacy.query(`INSERT INTO "user" ("id", "email", "name", "updatedAt", "twoFactorEnabled")
+      VALUES ($1, $2, 'Preserved', now(), true)`, [user, `${user}@test.invalid`]);
+    const schemaQuery = `SELECT table_name, column_name, data_type, udt_name, is_nullable, column_default
+      FROM information_schema.columns WHERE table_schema = 'public' AND table_name <> '_prisma_migrations'
+      ORDER BY table_name, column_name`;
+    const schemaBeforePasswordCleanupQuery = `SELECT table_name, column_name, data_type, udt_name, is_nullable, column_default
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name <> '_prisma_migrations'
+        AND NOT (table_name = 'user' AND column_name = 'passwordHash')
+      ORDER BY table_name, column_name`;
+    assert.deepEqual(
+      (await legacy.query(schemaBeforePasswordCleanupQuery)).rows,
+      (await client.query(schemaBeforePasswordCleanupQuery)).rows,
+    );
+    assert.equal(
+      (await legacy.query(`SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'user' AND column_name = 'passwordHash'`)).rowCount,
+      1,
+    );
+    assert.equal(
+      (await client.query(`SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'user' AND column_name = 'passwordHash'`)).rowCount,
+      0,
+    );
+    const failed = prismaCommand(legacyDatabase, ["migrate", "deploy"], "prisma7.config.ts");
+    assert.notEqual(failed.status, 0);
+    assert.match(`${failed.stdout}\n${failed.stderr}`, /P3018/);
+    const rolledBack = prismaCommand(legacyDatabase, [
+      "migrate", "resolve", "--rolled-back", "20261027115504_apply_the_schema",
+    ]);
+    assert.equal(rolledBack.status, 0, `${rolledBack.stdout}\n${rolledBack.stderr}`);
+    for (const name of [
+      "20261027115504_apply_the_schema",
+      "20261027160000_reset_legacy_two_factor",
+      "20261028180000_email_settings",
+    ]) {
+      const result = prismaCommand(legacyDatabase, ["migrate", "resolve", "--applied", name]);
+      assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    }
+    const deployed = prismaCommand(legacyDatabase, ["migrate", "deploy"], "prisma7.config.ts");
+    assert.equal(deployed.status, 0, `${deployed.stdout}\n${deployed.stderr}`);
+    assert.deepEqual((await legacy.query(schemaQuery)).rows, (await client.query(schemaQuery)).rows);
+    const saved = await legacy.query(`SELECT "name", "twoFactorEnabled" FROM "user" WHERE "id" = $1`, [user]);
+    assert.deepEqual(saved.rows, [{ name: "Preserved", twoFactorEnabled: true }]);
+  } finally {
+    await legacy.end();
   }
 });
 
@@ -104,6 +169,19 @@ test("fresh bootstrap creates per-warehouse roles and no seeded warehouse", asyn
   assert.equal(warehouses.rows[0].count, 0);
   const settings = await client.query(`SELECT count(*)::int AS count FROM "AppSettings"`);
   assert.equal(settings.rows[0].count, 0);
+  const settingColumns = await client.query(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'AppSettings'`,
+  );
+  const columnNames = new Set(settingColumns.rows.map(({ column_name }) => column_name));
+  assert.ok(columnNames.has("smtpPassword"));
+  assert.ok(columnNames.has("resetEnabled"));
+  assert.ok(columnNames.has("resetExpiryMinutes"));
+  const userColumns = await client.query(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'user'`,
+  );
+  assert.ok(!userColumns.rows.some(({ column_name }) => column_name === "passwordHash"));
 });
 
 test("membership rows represent independent roles per warehouse; admins need no membership", async () => {

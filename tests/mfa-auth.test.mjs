@@ -222,6 +222,13 @@ test("Better Auth enforces TOTP and consumes backup codes once", async () => {
       query: { disableCookieCache: true },
     }),
   );
+  await assert.rejects(
+    auth.api.changePassword({
+      body: { currentPassword: password, newPassword: "different password" },
+      headers: cookieHeaders(cookieJar),
+    }),
+    (error) => error?.body?.code === "USE_PASSWORD_FORM",
+  );
 
   await apiCall("signOut", cookieJar);
   const backupChallenge = await apiCall("signInEmail", cookieJar, {

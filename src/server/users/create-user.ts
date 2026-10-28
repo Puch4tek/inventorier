@@ -52,7 +52,6 @@ export async function createUser(input: CreateUserInput) {
                 id: userId,
                 name,
                 email,
-                passwordHash,
                 mustChangePassword: input.mustChangePassword ?? false,
                 role,
                 accounts: {

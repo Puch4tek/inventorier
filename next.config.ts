@@ -5,6 +5,16 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,
+  async headers() {
+    const sensitiveLinkHeaders = [
+      { key: "Referrer-Policy", value: "no-referrer" },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+    ];
+    return [
+      { source: "/reset-password", headers: sensitiveLinkHeaders },
+      { source: "/api/auth/verify-email", headers: sensitiveLinkHeaders },
+    ];
+  },
   turbopack: {
     rules: {
       "*.css": {

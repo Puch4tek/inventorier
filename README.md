@@ -25,6 +25,55 @@ użytkownicy mogą się logować. Nowe konto nie uzyskuje automatycznie dostępu
 magazynów. Administrator lub menedżer z dostępem do danego magazynu musi nadać
 użytkownikowi rolę osobno dla tego magazynu.
 
+## E-mail i resetowanie hasła
+
+Administrator może w zakładce **Administracja → E-mail** skonfigurować
+serwer SMTP i wysłać wiadomość testową na wskazany adres. Hasło jest
+szyfrowane w bazie AES-256-GCM. Przed jego zapisaniem ustaw
+`SMTP_ENCRYPTION_KEY` na losowy 32-bajtowy klucz zakodowany w base64:
+
+```bash
+openssl rand -base64 32
+```
+
+Wynik przechowuj w bezpiecznym magazynie sekretów, nie w repozytorium. Wszystkie
+procesy jednej instancji muszą używać tego samego klucza. Zachowuj go osobno
+od kopii bazy. Po utracie klucza trzeba podać hasło SMTP ponownie; przy zmianie
+klucza zaktualizuj szyfrowane ustawienie zgodnie z procedurą operacyjną.
+W ustawieniach puste pole hasła zachowuje zapisane hasło; wpisanie nowego
+zastępuje je.
+
+Włączenie resetowania wymaga prawidłowej konfiguracji SMTP. Link jest ważny
+domyślnie 60 minut; administrator może wybrać od 15 minut do 24 godzin.
+Przy pierwszej konfiguracji SMTP reset jest domyślnie zaznaczony i włączy się
+dopiero po zapisaniu kompletnej konfiguracji poczty. Odczyt lub aktualizacja
+istniejącej konfiguracji nie zmienia automatycznie zapisanej flagi resetu.
+Wyłączenie blokuje nowe prośby, ale wcześniej wystawione linki pozostają ważne
+do wygaśnięcia. Reset unieważnia wszystkie sesje, lecz zachowuje TOTP i
+passkeys. Zablokowane konto nie może otrzymać linku ani zresetować hasła.
+Limit wysyłek testowych wynosi 5 na administratora na godzinę.
+
+Użytkownik może zmienić adres z aktywnej sesji w **Ustawienia konta → E-mail**.
+Better Auth wysyła link weryfikacyjny na nowy adres; otwarcie go zatwierdza
+zmianę. Link wygasa po godzinie. Nie jest wymagane ponowne podanie hasła ani
+passkey, a poprzedni adres nie otrzymuje powiadomienia.
+
+W produkcji używaj HTTPS i ustaw `BETTER_AUTH_URL` na zaufany publiczny adres
+instancji. Reset wymaga reverse proxy, które **nadpisuje** `x-real-ip`
+wartością IP klienta; ustaw wtedy `TRUSTED_PROXY_IP_HEADER=x-real-ip`.
+Bez tego ustawienia aplikacja nie będzie wystawiać linków ani przyjmować prób
+ich użycia w środowisku produkcyjnym. Limity resetowania to 5 próśb na adres
+e-mail na godzinę, 20 próśb na adres IP na godzinę i 100 prób użycia tokenu na
+adres IP w ciągu 15 minut.
+
+Żądania resetu są przetwarzane po wysłaniu neutralnej odpowiedzi, aby czas
+odpowiedzi nie zdradzał istnienia konta. Mechanizm `after` podlega limitowi
+czasu platformy i nie jest trwałą kolejką: przerwanie procesu lub limitu może
+uniemożliwić wysłanie wiadomości; w takim przypadku należy ponowić żądanie.
+
+Zastosuj nową migrację aplikacji zgodnie z istniejącą procedurą wdrożenia
+migracji i wyślij wiadomość testową przed włączeniem resetowania.
+
 ## Nowa instalacja
 
 Każda instancja aplikacji jest osobną przestrzenią z własną bazą danych.
@@ -38,11 +87,33 @@ DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/NEW_EMPTY_DATABASE" \
 npx prisma generate --config prisma-bootstrap.config.ts
 ```
 
-Nie uruchamiaj `migrate reset`, `db push --force-reset` ani migracji bootstrapu
-na istniejącej bazie. Bootstrap celowo odmawia działania, gdy wykryje istniejące
-obiekty lub historię migracji. Pierwsze konto utworzone na pustej instalacji
-zostaje administratorem; administrator tworzy pierwszy magazyn ręcznie. Przy
-następnych wdrożeniach nie stosuj bootstrapu do bazy istniejącej instalacji.
+Nie uruchamiaj `migrate reset` ani `db push --force-reset` na istniejącej bazie.
+Bootstrap używa tej samej historii migracji co zwykły `migrate deploy`; przy
+następnych wdrożeniach użyj `npx prisma migrate deploy --config prisma7.config.ts`.
+Pierwsze konto utworzone na pustej instalacji zostaje administratorem;
+administrator tworzy pierwszy magazyn ręcznie.
+
+### Instalacje z wcześniejszego snapshotu bootstrap
+
+Jeżeli baza została utworzona poprzednią wersją bootstrapu zawierającą wyłącznie
+migrację `20261028115504_initial_snapshot`, zatrzymaj aplikację, wykonaj kopię
+zapasową i potwierdź, że jej schemat odpowiada temu snapshotowi. Wyłącznie dla
+takiej bazy ustaw `DATABASE_URL` i oznacz trzy migracje jako już zastosowane:
+
+```bash
+npx prisma migrate resolve --config prisma7.config.ts --applied 20261027115504_apply_the_schema
+npx prisma migrate resolve --config prisma7.config.ts --applied 20261027160000_reset_legacy_two_factor
+npx prisma migrate resolve --config prisma7.config.ts --applied 20261028180000_email_settings
+npx prisma migrate deploy --config prisma7.config.ts
+```
+
+Jeśli wcześniejsza próba `migrate deploy` pozostawiła nieudaną migrację
+`20261027115504_apply_the_schema`, najpierw sprawdź jej stan i schemat bazy,
+a następnie oznacz tę nieudaną próbę jako wycofaną poleceniem
+`npx prisma migrate resolve --config prisma7.config.ts --rolled-back 20261027115504_apply_the_schema`.
+Nie wykonuj tych poleceń dla innych historii ani bez potwierdzenia schematu:
+`resolve` zmienia historię, nie wykonuje migracji. Zwłaszcza ponowne wykonanie
+migracji MFA może usunąć nowo skonfigurowane czynniki.
 
 ## Uprawnienia i magazyny
 
@@ -88,7 +159,7 @@ wyzwania, zaufane urządzenia i sesje użytkowników z `twoFactorEnabled = true`
 Zachowuje istniejące passkeys. Zatrzymaj poprzednią wersję aplikacji, wykonaj
 kopię zapasową i zastosuj migrację przed uruchomieniem nowego kodu. Nie
 uruchamiaj ponownie tej migracji ręcznie po ponownej aktywacji TOTP.
-Migracja bootstrapu pozostaje przeznaczona wyłącznie dla nowych, pustych baz.
+Nowa instalacja i kolejne wdrożenia korzystają z tej samej historii migracji.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

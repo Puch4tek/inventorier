@@ -1,0 +1,10 @@
+import { defineConfig } from "prisma/config";
+import { fileURLToPath } from "node:url";
+
+export default defineConfig({
+  schema: fileURLToPath(new URL("../prisma/schema.prisma", import.meta.url)),
+  migrations: {
+    path: fileURLToPath(new URL("../prisma/bootstrap-migrations", import.meta.url)),
+  },
+  datasource: { url: process.env.TEST_DATABASE_URL },
+});

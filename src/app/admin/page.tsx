@@ -8,6 +8,7 @@ import { CreateUserForm } from "./create-user-form";
 import { UserActions } from "./user-actions";
 import { isRegistrationEnabled } from "@/server/settings/registration";
 import { RegistrationSettingsForm } from "./registration-settings-form";
+import { AdminTabs } from "./admin-tabs";
 
 export const instant = false;
 
@@ -35,6 +36,8 @@ export default async function AdminPage() {
         <p className="page-description max-w-2xl">
           Zarządzaj kontami, rolami globalnymi i ustawieniami systemu.
         </p>
+
+        <AdminTabs active="users" />
 
         <section className="panel-card mt-8 p-5 sm:p-6">
           <h2 className="text-xl font-semibold">Samodzielna rejestracja</h2>

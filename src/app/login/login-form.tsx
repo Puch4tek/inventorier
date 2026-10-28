@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useActionState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/button";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -174,6 +175,12 @@ export default function LoginForm({ next }: { next?: string }) {
                             placeholder="Wprowadź hasło"
                         />
                     </div>
+                    <Link
+                        href="/forgot-password"
+                        className="inline-block text-sm font-medium underline underline-offset-4"
+                    >
+                        Nie pamiętasz hasła?
+                    </Link>
                     {loginState.error ? (
                         <p role="alert" className="status-error">
                             {loginState.error}

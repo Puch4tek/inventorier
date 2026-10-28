@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -31,40 +30,48 @@ enum ItemHistoryType {
 model AppSettings {
   id                  Int     @id @default(1)
   registrationEnabled Boolean @default(true)
+  smtpHost            String  @default("")
+  smtpPort            Int     @default(587)
+  smtpTls             String  @default("starttls")
+  smtpUsername        String  @default("")
+  smtpPassword        String?
+  smtpFromEmail       String  @default("")
+  smtpFromName        String  @default("")
+  resetEnabled        Boolean @default(false)
+  resetExpiryMinutes  Int     @default(60)
 }
 
 model User {
-  email            String        @unique
-  name             String
-  id               String        @id
-  passwordHash     String?
-  role             Role          @default(USER)
-  isActive         Boolean       @default(true)
-  mustChangePassword Boolean     @default(false)
-  itemHistories    ItemHistory[]
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  sessions         Session[]
-  emailVerified    Boolean       @default(false)
-  image            String?
-  twoFactorEnabled Boolean?      @default(false)
-  accounts         Account[]
-  twofactors       TwoFactor[]
-  passkeys         Passkey[]
+  email                String            @unique
+  name                 String
+  id                   String            @id
+  role                 Role              @default(USER)
+  isActive             Boolean           @default(true)
+  mustChangePassword   Boolean           @default(false)
+  itemHistories        ItemHistory[]
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  sessions             Session[]
+  emailVerified        Boolean           @default(false)
+  image                String?
+  twoFactorEnabled     Boolean?          @default(false)
+  accounts             Account[]
+  twofactors           TwoFactor[]
+  passkeys             Passkey[]
   warehouseMemberships WarehouseMember[]
 
   @@map("user")
 }
 
 model Warehouse {
-  id        String            @id
-  name      String
-  slug      String            @unique
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  locations Location[]
+  id         String            @id
+  name       String
+  slug       String            @unique
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  locations  Location[]
   categories Category[]
-  members   WarehouseMember[]
+  members    WarehouseMember[]
 }
 
 model WarehouseMember {

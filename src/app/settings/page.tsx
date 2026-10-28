@@ -5,6 +5,7 @@ import { PasswordForm, ProfileForm } from "./settings-forms";
 import { AccountTabs } from "./account-tabs";
 import { getSecuritySettings } from "@/server/security/get-security-settings";
 import { SecuritySettings } from "./security-settings";
+import { EmailChangeForm } from "./email-change-form";
 
 export const instant = false;
 
@@ -26,6 +27,8 @@ export default async function SettingsPage({
       : "profile";
   const securitySettings =
     tab === "security" ? await getSecuritySettings(user.id) : null;
+  const emailChangeCompleted =
+    params.emailChange === "success" && !params.error;
 
   return (
     <main className="app-shell pb-24 sm:pb-0">
@@ -72,13 +75,22 @@ export default async function SettingsPage({
                 Adres e-mail
               </h2>
               <p className="mt-2 text-sm text-app-muted">
-                Zmiana adresu e-mail będzie dostępna po wdrożeniu weryfikacji
-                przez wiadomość e-mail.
+                Nowy adres stanie się adresem konta po potwierdzeniu linku wysłanego na ten adres.
               </p>
             </div>
-            <p className="mt-5 rounded-xl bg-app-surface-muted px-4 py-3 text-sm text-app-muted">
-              {user.email}
-            </p>
+            <div className="mt-5">
+              {emailChangeCompleted ? (
+                <p role="status" className="status-success mb-5">
+                  Adres e-mail został potwierdzony i zmieniony.
+                </p>
+              ) : null}
+              {params.error ? (
+                <p role="alert" className="status-error mb-5">
+                  Nie udało się potwierdzić adresu. Poproś o nowy link i spróbuj ponownie.
+                </p>
+              ) : null}
+              <EmailChangeForm currentEmail={user.email} />
+            </div>
           </section>
           ) : null}
           {tab === "security" && securitySettings ? (

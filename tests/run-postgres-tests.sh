@@ -42,7 +42,7 @@ host_port=""
 database_ready=0
 for ((attempt = 0; attempt < 150; attempt += 1)); do
   host_port="$(docker inspect --format '{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}' "$container_name" 2>/dev/null || true)"
-  if [[ -n "$host_port" ]] && docker exec "$container_name" pg_isready -U inventory_test -d postgres >/dev/null 2>&1; then
+  if [[ -n "$host_port" ]] && docker exec "$container_name" pg_isready -h 127.0.0.1 -U inventory_test -d postgres >/dev/null 2>&1; then
     database_ready=1
     break
   fi
@@ -61,4 +61,15 @@ unset DATABASE_URL
 export DATABASE_URL="$TEST_DATABASE_URL"
 node --conditions=react-server --experimental-strip-types \
   --import ./tests/register-ts-runtime-loader.mjs \
-  --test tests/warehouse-schema.test.mjs tests/warehouse-locks.test.mjs tests/passkey-config.test.mjs tests/mfa-auth.test.mjs
+  --test --test-concurrency=4 \
+  tests/warehouse-schema.test.mjs \
+  tests/warehouse-locks.test.mjs \
+  tests/passkey-config.test.mjs \
+  tests/mfa-auth.test.mjs \
+  tests/email-settings.test.mjs \
+  tests/email-rate-limit.test.mjs \
+  tests/smtp-transport.test.mjs \
+  tests/admin-email-actions.test.mjs \
+  tests/email-change.test.mjs \
+  tests/forgot-password-action.test.mjs \
+  tests/password-reset.test.mjs

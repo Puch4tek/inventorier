@@ -11,6 +11,8 @@ import {
   isRegistrationEnabled,
   REGISTRATION_DISABLED_MESSAGE,
 } from "@/server/settings/registration";
+import { getSmtpConfig } from "@/server/settings/email";
+import { sendEmailVerificationMail } from "@/server/email/email-verification-mail";
 import bcrypt from "bcryptjs";
 import { createHash } from "node:crypto";
 
@@ -338,6 +340,12 @@ export const auth = betterAuth({
     },
     revokeSessionsOnPasswordReset: true,
   },
+  emailVerification: {
+    expiresIn: 60 * 60,
+    async sendVerificationEmail({ user, url }) {
+      await sendEmailVerificationMail(await getSmtpConfig(), user.email, url);
+    },
+  },
   databaseHooks: {
     user: {
       create: {
@@ -366,6 +374,17 @@ export const auth = betterAuth({
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path === "/sign-out") return;
+      if (
+        ctx.path === "/change-password" ||
+        ctx.path === "/request-password-reset" ||
+        ctx.path === "/reset-password" ||
+        ctx.path.startsWith("/reset-password/")
+      ) {
+        throw APIError.from("FORBIDDEN", {
+          code: "USE_PASSWORD_FORM",
+          message: "Użyj formularza zmiany lub resetowania hasła.",
+        });
+      }
       if (ctx.path === "/sign-up/email") {
         await requireRegistrationEnabled();
         throw APIError.from("FORBIDDEN", {
@@ -455,6 +474,10 @@ export const auth = betterAuth({
     after: mfaVerificationRecoveryGuard,
   },
   user: {
+    changeEmail: {
+      enabled: true,
+      updateEmailWithoutVerification: false,
+    },
     additionalFields: {
       role: {
         type: "string",
