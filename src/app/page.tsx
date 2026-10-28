@@ -1,7 +1,9 @@
 import { getButtonClassName } from "@/components/button";
 import { AppHeader } from "@/components/app-header";
 import { isRegistrationEnabled } from "@/server/settings/registration";
+import { getCurrentUser } from "@/server/auth/get-current-user";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
 const highlights = [
@@ -29,6 +31,12 @@ export const instant = false;
 
 export default async function Home() {
   await connection();
+  const user = await getCurrentUser();
+
+  if (user) {
+    redirect("/dashboard");
+  }
+
   const registrationEnabled = await isRegistrationEnabled();
 
   return (
@@ -44,7 +52,7 @@ export default async function Home() {
             Wiesz, gdzie to jest.
           </h1>
           <p className="mt-6 max-w-xl text-base leading-7 text-app-muted sm:text-lg sm:leading-8">
-            Inventory App pomaga ewidencjonować przedmioty, porządkować
+            Inventorier pomaga ewidencjonować przedmioty, porządkować
             lokalizacje i szybko odnajdywać potrzebne rzeczy.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -142,7 +150,7 @@ export default async function Home() {
 
       <footer className="border-t border-app-border">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-5 py-6 text-sm text-app-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <span>Inventory App</span>
+          <span>Inventorier</span>
           <span>Prosty system ewidencji przedmiotów.</span>
         </div>
       </footer>

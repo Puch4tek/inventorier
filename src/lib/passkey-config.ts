@@ -21,7 +21,7 @@ function parseOrigin(name: string, value: string) {
 }
 
 export function getPasskeyConfig(env: NodeJS.ProcessEnv = process.env) {
-  const rpName = "Inventory App";
+  const rpName = "Inventorier";
   const production = env.NODE_ENV === "production";
   const rpIdValue = env.PASSKEY_RP_ID?.trim();
   const originValue = env.PASSKEY_ORIGIN?.trim();

@@ -187,7 +187,7 @@ test("Better Auth enforces TOTP and consumes backup codes once", async () => {
   assert.ok(cookieJar.size > 0);
 
   const setup = await auth.api.enableTwoFactor({
-    body: { method: "totp", password, issuer: "Inventory App" },
+    body: { method: "totp", password, issuer: "Inventorier" },
     headers: cookieHeaders(cookieJar),
   });
   assert.equal(setup.method, "totp");

@@ -29,8 +29,8 @@ export function WarehouseSwitcher({
         disabled={isPending}
         aria-label="Aktywny magazyn"
         className={mobile
-          ? "field-select m-0 w-full rounded-xl border border-app-border bg-app-surface px-3 py-2 text-sm font-medium text-app-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent disabled:cursor-default disabled:opacity-70"
-          : "field-select m-0 min-w-40 max-w-48 rounded-xl border border-app-border-strong bg-app-surface px-3 py-2 text-xs font-semibold text-app-foreground shadow-sm transition hover:bg-app-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent disabled:cursor-default disabled:opacity-70"}
+          ? "field-select m-0 w-full rounded-xl border border-app-border bg-app-surface px-3 py-2 text-[16px] font-medium text-app-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent disabled:cursor-default disabled:opacity-70"
+          : "field-select m-0 min-w-40 max-w-48 rounded-xl border border-app-border-strong bg-app-surface px-3 py-2 text-[16px] font-semibold text-app-foreground shadow-sm transition hover:bg-app-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent disabled:cursor-default disabled:opacity-70"}
         onChange={(event) => event.currentTarget.form?.requestSubmit()}
       >
         {!activeId ? (

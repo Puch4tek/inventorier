@@ -8,8 +8,8 @@
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "assets/manifest-icon-192.maskable.png",
-      "sizes": "192x192",
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },

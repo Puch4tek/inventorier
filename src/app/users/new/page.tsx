@@ -18,8 +18,8 @@ export default async function NewUserPage() {
         <section className="panel-card grid w-full overflow-hidden rounded-[2rem] shadow-modal lg:grid-cols-[0.9fr_1.1fr]">
           <div className="hidden bg-app-accent p-12 text-app-inverse lg:flex lg:flex-col lg:justify-between">
             <div>
-              <p className="text-sm font-semibold tracking-[0.22em] text-app-inverse-muted uppercase">
-                Inventory App
+              <p className="text-sm font-semibold tracking-[0.22em] text-app-inverse-muted">
+                Inventorier
               </p>
               <p className="mt-16 max-w-sm text-5xl font-semibold leading-[1.05] tracking-[-0.04em]">
                 Zacznij porządkować swój magazyn.

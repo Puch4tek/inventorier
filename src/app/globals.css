@@ -173,7 +173,7 @@ body {
   border: 1px solid var(--border-strong);
   background: var(--surface);
   padding: 0.75rem 0.875rem;
-  font-size: 0.9375rem;
+  font-size: 16px;
   color: var(--foreground);
   outline: none;
   transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;

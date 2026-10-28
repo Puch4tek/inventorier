@@ -20,7 +20,7 @@ export default async function ChangePasswordPage({
     <main className="app-shell px-5 py-8 sm:px-8 sm:py-12">
       <div className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-lg items-center justify-center">
         <section className="panel-card w-full p-7 sm:p-12">
-          <p className="text-sm font-medium text-app-muted">Inventory App</p>
+          <p className="text-sm font-medium text-app-muted">Inventorier</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em]">Ustaw nowe hasło</h1>
           <p className="mt-3 text-[15px] leading-6 text-app-muted">
             Administrator wymaga ustawienia własnego hasła przed dalszym korzystaniem z aplikacji.

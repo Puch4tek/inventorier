@@ -154,7 +154,7 @@ export async function beginTotpSetup(
     const verified = await reauthenticate(password);
     const result = await auth.api.enableTwoFactor({
       headers: await headers(),
-      body: { method: "totp", issuer: "Inventory App", password: verified.password },
+      body: { method: "totp", issuer: "Inventorier", password: verified.password },
     });
 
     if (

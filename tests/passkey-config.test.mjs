@@ -7,7 +7,7 @@ test("passkey config defaults to localhost for development", () => {
     getPasskeyConfig({ NODE_ENV: "development" }),
     {
       rpID: "localhost",
-      rpName: "Inventory App",
+      rpName: "Inventorier",
       origin: "http://localhost:3000",
     },
   );
@@ -39,7 +39,7 @@ test("production passkey origin must match Better Auth and be an RP subdomain", 
   });
   assert.deepEqual(config, {
     rpID: "example.com",
-    rpName: "Inventory App",
+    rpName: "Inventorier",
     origin: "https://inventory.example.com",
   });
 

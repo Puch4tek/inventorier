@@ -20,8 +20,8 @@ export default async function LoginPage({
         <section className="panel-card grid w-full overflow-hidden rounded-[2rem] shadow-modal lg:grid-cols-[0.9fr_1.1fr]">
           <div className="hidden bg-app-accent p-12 text-app-inverse lg:flex lg:flex-col lg:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-app-inverse-muted">
-                Inventory App
+              <p className="text-sm font-semibold tracking-[0.22em] text-app-inverse-muted">
+                Inventorier
               </p>
               <p className="mt-16 max-w-sm text-5xl font-semibold leading-[1.05] tracking-[-0.04em]">
                 Witaj z powrotem.
@@ -34,7 +34,7 @@ export default async function LoginPage({
 
           <div className="p-7 sm:p-12">
             <div className="mb-10">
-              <p className="text-sm font-medium text-app-muted">Inventory App</p>
+              <p className="text-sm font-medium text-app-muted">Inventorier</p>
               <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em]">
                 Zaloguj się
               </h1>

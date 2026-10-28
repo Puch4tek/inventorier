@@ -43,7 +43,7 @@ export async function AppHeader({
               href={user ? "/dashboard" : "/"}
               className="font-semibold tracking-[-0.02em]"
             >
-              Inventory App
+              Inventorier
             </Link>
           )}
           {sectionLabel ? (

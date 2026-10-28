@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { InstallPrompt } from "@/components/install-prompt";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,11 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Inventory App",
+  title: "Inventorier",
   description: "System ewidencji i lokalizacji przedmiotów.",
-  icons: {
-    apple: [{ url: "/assets/apple-icon-180.png", sizes: "180x180", type: "image/png" }],
-  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -34,6 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
         {children}
+        <InstallPrompt />
       </body>
     </html>
   );
