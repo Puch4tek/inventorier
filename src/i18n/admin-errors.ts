@@ -1,7 +1,7 @@
 import type { Locale } from "./locale";
-import { adminMessages } from "./messages/admin";
+import { messages } from "./messages";
 
-const knownErrorKeys: Record<string, keyof typeof adminMessages.en.actions.knownErrors> = {
+const knownErrorKeys: Record<string, keyof typeof messages.en.admin.actions.knownErrors> = {
   "Nieprawidłowy użytkownik.": "invalidUser",
   "Nieprawidłowa rola.": "invalidRole",
   "Użytkownik nie istnieje.": "userMissing",
@@ -29,11 +29,11 @@ const knownErrorKeys: Record<string, keyof typeof adminMessages.en.actions.known
 export function getAdminActionError(
   error: unknown,
   locale: Locale,
-  fallback: keyof typeof adminMessages.en.actions.errors,
+  fallback: keyof typeof messages.en.admin.actions.errors,
 ) {
   const knownErrorKey =
     error instanceof Error ? knownErrorKeys[error.message] : undefined;
   return knownErrorKey
-    ? adminMessages[locale].actions.knownErrors[knownErrorKey]
-    : adminMessages[locale].actions.errors[fallback];
+    ? messages[locale].admin.actions.knownErrors[knownErrorKey]
+    : messages[locale].admin.actions.errors[fallback];
 }

@@ -1,6 +1,6 @@
 import type { SaveEmailSettingsInput } from "@/server/settings/email";
 import type { Locale } from "@/i18n/locale";
-import { adminMessages } from "@/i18n/messages/admin";
+import { messages } from "@/i18n/messages";
 
 export type EmailActionState = { error?: string; success?: string };
 
@@ -32,7 +32,7 @@ export function createEmailActions<Config>(deps: Dependencies<Config>) {
       data: FormData,
       locale: Locale = "pl",
     ): Promise<EmailActionState> {
-      const t = adminMessages[locale];
+      const t = messages[locale].admin;
       let actor: { id: string; sessionId: string };
       try {
         actor = await deps.requireAdmin();
@@ -78,7 +78,7 @@ export function createEmailActions<Config>(deps: Dependencies<Config>) {
       data: FormData,
       locale: Locale = "pl",
     ): Promise<EmailActionState> {
-      const t = adminMessages[locale];
+      const t = messages[locale].admin;
       let actor: { id: string; sessionId: string };
       try {
         actor = await deps.requireAdmin();

@@ -7,7 +7,7 @@ import { consumeEmailRateLimit } from "@/server/settings/email-rate-limit";
 import { EmailSettingsError, getAdminSmtpConfig, saveEmailSettings } from "@/server/settings/email";
 import { createEmailActions, type EmailActionState } from "./action-core";
 import { getLocale } from "next-intl/server";
-import { adminMessages } from "@/i18n/messages/admin";
+import { messages } from "@/i18n/messages";
 import type { Locale } from "@/i18n/locale";
 
 const actions = createEmailActions({
@@ -30,7 +30,7 @@ const actions = createEmailActions({
       CONFIGURATION: "configuration",
       ENCRYPTION: "encryption",
     } as const;
-    return adminMessages[locale].emailActions.errors[errorKey[error.code]];
+    return messages[locale].admin.emailActions.errors[errorKey[error.code]];
   },
 });
 

@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { Locale } from "@/i18n/locale";
-import { emailMessages } from "../../i18n/messages/email.mjs";
+import { messages } from "@/i18n/messages";
 import { sendMail, type SmtpConfig } from "@/server/email/send-mail";
 
 function escapeHtml(value: string): string {
@@ -32,7 +32,7 @@ export async function sendEmailVerificationMail(
     throw new Error("Nieprawidłowy adres potwierdzenia.");
   }
 
-  const t = emailMessages[locale].verification;
+  const t = messages[locale].auth.email.verification;
   await sendMail(config, {
     to,
     subject: t.subject,

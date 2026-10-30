@@ -3,9 +3,9 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { setLocaleAction } from "@/i18n/actions";
-import { isLocale } from "@/i18n/locale";
+import { isLocale, localeNames } from "@/i18n/locale";
 
-export function LocaleSwitcher() {
+export function LocaleSwitcher({ mobile = false }: { mobile?: boolean }) {
   const locale = useLocale();
   const t = useTranslations("common.language");
   const [isPending, startTransition] = useTransition();
@@ -23,13 +23,16 @@ export function LocaleSwitcher() {
   return (
     <select
       aria-label={t("label")}
-      className="rounded-lg border border-app-border bg-app-surface px-2 py-2 text-xs text-app-muted sm:text-sm"
+      className={mobile
+        ? "field-select m-0 w-full rounded-xl border border-app-border bg-app-surface pl-3 pr-11 py-2 text-[16px] font-medium text-app-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent disabled:cursor-default disabled:opacity-70"
+        : "field-select m-0 rounded-xl border border-app-border-strong bg-app-surface pl-4 pr-11 py-2 text-sm font-semibold text-app-foreground shadow-sm transition hover:bg-app-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent disabled:cursor-default disabled:opacity-70"}
       disabled={isPending}
       onChange={handleChange}
       value={locale}
     >
-      <option value="pl">Polski</option>
-      <option value="en">English</option>
+      {Object.entries(localeNames).map(([value, name]) => (
+        <option key={value} value={value}>{name}</option>
+      ))}
     </select>
   );
 }

@@ -37,15 +37,28 @@ export default async function CategoriesPage() {
             </p>
           </section>
         ) : (
-          <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {categories.map((category) => (
-              <Link key={category.id} href={`/categories/${category.id}`} className="panel-card p-6 transition hover:bg-app-surface-subtle">
-                <h2 className="text-xl font-semibold">{category.name}</h2>
-                <p className="mt-3 text-sm text-app-muted">
-                  {t("itemCount", { count: category._count.items })}
-                </p>
-              </Link>
-            ))}
+          <section className="panel-card mt-5 overflow-hidden transition hover:bg-app-surface-subtle sm:mt-10">
+            <div className="divide-y divide-app-border">
+              {categories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/categories/${category.id}`}
+                  className="block px-4 py-3 transition sm:px-8 sm:py-5"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="font-semibold">{category.name}</h2>
+                      <p className="mt-1 truncate text-xs text-app-muted sm:text-sm">
+                        {category.description || t("noDescription")}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-sm font-semibold sm:text-base">
+                      {t("itemCount", { count: category._count.items })}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </section>
         )}
       </section>

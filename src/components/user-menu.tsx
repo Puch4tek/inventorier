@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { logoutAction } from "@/app/dashboard/actions";
+import { LocaleSwitcher } from "./locale-switcher";
 import { WarehouseSwitcher } from "./warehouse-switcher";
 import { useTranslations } from "next-intl";
 
@@ -34,6 +35,7 @@ export function UserMenu({
   canManageWarehouses,
 }: UserMenuProps) {
   const t = useTranslations("organization.userMenu");
+  const languageT = useTranslations("common.language");
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -81,6 +83,10 @@ export function UserMenu({
             <p className="mt-1 text-xs text-app-muted">{t("signedIn")}</p>
           </div>
           <div className="space-y-3 border-b border-app-border px-3 py-3 sm:hidden">
+            <div>
+              <p className="mb-1 text-xs font-medium text-app-muted">{languageT("label")}</p>
+              <LocaleSwitcher mobile />
+            </div>
             <div>
               <p className="mb-1 text-xs font-medium text-app-muted">{t("warehouse")}</p>
               <WarehouseSwitcher

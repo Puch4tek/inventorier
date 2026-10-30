@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+
 type LocationNode = {
   id: number;
   name: string;
@@ -21,73 +24,51 @@ type LocationTreeProps = {
   }>;
 };
 
-export function LocationTree({ locations }: LocationTreeProps) {
+export async function LocationTree({ locations }: LocationTreeProps) {
   const nodes = buildLocationTree(locations);
-
-  return (
-    <div className="mt-10 space-y-3">
-      {nodes.map((node) => (
-        <LocationTreeItem key={node.id} node={node} level={0} />
-      ))}
-    </div>
-  );
-}
-
-async function LocationTreeItem({
-  node,
-  level,
-  parentName,
-}: {
-  node: LocationNode;
-  level: number;
-  parentName?: string;
-}) {
+  const rows = flattenLocationTree(nodes);
   const t = await getTranslations("organization.locations");
-  return (
-    <div className="min-w-0">
-      <article
-        className="rounded-2xl border border-app-border bg-app-surface p-5 shadow-card"
-        style={{ marginLeft: `${Math.min(level, 3) * 1.5}rem` }}
-      >
-        {parentName ? (
-          <p className={level > 3 ? "mb-2 break-words text-xs text-app-muted" : "sr-only"}>
-            {t("parent", { name: parentName })}
-          </p>
-        ) : null}
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-          <div>
-            <div className="flex items-center gap-2">
-              {level > 0 ? (
-                <span className="text-app-subtle" aria-hidden="true">
-                  ↳
-                </span>
-              ) : null}
-              <Link
-                href={`/locations/${node.id}`}
-                className="min-w-0 break-words text-lg font-semibold tracking-[-0.02em] hover:underline"
-              >
-                {node.name}
-              </Link>
-            </div>
-            <p className="mt-2 text-sm leading-6 text-app-muted">
-              {node.description || t("noDescription")}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-4 text-xs text-app-muted">
-            <span>{t("itemsCount", { count: node.itemCount })}</span>
-            <span>{t("childrenCount", { count: node.childCount })}</span>
-          </div>
-        </div>
-      </article>
 
-      {node.children.length > 0 ? (
-        <div className="mt-3 space-y-3">
-          {node.children.map((child) => (
-            <LocationTreeItem key={child.id} node={child} level={level + 1} parentName={node.name} />
-          ))}
-        </div>
-      ) : null}
-    </div>
+  return (
+    <section className="panel-card mt-5 overflow-hidden transition hover:bg-app-surface-subtle sm:mt-10">
+      <div className="divide-y divide-app-border">
+        {rows.map(({ node, level, parentName }) => (
+          <Link
+            key={node.id}
+            href={`/locations/${node.id}`}
+            className="block px-4 py-3 transition sm:px-8 sm:py-5"
+          >
+            <div
+              className="flex items-center justify-between gap-3"
+              style={{ marginLeft: `${Math.min(level, 3) * 1.5}rem` }}
+            >
+              <div className="min-w-0">
+                {parentName ? (
+                  <p className={level > 3 ? "mb-1 break-words text-xs text-app-muted" : "sr-only"}>
+                    {t("parent", { name: parentName })}
+                  </p>
+                ) : null}
+                <h2 className="truncate font-semibold">
+                  {level > 0 ? (
+                    <span className="mr-2 text-app-subtle" aria-hidden="true">
+                      ↳
+                    </span>
+                  ) : null}
+                  {node.name}
+                </h2>
+                <p className="mt-1 truncate text-xs text-app-muted sm:text-sm">
+                  {node.description || t("noDescription")}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1 text-xs text-app-muted sm:flex-row sm:gap-4 sm:text-sm">
+                <span>{t("itemsCount", { count: node.itemCount })}</span>
+                <span>{t("childrenCount", { count: node.childCount })}</span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -124,5 +105,14 @@ function buildLocationTree(locations: LocationTreeProps["locations"]) {
 
   return roots;
 }
-import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+
+function flattenLocationTree(
+  nodes: LocationNode[],
+  level = 0,
+  parentName?: string,
+): { node: LocationNode; level: number; parentName?: string }[] {
+  return nodes.flatMap((node) => [
+    { node, level, parentName },
+    ...flattenLocationTree(node.children, level + 1, node.name),
+  ]);
+}

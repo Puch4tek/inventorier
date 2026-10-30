@@ -60,7 +60,13 @@ export async function AppHeader({
 
         <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle />
-          <LocaleSwitcher />
+          {user ? (
+            <span className="hidden sm:block">
+              <LocaleSwitcher />
+            </span>
+          ) : (
+            <LocaleSwitcher />
+          )}
           {user ? (
             <>
               <WarehouseSwitcher

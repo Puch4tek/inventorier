@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { Locale } from "@/i18n/locale";
-import { emailMessages } from "../../i18n/messages/email.mjs";
+import { messages } from "@/i18n/messages";
 import nodemailer from "nodemailer";
 
 export type SmtpConfig = {
@@ -62,7 +62,7 @@ export async function sendTestEmail(
   to: string,
   locale: Locale = "pl",
 ): Promise<void> {
-  const t = emailMessages[locale].test;
+  const t = messages[locale].auth.email.test;
   await sendMail(config, {
     to,
     subject: t.subject,
@@ -93,7 +93,7 @@ export async function sendPasswordResetEmail(
     throw new Error("Nieprawidłowy adres resetowania hasła.");
   }
 
-  const t = emailMessages[locale].passwordReset;
+  const t = messages[locale].auth.email.passwordReset;
   await sendMail(config, {
     to,
     subject: t.subject,

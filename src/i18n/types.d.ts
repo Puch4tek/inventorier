@@ -1,9 +1,6 @@
 import type { Locale } from "./locale";
 import type { messages } from "./messages";
-
-type WidenMessages<T> = T extends string
-  ? string
-  : { readonly [K in keyof T]: WidenMessages<T[K]> };
+import type { WidenMessages } from "./messages/shape";
 
 declare module "next-intl" {
   interface AppConfig {

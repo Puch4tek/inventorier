@@ -42,6 +42,7 @@ Prerequisites: Node.js, npm, and Docker with Compose.
 - [Development setup and commands](docs/development.md) — prerequisites, environment, database, tests, and troubleshooting.
 - [Architecture overview](docs/architecture.md) — application layers, domain concepts, and key data flows.
 - [Module reference](docs/module-reference.md) — responsibilities and entry points across maintained source modules.
+- [Localization guide](docs/localization.md) — translating messages and adding supported languages.
 - [Operations and security-sensitive procedures](docs/operations.md) — migrations, auth/MFA/passkeys, email/password reset, and warehouse permissions.
 
 ## Common commands

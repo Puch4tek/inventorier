@@ -1,10 +1,14 @@
-export const locales = ["pl", "en"] as const;
-export type Locale = (typeof locales)[number];
+export const localeNames = {
+  pl: "Polski",
+  en: "English",
+} as const;
+export type Locale = keyof typeof localeNames;
+export const locales = Object.keys(localeNames) as Locale[];
 export const defaultLocale: Locale = "pl";
 export const localeCookieName = "NEXT_LOCALE";
 
 export function isLocale(value: unknown): value is Locale {
-  return typeof value === "string" && locales.includes(value as Locale);
+  return typeof value === "string" && Object.hasOwn(localeNames, value);
 }
 
 type LanguagePreference = {
