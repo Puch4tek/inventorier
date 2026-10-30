@@ -665,7 +665,7 @@ const messages = {
       codeRecognized: "Code recognized. Opening item...",
       enterBarcode: "Enter barcode manually",
       barcodeRequired: "Enter a barcode.",
-      barcodePlaceholder: "e.g. INV-ABC123",
+      barcodePlaceholder: "e.g. I-ABC123",
       searching: "Searching...",
       open: "Open",
       barcodeNotFound: "No item was found with this barcode.",

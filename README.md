@@ -49,6 +49,7 @@ Prerequisites: Node.js, npm, and Docker with Compose.
 
 ```sh
 npm run dev       # Start the development server
+npm test          # Run all tests (requires Docker and postgres:18)
 npm run lint      # Run ESLint
 npm run build     # Build for production
 ```

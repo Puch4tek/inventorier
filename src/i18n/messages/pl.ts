@@ -671,7 +671,7 @@ const messages = {
       codeRecognized: "Kod rozpoznany. Otwieranie przedmiotu...",
       enterBarcode: "Wpisz kod ręcznie",
       barcodeRequired: "Wpisz kod kreskowy.",
-      barcodePlaceholder: "np. INV-ABC123",
+      barcodePlaceholder: "np. I-ABC123",
       searching: "Szukam...",
       open: "Otwórz",
       barcodeNotFound: "Nie znaleziono przedmiotu o tym kodzie.",

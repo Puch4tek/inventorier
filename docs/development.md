@@ -82,13 +82,13 @@ Next.js 16 does not run ESLint as part of `next build`, so run both commands exp
 
 ## Tests
 
-There is no `npm test` script. Run the PostgreSQL integration suite with:
+Run the complete test suite with:
 
 ```bash
-bash tests/run-postgres-tests.sh
+npm test
 ```
 
-The script requires a running Docker daemon and a locally available `postgres:18` image; it checks for the image but does not pull it. If needed, fetch it first with `docker pull postgres:18`. The script starts a uniquely named container, binds its temporary database port to loopback, stores PostgreSQL data in a 1 GiB `tmpfs` (no bind mount or Docker volume), runs the tests, and removes the container on exit. Do not edit the script to use a persistent database or volume. It runs tests for warehouse schema and locking, passkeys/MFA, SMTP settings and transport, email changes, and password reset behavior.
+The test script requires a running Docker daemon and a locally available `postgres:18` image; it checks for the image but does not pull it. If needed, fetch it first with `docker pull postgres:18`. It starts a uniquely named container, binds its temporary database port to loopback, stores PostgreSQL data in a 1 GiB `tmpfs` (no bind mount or Docker volume), runs integration and localization tests with Node's built-in test runner, and removes the container on exit. Do not edit the script to use a persistent database or volume.
 
 ## Related source
 

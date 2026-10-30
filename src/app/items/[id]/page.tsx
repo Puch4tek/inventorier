@@ -108,7 +108,7 @@ export default async function ItemPage({
             </div>
         ) : null}
         <div className="mt-4 grid gap-5 lg:grid-cols-2">
-          <section className="panel-card p-6 lg:row-span-3">
+          <section className="panel-card p-6">
             <p className="text-sm font-medium text-app-muted">{t("detail.information")}</p>
             <div className="mt-5 space-y-5">
               <div>
@@ -140,57 +140,54 @@ export default async function ItemPage({
                   })}
                 </p>
               </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.08em] text-app-muted">
-                  {t("detail.description")}
-                </p>
-                <p className="mt-1 text-sm leading-6 text-app-muted">
-                  {item.description || t("detail.missingDescription")}
-                </p>
+            </div>
+          </section>
+
+          <div
+            className={`grid gap-5 ${item.isArchived ? "lg:grid-rows-2" : "lg:grid-rows-3"}`}
+          >
+            <section className="panel-card p-6">
+              <p className="text-sm font-medium text-app-muted">{t("detail.location")}</p>
+              <Link
+                href={`/locations/${item.location.id}?fromItem=${item.id}`}
+                className="mt-3 block text-xl font-semibold hover:underline"
+              >
+                {item.location.name}
+              </Link>
+              <p className="mt-2 text-sm text-app-muted">
+                {t("detail.goToLocation")}
+              </p>
+            </section>
+
+            <section className="panel-card p-6">
+              <p className="text-sm font-medium text-app-muted">{t("detail.category")}</p>
+              {item.category ? (
+                <>
+                  <Link
+                    href={`/categories/${item.category.id}?fromItem=${item.id}`}
+                    className="mt-3 block text-xl font-semibold hover:underline"
+                  >
+                    {item.category.name}
+                  </Link>
+                  <p className="mt-2 text-sm text-app-muted">
+                    {t("detail.goToCategory")}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-3 text-xl font-semibold">{t("list.noCategory")}</p>
+              )}
+            </section>
+
+            {!item.isArchived ? (
+              <div className="hidden lg:block">
+                <QuantityActions
+                  itemId={item.id}
+                  quantity={item.quantity}
+                  inputId="exact-quantity-desktop"
+                />
               </div>
-            </div>
-          </section>
-
-          <section className="panel-card p-6">
-            <p className="text-sm font-medium text-app-muted">{t("detail.location")}</p>
-            <Link
-              href={`/locations/${item.location.id}?fromItem=${item.id}`}
-              className="mt-3 block text-xl font-semibold hover:underline"
-            >
-              {item.location.name}
-            </Link>
-            <p className="mt-2 text-sm text-app-muted">
-              {t("detail.goToLocation")}
-            </p>
-          </section>
-
-          <section className="panel-card p-6">
-            <p className="text-sm font-medium text-app-muted">{t("detail.category")}</p>
-            {item.category ? (
-              <>
-                <Link
-                  href={`/categories/${item.category.id}?fromItem=${item.id}`}
-                  className="mt-3 block text-xl font-semibold hover:underline"
-                >
-                  {item.category.name}
-                </Link>
-                <p className="mt-2 text-sm text-app-muted">
-                  {t("detail.goToCategory")}
-                </p>
-              </>
-            ) : (
-              <p className="mt-3 text-xl font-semibold">{t("list.noCategory")}</p>
-            )}
-          </section>
-          {!item.isArchived ? (
-            <div className="hidden lg:col-start-2 lg:block">
-              <QuantityActions
-                itemId={item.id}
-                quantity={item.quantity}
-                inputId="exact-quantity-desktop"
-              />
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
         <section className="panel-card mt-5 p-6">
           <h2 className="text-xl font-semibold">{t("detail.history")}</h2>

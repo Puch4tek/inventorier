@@ -8,6 +8,12 @@ For regular releases, stop the old application version while applying migrations
 
 Keep a database backup and its restore instructions, and periodically test a restore. Preserve `SMTP_ENCRYPTION_KEY` in a separate secure secret store: the SMTP password is encrypted in the database, and a database backup alone cannot recover it without the matching key.
 
+### Changing item barcode prefixes
+
+The migration `20261030181500_change_barcode_prefix` changes every item barcode beginning with `INV-` to `I-`, preserving the rest of the code. This includes archived items and is global across warehouses. Codes not beginning with `INV-` are unchanged. Existing `INV-` labels will no longer find their items after the migration; print replacement labels after deployment. The scanner does not provide a legacy-prefix fallback.
+
+Before deploying, stop all application instances and take a recoverable database backup. Check that the database is healthy, then apply the normal migrations using the procedure in [Development: Migrations](development.md#migrations-and-generated-client) before starting the new application version. The migration locks the item table while checking and updating codes. If a resulting `I-` code already exists, it aborts without applying any barcode changes. Inspect the conflicting items and resolve the data conflict deliberately before retrying. If Prisma records a failed migration, inspect `prisma migrate status` and the migration history first; follow Prisma's recovery procedure for the specific state rather than marking it applied or editing migration history blindly.
+
 ### One-time legacy MFA migration
 
 Before deploying the version that enables the current two-factor authentication flow to an existing installation, apply migration `20261027160000_reset_legacy_two_factor` through the normal migration deployment. It clears old TOTP factors, related challenges and trusted-device records, and sessions for users whose legacy `twoFactorEnabled` flag is true. It preserves passkeys. Inform affected users that they must enroll in TOTP again.

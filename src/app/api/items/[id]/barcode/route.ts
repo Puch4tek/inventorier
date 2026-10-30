@@ -48,7 +48,7 @@ export async function GET(
     bcid: "code128",
     text: item.barcode,
     scale: 4,
-    height: 24,
+    height: 16,
     includetext: true,
     textsize: 12,
     textxalign: "center" as const,

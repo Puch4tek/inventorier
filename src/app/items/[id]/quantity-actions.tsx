@@ -42,7 +42,7 @@ function QuantityActionForm({
   }
 
   return (
-    <section className="panel-card rounded-2xl p-3 sm:rounded-3xl sm:p-6">
+    <section className="panel-card h-full rounded-2xl p-3 sm:rounded-3xl sm:p-6">
       <p className="text-xs font-medium text-app-muted sm:text-sm">{t("quantityControl.title")}</p>
       <p className="mt-1 hidden text-sm text-app-muted sm:block">
         {t("quantityControl.instructions")}

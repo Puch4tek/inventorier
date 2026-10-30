@@ -72,4 +72,9 @@ node --conditions=react-server --experimental-strip-types \
   tests/admin-email-actions.test.mjs \
   tests/email-change.test.mjs \
   tests/forgot-password-action.test.mjs \
-  tests/password-reset.test.mjs
+  tests/password-reset.test.mjs \
+  tests/admin-error-localization.test.mjs \
+  tests/barcode-generation.test.mjs \
+  tests/i18n-foundation.test.mjs \
+  tests/i18n-organization.test.mjs \
+  tests/items-i18n.test.mjs

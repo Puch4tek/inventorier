@@ -327,6 +327,70 @@ test("barcode uniqueness is global and history retains its actor after user dele
   assert.deepEqual(history.rows, [{ userId: null, actorName: "History actor" }]);
 });
 
+test("barcode prefix migration updates all matching items atomically and rejects global collisions", async () => {
+  const suffix = randomUUID();
+  const warehouseIds = [`barcode-prefix-a-${suffix}`, `barcode-prefix-b-${suffix}`];
+  await client.query(
+    `INSERT INTO "Warehouse" ("id", "name", "slug", "updatedAt")
+     VALUES ($1, 'Barcode Prefix A', $2, now()), ($3, 'Barcode Prefix B', $4, now())`,
+    [warehouseIds[0], `barcode-prefix-a-${suffix}`, warehouseIds[1], `barcode-prefix-b-${suffix}`],
+  );
+  const locations = await client.query(
+    `INSERT INTO "Location" ("warehouseId", "name", "updatedAt")
+     VALUES ($1, 'Barcode Prefix A', now()), ($2, 'Barcode Prefix B', now())
+     RETURNING "id"`,
+    warehouseIds,
+  );
+  const items = await client.query(
+    `INSERT INTO "Item" ("barcode", "name", "quantity", "unit", "locationId", "isArchived", "updatedAt")
+     VALUES
+       ($1, 'Active item', 1, 'each', $4, false, now()),
+       ($2, 'Archived item', 1, 'each', $4, true, now()),
+       ($3, 'Nonmatching item', 1, 'each', $5, false, now())
+     RETURNING "id", "barcode"`,
+    [
+      `INV-ACTIVE${suffix}`,
+      `INV-ARCHIVED${suffix}`,
+      `OTHER-${suffix}`,
+      locations.rows[0].id,
+      locations.rows[1].id,
+    ],
+  );
+  const migration = await readFile(
+    "prisma/migrations/20261030181500_change_barcode_prefix/migration.sql",
+    "utf8",
+  );
+
+  await client.query(migration);
+
+  const updated = await client.query(
+    `SELECT "barcode", "isArchived" FROM "Item" WHERE "id" = ANY($1::int[]) ORDER BY "id"`,
+    [items.rows.map((item) => item.id)],
+  );
+  assert.deepEqual(updated.rows, [
+    { barcode: `I-ACTIVE${suffix}`, isArchived: false },
+    { barcode: `I-ARCHIVED${suffix}`, isArchived: true },
+    { barcode: `OTHER-${suffix}`, isArchived: false },
+  ]);
+
+  const conflictCodes = [`INV-COLLISION${suffix}`, `I-COLLISION${suffix}`, `INV-CANARY${suffix}`];
+  await client.query(
+    `INSERT INTO "Item" ("barcode", "name", "quantity", "unit", "locationId", "updatedAt")
+     VALUES ($1, 'Conflicting old code', 1, 'each', $3, now()),
+            ($2, 'Existing new code', 1, 'each', $4, now()),
+            ($5, 'Rollback canary', 1, 'each', $3, now())`,
+    [...conflictCodes.slice(0, 2), locations.rows[0].id, locations.rows[1].id, conflictCodes[2]],
+  );
+  await assert.rejects(client.query(migration), /Barcode prefix migration aborted/);
+  await client.query("ROLLBACK");
+
+  const afterConflict = await client.query(
+    `SELECT "barcode" FROM "Item" WHERE "barcode" = ANY($1::text[]) ORDER BY "barcode"`,
+    [conflictCodes],
+  );
+  assert.deepEqual(afterConflict.rows.map((row) => row.barcode), [...conflictCodes].sort());
+});
+
 test("fresh-install bootstrap refuses a populated schema without deleting its marker", async () => {
   const populated = await connectTo(databaseUrl(populatedDatabase));
   try {
