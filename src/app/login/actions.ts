@@ -6,55 +6,97 @@ import { isAPIError } from "better-auth/api";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { localReturnPath } from "@/lib/local-return-path";
-import { TWO_FACTOR_RESET_REQUIRED_MESSAGE } from "@/server/auth/two-factor-policy";
 
 export type LoginActionState = {
-    error?: string;
+    error?:
+        | "invalidCredentials"
+        | "twoFactorReset"
+        | "passkeyReset"
+        | "accountDisabled"
+        | "passwordChangeRequired"
+        | "invalidVerificationCode"
+        | "challengeExpired"
+        | "tooManyAttempts"
+        | "accountLocked"
+        | "requiredFields"
+        | "codeRequired"
+        | "methodInvalid"
+        | "passkeyConfirmationFailure"
+        | "passkeyNotFound"
+        | "passkeyCancelled"
+        | "passkeyUnsupported"
+        | "passkeyFailure"
+        | "generic";
     step?: "two-factor";
 }
 
-function messageForAuthError(error: unknown): string | undefined {
+type LoginErrorKey = NonNullable<LoginActionState["error"]>;
+
+function messageForAuthError(
+    error: unknown,
+    messages: Record<string, LoginErrorKey>,
+): LoginErrorKey | undefined {
     if (!isAPIError(error)) return undefined;
 
     switch (error.body?.code) {
         case "INVALID_EMAIL_OR_PASSWORD":
-            return "Nieprawidłowy adres e-mail lub hasło.";
+            return messages.invalidCredentials;
         case "TWO_FACTOR_RESET_REQUIRED":
-            return TWO_FACTOR_RESET_REQUIRED_MESSAGE;
+        case "TWO_FACTOR_RESET":
+            return messages.twoFactorReset;
+        case "PASSKEY_RESET":
+            return messages.passkeyReset;
         case "ACCOUNT_DISABLED":
-            return "To konto jest zablokowane. Skontaktuj się z administratorem.";
+            return messages.accountDisabled;
         case "PASSWORD_CHANGE_REQUIRED":
-            return "Zmień hasło, aby kontynuować.";
+            return messages.passwordChangeRequired;
         case "INVALID_CODE":
         case "INVALID_BACKUP_CODE":
-            return "Nieprawidłowy kod weryfikacyjny.";
+            return messages.invalidVerificationCode;
         case "INVALID_TWO_FACTOR_COOKIE":
-            return "Wyzwanie wygasło. Zaloguj się ponownie.";
+            return messages.challengeExpired;
         case "TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE":
-            return "Wykorzystano limit prób. Zaloguj się ponownie.";
+            return messages.tooManyAttempts;
         case "ACCOUNT_TEMPORARILY_LOCKED":
-            return "Konto jest tymczasowo zablokowane. Spróbuj ponownie później.";
+            return messages.accountLocked;
         default:
             return undefined;
     }
 }
 
-function reportLoginError(label: string, error: unknown): LoginActionState {
-    const message = messageForAuthError(error);
+function reportLoginError(
+    label: string,
+    error: unknown,
+    messages: Record<string, LoginErrorKey>,
+): LoginActionState {
+    const message = messageForAuthError(error, messages);
     if (message) return { error: message };
 
     console.error(label, error);
-    return { error: "Nie udało się zalogować. Spróbuj ponownie." };
+    return { error: messages.generic };
 }
 
 export async function loginAction(
     _previousState: LoginActionState,
     formData: FormData
 ): Promise<LoginActionState> {
+    const messages = {
+        invalidCredentials: "invalidCredentials",
+        twoFactorReset: "twoFactorReset",
+        passkeyReset: "passkeyReset",
+        accountDisabled: "accountDisabled",
+        passwordChangeRequired: "passwordChangeRequired",
+        invalidVerificationCode: "invalidVerificationCode",
+        challengeExpired: "challengeExpired",
+        tooManyAttempts: "tooManyAttempts",
+        accountLocked: "accountLocked",
+        requiredFields: "requiredFields",
+        generic: "generic",
+    } as const;
     let email = formData.get("email");
     const password = formData.get("password");
     if (typeof email !== "string" || typeof password !== "string" || !password) {
-        return { error: "Uzupełnij wszystkie pola." };
+        return { error: messages.requiredFields };
     }
 
     email = email.trim().toLowerCase();
@@ -65,11 +107,11 @@ export async function loginAction(
             select: { isActive: true, mustChangePassword: true },
         });
     } catch (error) {
-        console.error("Nie udało się sprawdzić konta podczas logowania:", error);
-        return { error: "Nie udało się zalogować. Spróbuj ponownie." };
+        console.error("Could not check the account during sign-in:", error);
+        return { error: messages.generic };
     }
     if (user && !user.isActive) {
-        return { error: "To konto jest zablokowane. Skontaktuj się z administratorem." };
+        return { error: messages.accountDisabled };
     }
 
     let requiresTwoFactor = false;
@@ -80,7 +122,7 @@ export async function loginAction(
         });
         requiresTwoFactor = "twoFactorRedirect" in result && result.twoFactorRedirect === true;
     } catch (error) {
-        return reportLoginError("Nie udało się zalogować:", error);
+        return reportLoginError("Sign-in failed:", error, messages);
     }
 
     if (requiresTwoFactor) return { step: "two-factor" };
@@ -96,13 +138,27 @@ export async function verifyTwoFactorAction(
     _previousState: LoginActionState,
     formData: FormData
 ): Promise<LoginActionState> {
+    const messages = {
+        invalidVerificationCode: "invalidVerificationCode",
+        codeRequired: "codeRequired",
+        methodInvalid: "methodInvalid",
+        accountDisabled: "accountDisabled",
+        generic: "generic",
+        invalidCredentials: "invalidCredentials",
+        twoFactorReset: "twoFactorReset",
+        passkeyReset: "passkeyReset",
+        passwordChangeRequired: "passwordChangeRequired",
+        challengeExpired: "challengeExpired",
+        tooManyAttempts: "tooManyAttempts",
+        accountLocked: "accountLocked",
+    } as const;
     const code = formData.get("code");
     const method = formData.get("method");
     if (typeof code !== "string" || !code.trim()) {
-        return { step: "two-factor", error: "Wprowadź kod weryfikacyjny." };
+        return { step: "two-factor", error: messages.codeRequired };
     }
     if (method !== "totp" && method !== "backup") {
-        return { step: "two-factor", error: "Wybierz prawidłowy sposób weryfikacji." };
+        return { step: "two-factor", error: messages.methodInvalid };
     }
 
     const trustDevice = formData.get("trustDevice") === "on";
@@ -126,12 +182,12 @@ export async function verifyTwoFactorAction(
         if (!user?.isActive) {
             return {
                 step: "two-factor",
-                error: "To konto jest zablokowane. Skontaktuj się z administratorem.",
+                error: messages.accountDisabled,
             };
         }
         mustChangePassword = user.mustChangePassword;
     } catch (error) {
-        return { ...reportLoginError("Nie udało się zweryfikować kodu:", error), step: "two-factor" };
+        return { ...reportLoginError("Two-factor verification failed:", error, messages), step: "two-factor" };
     }
 
     const next = localReturnPath(formData.get("next"));
@@ -142,6 +198,19 @@ export async function verifyTwoFactorAction(
 }
 
 export async function finishPasskeyLogin(nextPath: string): Promise<LoginActionState> {
+    const messages = {
+        invalidCredentials: "invalidCredentials",
+        twoFactorReset: "twoFactorReset",
+        passkeyReset: "passkeyReset",
+        accountDisabled: "accountDisabled",
+        passwordChangeRequired: "passwordChangeRequired",
+        invalidVerificationCode: "invalidVerificationCode",
+        challengeExpired: "challengeExpired",
+        tooManyAttempts: "tooManyAttempts",
+        accountLocked: "accountLocked",
+        generic: "generic",
+        passkeyConfirmationFailure: "passkeyConfirmationFailure",
+    } as const;
     let mustChangePassword = false;
     try {
         const requestHeaders = await headers();
@@ -150,7 +219,7 @@ export async function finishPasskeyLogin(nextPath: string): Promise<LoginActionS
             query: { disableCookieCache: true },
         });
         if (!session) {
-            return { error: "Nie udało się potwierdzić logowania passkey. Spróbuj ponownie." };
+            return { error: messages.passkeyConfirmationFailure };
         }
 
         const user = await prisma.user.findUnique({
@@ -159,11 +228,11 @@ export async function finishPasskeyLogin(nextPath: string): Promise<LoginActionS
         });
         if (!user?.isActive) {
             await auth.api.signOut({ headers: requestHeaders });
-            return { error: "To konto jest zablokowane. Skontaktuj się z administratorem." };
+            return { error: messages.accountDisabled };
         }
         mustChangePassword = user.mustChangePassword;
     } catch (error) {
-        return reportLoginError("Nie udało się zakończyć logowania passkey:", error);
+        return reportLoginError("Passkey sign-in could not be completed:", error, messages);
     }
 
     const next = localReturnPath(nextPath);

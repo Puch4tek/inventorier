@@ -8,7 +8,7 @@ import {
 
 export type ResetPasswordActionState = {
   success?: boolean;
-  error?: string;
+  error?: "invalidLink" | "passwordMismatch";
 };
 
 export async function resetPasswordAction(
@@ -24,10 +24,10 @@ export async function resetPasswordAction(
     typeof password !== "string" ||
     typeof confirmation !== "string"
   ) {
-    return { error: "Link jest nieprawidłowy lub wygasł. Poproś o nowy." };
+    return { error: "invalidLink" };
   }
   if (password !== confirmation) {
-    return { error: "Wprowadzone hasła nie są takie same." };
+    return { error: "passwordMismatch" };
   }
 
   try {
@@ -37,6 +37,6 @@ export async function resetPasswordAction(
     if (!(error instanceof PasswordResetError)) {
       console.error("Password reset could not be completed.");
     }
-    return { error: "Link jest nieprawidłowy lub wygasł. Poproś o nowy." };
+    return { error: "invalidLink" };
   }
 }

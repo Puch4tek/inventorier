@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/db/prisma";
 import { requireCurrentWarehouse } from "@/server/warehouses/current-warehouse";
 import { withWarehouseMutation } from "@/server/warehouses/permissions";
+import { itemHistoryDescriptions } from "@/lib/items/history";
 
 function validateId(itemId: number) {
   if (
@@ -110,7 +111,7 @@ async function updateQuantityInTransaction(
       type: "QUANTITY_CHANGED",
       oldValue: String(oldQuantity),
       newValue: String(newQuantity),
-      description: "Zmieniono ilość",
+      description: itemHistoryDescriptions.quantityChanged,
     },
   });
 

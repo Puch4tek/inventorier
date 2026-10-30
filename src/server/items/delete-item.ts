@@ -1,6 +1,7 @@
 import "server-only";
 
 import { requireWarehouseDataManager, withWarehouseMutation } from "@/server/warehouses/permissions";
+import { itemHistoryDescriptions } from "@/lib/items/history";
 
 export async function deleteItem(id: number) {
   if (!Number.isInteger(id) || id <= 0) {
@@ -27,7 +28,7 @@ export async function deleteItem(id: number) {
         userId: current.user.id,
         actorName: current.user.name,
         type: "ITEM_ARCHIVED",
-        description: "Zarchiwizowano przedmiot",
+        description: itemHistoryDescriptions.archived,
       },
     });
     return archivedItem;

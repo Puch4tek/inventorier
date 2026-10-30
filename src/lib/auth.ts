@@ -13,6 +13,7 @@ import {
 } from "@/server/settings/registration";
 import { getSmtpConfig } from "@/server/settings/email";
 import { sendEmailVerificationMail } from "@/server/email/email-verification-mail";
+import { localeCookieName, resolveLocale } from "@/i18n/locale";
 import bcrypt from "bcryptjs";
 import { createHash } from "node:crypto";
 
@@ -342,8 +343,17 @@ export const auth = betterAuth({
   },
   emailVerification: {
     expiresIn: 60 * 60,
-    async sendVerificationEmail({ user, url }) {
-      await sendEmailVerificationMail(await getSmtpConfig(), user.email, url);
+    async sendVerificationEmail({ user, url }, request) {
+      const locale = resolveLocale({
+        cookie: requestCookieValue(request?.headers.get("cookie") ?? null, localeCookieName),
+        acceptLanguage: request?.headers.get("accept-language"),
+      });
+      await sendEmailVerificationMail(
+        await getSmtpConfig(),
+        user.email,
+        url,
+        locale,
+      );
     },
   },
   databaseHooks: {

@@ -5,10 +5,13 @@ import { Modal } from "@/components/modal";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCategoryAction, type CreateCategoryState } from "./actions";
+import { useLocale, useTranslations } from "next-intl";
 
 const initialState: CreateCategoryState = {};
 
 export function CategoryCreateModal() {
+  const locale = useLocale();
+  const t = useTranslations("organization.categories");
   const [open, setOpen] = useState(false);
   const [key, setKey] = useState(0);
 
@@ -25,14 +28,15 @@ export function CategoryCreateModal() {
         onClick={() => setOpen(true)}
         className="px-5 py-3 text-sm"
       >
-        Dodaj kategorię
+        {t("create")}
       </Button>
-      {open ? <CategoryDialog key={key} onClose={close} /> : null}
+      {open ? <CategoryDialog key={`${key}-${locale}`} onClose={close} /> : null}
     </>
   );
 }
 
 function CategoryDialog({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("organization.categories");
   const [state, formAction, isPending] = useActionState(
     createCategoryAction,
     initialState,
@@ -53,27 +57,27 @@ function CategoryDialog({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-start justify-between gap-6">
           <div>
-            <p className="text-sm font-medium text-app-muted">Kategorie</p>
-            <h2 id="category-create-title" className="mt-2 text-2xl font-semibold">Dodaj kategorię</h2>
+            <p className="text-sm font-medium text-app-muted">{t("modalKicker")}</p>
+            <h2 id="category-create-title" className="mt-2 text-2xl font-semibold">{t("create")}</h2>
           </div>
-          <button type="button" aria-label="Zamknij" onClick={onClose} disabled={isPending} className="rounded-full px-3 py-1 text-2xl text-app-muted hover:bg-app-surface-muted">
+          <button type="button" aria-label={t("close")} onClick={onClose} disabled={isPending} className="rounded-full px-3 py-1 text-2xl text-app-muted hover:bg-app-surface-muted">
             &times;
           </button>
         </div>
         <form action={formAction} className="mt-8 space-y-5">
           <div>
-            <label htmlFor="category-name" className="field-label">Nazwa</label>
-            <input id="category-name" name="name" required className="field-input" placeholder="np. Narzędzia" />
+            <label htmlFor="category-name" className="field-label">{t("name")}</label>
+            <input id="category-name" name="name" required className="field-input" placeholder={t("exampleName")} />
           </div>
           <div>
-            <label htmlFor="category-description" className="field-label">Opis <span className="text-app-muted">(opcjonalnie)</span></label>
+            <label htmlFor="category-description" className="field-label">{t("descriptionLabel")} <span className="text-app-muted">{t("optional")}</span></label>
             <textarea id="category-description" name="description" rows={4} className="field-input resize-none" />
           </div>
           {state.error ? <p role="alert" className="status-error">{state.error}</p> : null}
           <div className="flex justify-end gap-3">
-            <Button variant="secondary" type="button" onClick={onClose} disabled={isPending} className="px-5 py-3 text-sm font-semibold transition">Anuluj</Button>
+            <Button variant="secondary" type="button" onClick={onClose} disabled={isPending} className="px-5 py-3 text-sm font-semibold transition">{t("cancel")}</Button>
             <Button variant="primary" type="submit" disabled={isPending} className="px-5 py-3 text-sm font-semibold transition disabled:opacity-50">
-              {isPending ? "Zapisywanie..." : "Dodaj kategorię"}
+              {isPending ? t("saving") : t("create")}
             </Button>
           </div>
         </form>

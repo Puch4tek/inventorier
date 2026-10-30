@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { connection } from "next/server";
+import { getTranslations } from "next-intl/server";
 import {
   isRegistrationEnabled,
-  REGISTRATION_DISABLED_MESSAGE,
 } from "@/server/settings/registration";
 import { RegisterForm } from "./register-form";
 
@@ -10,7 +10,10 @@ export const instant = false;
 
 export default async function NewUserPage() {
   await connection();
-  const registrationEnabled = await isRegistrationEnabled();
+  const [registrationEnabled, t] = await Promise.all([
+    isRegistrationEnabled(),
+    getTranslations("auth.registration"),
+  ]);
 
   return (
     <main className="app-shell px-5 py-8 sm:px-8 sm:py-12">
@@ -22,36 +25,36 @@ export default async function NewUserPage() {
                 Inventorier
               </p>
               <p className="mt-16 max-w-sm text-5xl font-semibold leading-[1.05] tracking-[-0.04em]">
-                Zacznij porządkować swój magazyn.
+                {t("welcome")}
               </p>
             </div>
             <p className="max-w-sm text-sm leading-6 text-app-inverse-muted">
-              Jedno miejsce na przedmioty, lokalizacje i historię zmian.
+              {t("welcomeDescription")}
             </p>
           </div>
 
           <div className="p-7 sm:p-12">
             <div className="mb-10">
-              <p className="text-sm font-medium text-app-muted">Pierwszy krok</p>
+              <p className="text-sm font-medium text-app-muted">{t("firstStep")}</p>
               <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em]">
-                Utwórz konto
+                {t("title")}
               </h1>
               <p className="mt-3 text-[15px] leading-6 text-app-muted">
                 {registrationEnabled
-                  ? "Załóż konto, aby rozpocząć pracę z aplikacją."
-                  : REGISTRATION_DISABLED_MESSAGE}
+                  ? t("introduction")
+                  : t("errors.unavailable")}
               </p>
             </div>
 
             {registrationEnabled ? <RegisterForm /> : null}
 
             <p className="mt-8 text-center text-sm text-app-muted">
-              Masz już konto?{" "}
+              {t("loginPrompt")}{" "}
               <Link
                 href="/login"
                 className="font-medium text-app-foreground underline decoration-app-border-strong underline-offset-4 transition hover:decoration-app-foreground"
               >
-                Zaloguj się
+                {t("login")}
               </Link>
             </p>
           </div>

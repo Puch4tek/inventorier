@@ -3,28 +3,30 @@ import { getCurrentWarehouse } from "@/server/warehouses/current-warehouse";
 import { withWarehouseRead } from "@/server/warehouses/permissions";
 import { WarehouseAccessError } from "@/server/warehouses/transaction-lock";
 import * as bwipjs from "bwip-js/node";
+import { getTranslations } from "next-intl/server";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("items");
   if (!(await getCurrentUser())) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response(t("api.unauthorized"), { status: 401 });
   }
 
   const itemId = Number((await params).id);
   if (!Number.isInteger(itemId) || itemId <= 0) {
-    return new Response("Invalid item ID", { status: 400 });
+    return new Response(t("api.invalidItemId"), { status: 400 });
   }
 
   let current;
   try {
     current = await getCurrentWarehouse();
   } catch (error) {
-    if (error instanceof WarehouseAccessError) return new Response("No active warehouse", { status: 403 });
+    if (error instanceof WarehouseAccessError) return new Response(t("api.noActiveWarehouse"), { status: 403 });
     throw error;
   }
-  if (!current) return new Response("No active warehouse", { status: 403 });
+  if (!current) return new Response(t("api.noActiveWarehouse"), { status: 403 });
 
   let item;
   try {
@@ -33,12 +35,12 @@ export async function GET(
       select: { barcode: true },
     }));
   } catch (error) {
-    if (error instanceof WarehouseAccessError) return new Response("No active warehouse", { status: 403 });
+    if (error instanceof WarehouseAccessError) return new Response(t("api.noActiveWarehouse"), { status: 403 });
     throw error;
   }
 
   if (!item) {
-    return new Response("Item not found", { status: 404 });
+    return new Response(t("api.itemNotFound"), { status: 404 });
   }
 
   const format = new URL(request.url).searchParams.get("format") ?? "svg";
@@ -75,8 +77,8 @@ export async function GET(
       });
     }
 
-    return new Response("Unsupported barcode format", { status: 400 });
+    return new Response(t("api.unsupportedBarcodeFormat"), { status: 400 });
   } catch {
-    return new Response("Failed to generate barcode", { status: 500 });
+    return new Response(t("api.barcodeGenerationFailed"), { status: 500 });
   }
 }

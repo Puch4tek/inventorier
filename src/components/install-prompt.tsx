@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/button";
+import { useTranslations } from "next-intl";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -32,6 +33,7 @@ function serverSnapshot() {
 }
 
 export function InstallPrompt() {
+  const t = useTranslations("organization.installPrompt");
   const [installEvent, setInstallEvent] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -78,21 +80,23 @@ export function InstallPrompt() {
 
   return (
     <aside
-      aria-label="Instalacja aplikacji"
+      aria-label={t("ariaLabel")}
       className="fixed bottom-24 left-4 right-4 z-50 mx-auto max-w-md rounded-2xl border border-app-border bg-app-surface p-4 shadow-modal sm:bottom-4 sm:left-auto sm:right-4"
     >
-      <p className="font-semibold">Zainstaluj Inventorier</p>
+      <p className="font-semibold">{t("title")}</p>
       <p className="mt-1 text-sm text-app-muted">
-        {error
-          ? "Nie udało się uruchomić instalacji. Spróbuj ponownie z menu przeglądarki."
-          : showIOSInstructions
-            ? "Aby zainstalować aplikację, użyj przycisku Udostępnij, a następnie wybierz „Dodaj do ekranu początkowego”."
-            : "Dodaj aplikację do urządzenia, aby mieć do niej szybki dostęp."}
+        {t(
+          error
+            ? "error"
+            : showIOSInstructions
+              ? "iosInstructions"
+              : "instructions",
+        )}
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         {installEvent && !error && (
           <Button type="button" className="px-4 py-2 text-sm" onClick={install}>
-            Zainstaluj
+            {t("install")}
           </Button>
         )}
         <Button
@@ -101,7 +105,7 @@ export function InstallPrompt() {
           className="px-4 py-2 text-sm"
           onClick={() => setDismissed(true)}
         >
-          Nie teraz
+          {t("later")}
         </Button>
       </div>
     </aside>

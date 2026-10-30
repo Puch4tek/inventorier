@@ -8,6 +8,7 @@ import { requireCurrentWarehouse } from "@/server/warehouses/current-warehouse";
 import { canManageWarehouseData } from "@/server/warehouses/permissions";
 import { LocationActions } from "./location-actions";
 import { MobileNav } from "@/app/dashboard/mobile-nav";
+import { getFormatter, getTranslations } from "next-intl/server";
 
 export const instant = false;
 
@@ -42,22 +43,26 @@ export default async function LocationPage({
   const current = await requireCurrentWarehouse();
   const canManage = canManageWarehouseData(current);
   const locations = canManage ? await listLocations() : [];
+  const [t, format] = await Promise.all([
+    getTranslations("organization.locations"),
+    getFormatter(),
+  ]);
 
   return (
     <main className="app-shell pb-24 sm:pb-0">
       <AppHeader
         maxWidth="max-w-5xl"
         backHref={fromItem && /^\d+$/.test(fromItem) ? `/items/${fromItem}` : "/locations"}
-        backLabel={fromItem && /^\d+$/.test(fromItem) ? "Wróć do przedmiotu" : "Wróć do lokalizacji"}
+        backLabel={fromItem && /^\d+$/.test(fromItem) ? t("backToItem") : t("backToLocations")}
       />
 
       <section className="page-shell page-shell-narrow">
-        <p className="page-kicker">Lokalizacja</p>
+        <p className="page-kicker">{t("detailKicker")}</p>
         <h1 className="page-title">
           {location.name}
         </h1>
         <p className="page-description">
-          {location.description || "Brak opisu"}
+          {location.description || t("noDescription")}
         </p>
         {canManage ? <LocationActions
           location={{
@@ -75,22 +80,25 @@ export default async function LocationPage({
 
         {location.parent ? (
           <p className="mt-5 text-sm text-app-muted">
-            Rodzic:{" "}
-            <Link
-              href={`/locations/${location.parent.id}`}
-              className="font-medium text-app-foreground hover:underline"
-            >
-              {location.parent.name}
-            </Link>
+            {t.rich("parent", {
+              name: (chunks) => (
+                <Link
+                  href={`/locations/${location.parent!.id}`}
+                  className="font-medium text-app-foreground hover:underline"
+                >
+                  {chunks}
+                </Link>
+              ),
+            })}
           </p>
         ) : null}
 
         <div className="mt-10 space-y-5">
           <section className="panel-card p-6">
-            <h2 className="text-xl font-semibold">Podlokalizacje</h2>
+            <h2 className="text-xl font-semibold">{t("childrenTitle")}</h2>
             {location.children.length === 0 ? (
               <p className="mt-4 text-sm text-app-muted">
-                Brak podlokalizacji.
+                {t("noChildren")}
               </p>
             ) : (
               <div className="mt-4 space-y-2">
@@ -108,10 +116,10 @@ export default async function LocationPage({
           </section>
 
           <section className="panel-card p-6">
-            <h2 className="text-xl font-semibold">Przedmioty</h2>
+            <h2 className="text-xl font-semibold">{t("itemsTitle")}</h2>
             {location.items.length === 0 ? (
               <p className="mt-4 text-sm text-app-muted">
-                Brak przedmiotów w tej lokalizacji.
+                {t("noItems")}
               </p>
             ) : (
               <div className="mt-4 space-y-2">
@@ -123,7 +131,7 @@ export default async function LocationPage({
                   >
                     <p className="text-sm font-medium">{item.name}</p>
                     <p className="mt-1 text-xs text-app-muted">
-                      {item.quantity} {item.unit} · {item.barcode}
+                      {format.number(item.quantity)} {item.unit} · {item.barcode}
                     </p>
                   </Link>
                 ))}

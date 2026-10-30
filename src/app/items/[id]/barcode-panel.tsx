@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 export function BarcodePanel({ itemId }: { itemId: number }) {
+  const t = useTranslations("items");
   const svgUrl = `/api/items/${itemId}/barcode?format=svg`;
 
   return (
@@ -10,7 +12,7 @@ export function BarcodePanel({ itemId }: { itemId: number }) {
       <div className="rounded-2xl bg-app-surface-muted p-3 hidden sm:block">
         <img
           src={svgUrl}
-          alt="Kod kreskowy przedmiotu"
+          alt={t("barcode.imageAlt")}
           className="mx-auto h-auto max-h-40 max-w-full object-contain"
         />
       </div>
@@ -20,14 +22,14 @@ export function BarcodePanel({ itemId }: { itemId: number }) {
           download
           className="rounded-lg border border-app-border-strong px-3 py-2 text-xs font-semibold transition hover:bg-app-surface-muted"
         >
-          Pobierz SVG
+          {t("barcode.downloadSvg")}
         </a>
         <a
           href={`/api/items/${itemId}/barcode?format=png`}
           download
           className="rounded-lg border border-app-border-strong px-3 py-2 text-xs font-semibold transition hover:bg-app-surface-muted"
         >
-          Pobierz PNG
+          {t("barcode.downloadPng")}
         </a>
       </div>
     </div>
@@ -39,6 +41,7 @@ export function CopyBarcode({
 }: {
   barcode: string;
 }) {
+  const t = useTranslations("items");
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
 
@@ -85,8 +88,8 @@ export function CopyBarcode({
       <button
         type="button"
         onClick={copyBarcode}
-        title="Kopiuj kod kreskowy"
-        aria-label="Kopiuj kod kreskowy"
+        title={t("barcode.copyTitle")}
+        aria-label={t("barcode.copyTitle")}
         className="group inline-flex items-center gap-2 rounded-lg px-2 py-1 -ml-2 font-mono text-sm transition hover:bg-app-surface-muted"
       >
         <span>{barcode}</span>
@@ -104,11 +107,11 @@ export function CopyBarcode({
       </button>
       {copied ? (
         <span className="text-xs font-medium text-app-success" role="status" aria-live="polite">
-          Skopiowano
+          {t("barcode.copied")}
         </span>
       ) : copyError ? (
         <span className="text-xs font-medium text-app-danger" role="alert" aria-live="assertive">
-          Nie udało się skopiować
+          {t("barcode.copyFailed")}
         </span>
       ) : null}
     </div>

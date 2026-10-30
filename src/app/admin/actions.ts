@@ -11,6 +11,8 @@ import { setPasswordChangeRequired } from "@/server/users/set-password-change-re
 import { setRegistrationEnabled } from "@/server/settings/registration";
 import { resetUserTwoFactor } from "@/server/users/reset-user-two-factor";
 import { revalidatePath } from "next/cache";
+import { getLocale, getTranslations } from "next-intl/server";
+import { getAdminActionError } from "@/i18n/admin-errors";
 
 export type AdminActionState = { error?: string; success?: string };
 
@@ -18,15 +20,17 @@ export async function resetUserTwoFactorAction(
   _previousState: AdminActionState,
   formData: FormData,
 ): Promise<AdminActionState> {
+  const t = await getTranslations("admin");
+  const locale = await getLocale();
   try {
     const currentUser = await requireRole("ADMIN");
     const userId = formData.get("userId");
-    if (typeof userId !== "string" || !userId) return { error: "Nieprawidłowy użytkownik." };
+    if (typeof userId !== "string" || !userId) return { error: t("actions.errors.invalidUser") };
     await resetUserTwoFactor(userId, currentUser.id);
     revalidatePath("/admin");
-    return { success: "Metody uwierzytelniania dwuskładnikowego usunięto, a istniejące sesje unieważniono." };
+    return { success: t("actions.success.resetAuthentication") };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Nie udało się zresetować uwierzytelniania." };
+    return { error: getAdminActionError(error, locale, "resetAuthentication") };
   }
 }
 
@@ -34,18 +38,20 @@ export async function setRegistrationEnabledAction(
   _previousState: AdminActionState,
   formData: FormData,
 ): Promise<AdminActionState> {
+  const t = await getTranslations("admin");
+  const locale = await getLocale();
   let currentUser: Awaited<ReturnType<typeof requireRole>>;
   try {
     currentUser = await requireRole("ADMIN");
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Nie masz uprawnień do wykonania tej operacji.",
+      error: getAdminActionError(error, locale, "unauthorized"),
     };
   }
 
   const enabled = formData.get("enabled");
   if (enabled !== "true" && enabled !== "false") {
-    return { error: "Nieprawidłowe ustawienie rejestracji." };
+    return { error: t("actions.errors.invalidRegistration") };
   }
 
   try {
@@ -56,12 +62,12 @@ export async function setRegistrationEnabledAction(
     revalidatePath("/");
     return {
       success: enabled === "true"
-        ? "Samodzielna rejestracja została włączona."
-        : "Samodzielna rejestracja została wyłączona.",
+        ? t("actions.success.registrationEnabled")
+        : t("actions.success.registrationDisabled"),
     };
   } catch (error) {
     console.error("Nie udało się zmienić ustawienia rejestracji:", error);
-    return { error: "Nie udało się zmienić ustawienia rejestracji." };
+    return { error: getAdminActionError(error, locale, "registration") };
   }
 }
 
@@ -69,18 +75,22 @@ export async function setUserStatusAction(
   _previousState: AdminActionState,
   formData: FormData,
 ): Promise<AdminActionState> {
+  const t = await getTranslations("admin");
+  const locale = await getLocale();
   try {
     const currentUser = await requireRole("ADMIN");
     const userId = formData.get("userId");
     const active = formData.get("active");
     if (typeof userId !== "string" || !userId || (active !== "true" && active !== "false")) {
-      return { error: "Nieprawidłowe dane użytkownika." };
+      return { error: t("actions.errors.invalidUserData") };
     }
     await setUserStatus(userId, active === "true", currentUser.id);
     revalidatePath("/admin");
-    return { success: active === "true" ? "Konto zostało odblokowane." : "Konto zostało zablokowane." };
+    return { success: active === "true"
+      ? t("actions.success.accountUnblocked")
+      : t("actions.success.accountBlocked") };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Nie udało się zmienić statusu konta." };
+    return { error: getAdminActionError(error, locale, "changeAccountStatus") };
   }
 }
 
@@ -88,17 +98,19 @@ export async function requirePasswordChangeAction(
   _previousState: AdminActionState,
   formData: FormData,
 ): Promise<AdminActionState> {
+  const t = await getTranslations("admin");
+  const locale = await getLocale();
   try {
     const currentUser = await requireRole("ADMIN");
     const userId = formData.get("userId");
     if (typeof userId !== "string" || !userId) {
-      return { error: "Nieprawidłowy użytkownik." };
+      return { error: t("actions.errors.invalidUser") };
     }
     await setPasswordChangeRequired(userId, currentUser.id);
     revalidatePath("/admin");
-    return { success: "Wymuszono zmianę hasła przy następnym logowaniu." };
+    return { success: t("actions.success.passwordChangeRequired") };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Nie udało się wymusić zmiany hasła." };
+    return { error: getAdminActionError(error, locale, "requirePasswordChange") };
   }
 }
 
@@ -106,6 +118,8 @@ export async function createAdminUserAction(
   _previousState: AdminActionState,
   formData: FormData,
 ): Promise<AdminActionState> {
+  const t = await getTranslations("admin");
+  const locale = await getLocale();
   try {
     const currentUser = await requireRole("ADMIN");
     const name = formData.get("name");
@@ -119,7 +133,7 @@ export async function createAdminUserAction(
       typeof password !== "string" ||
       !["USER", "ADMIN"].includes(String(role))
     ) {
-      return { error: "Uzupełnij poprawnie wszystkie dane." };
+      return { error: t("actions.errors.invalidUserData") };
     }
 
     await createUser({
@@ -131,7 +145,7 @@ export async function createAdminUserAction(
       mustChangePassword: true,
     });
     revalidatePath("/admin");
-    return { success: "Użytkownik został utworzony." };
+    return { success: t("actions.success.userCreated") };
   } catch (error) {
     if (
       typeof error === "object" &&
@@ -139,12 +153,10 @@ export async function createAdminUserAction(
       "code" in error &&
       error.code === "P2002"
     ) {
-      return { error: "Konto z tym adresem e-mail już istnieje." };
+      return { error: t("actions.errors.duplicateEmail") };
     }
     return {
-      error: error instanceof Error
-        ? error.message
-        : "Nie udało się utworzyć użytkownika.",
+      error: getAdminActionError(error, locale, "createUser"),
     };
   }
 }
@@ -153,22 +165,22 @@ export async function updateUserRoleAction(
   _previousState: AdminActionState,
   formData: FormData,
 ): Promise<AdminActionState> {
+  const t = await getTranslations("admin");
+  const locale = await getLocale();
   try {
     const currentUser = await requireRole("ADMIN");
     const userId = formData.get("userId");
     const role = formData.get("role");
 
     if (typeof userId !== "string" || !userId || !["USER", "ADMIN"].includes(String(role))) {
-      return { error: "Nieprawidłowe dane użytkownika." };
+      return { error: t("actions.errors.invalidUserData") };
     }
 
     await updateUserRole(userId, role as Role, currentUser.id);
     revalidatePath("/admin");
-    return { success: "Rola użytkownika została zaktualizowana." };
+    return { success: t("actions.success.roleUpdated") };
   } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : "Nie udało się zmienić roli.",
-    };
+    return { error: getAdminActionError(error, locale, "updateRole") };
   }
 }
 
@@ -176,22 +188,20 @@ export async function resetUserPasswordAction(
   _previousState: AdminActionState,
   formData: FormData,
 ): Promise<AdminActionState> {
+  const t = await getTranslations("admin");
+  const locale = await getLocale();
   try {
     const currentUser = await requireRole("ADMIN");
     const userId = formData.get("userId");
     const password = formData.get("password");
     if (typeof userId !== "string" || !userId || typeof password !== "string") {
-      return { error: "Nieprawidłowe dane resetowania hasła." };
+      return { error: t("actions.errors.invalidPasswordReset") };
     }
 
     await resetUserPassword(userId, password, currentUser.id);
-    return { success: "Hasło zostało zresetowane." };
+    return { success: t("actions.success.passwordReset") };
   } catch (error) {
-    return {
-      error: error instanceof Error
-        ? error.message
-        : "Nie udało się zresetować hasła.",
-    };
+    return { error: getAdminActionError(error, locale, "resetPassword") };
   }
 }
 
@@ -199,21 +209,19 @@ export async function deleteUserAction(
   _previousState: AdminActionState,
   formData: FormData,
 ): Promise<AdminActionState> {
+  const t = await getTranslations("admin");
+  const locale = await getLocale();
   try {
     const currentUser = await requireRole("ADMIN");
     const userId = formData.get("userId");
     if (typeof userId !== "string" || !userId) {
-      return { error: "Nieprawidłowy użytkownik." };
+      return { error: t("actions.errors.invalidUser") };
     }
 
     await deleteUser(userId, currentUser.id);
     revalidatePath("/admin");
-    return { success: "Użytkownik został usunięty." };
+    return { success: t("actions.success.userDeleted") };
   } catch (error) {
-    return {
-      error: error instanceof Error
-        ? error.message
-        : "Nie udało się usunąć użytkownika.",
-    };
+    return { error: getAdminActionError(error, locale, "deleteUser") };
   }
 }

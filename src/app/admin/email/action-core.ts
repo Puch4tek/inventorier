@@ -1,4 +1,6 @@
 import type { SaveEmailSettingsInput } from "@/server/settings/email";
+import type { Locale } from "@/i18n/locale";
+import { adminMessages } from "@/i18n/messages/admin";
 
 export type EmailActionState = { error?: string; success?: string };
 
@@ -7,9 +9,9 @@ type Dependencies<Config> = {
   save: (input: SaveEmailSettingsInput, actorId: string, sessionId: string) => Promise<unknown>;
   consumeTestLimit: (actorId: string) => Promise<boolean>;
   getConfig: (actorId: string, sessionId: string) => Promise<Config>;
-  sendTest: (config: Config, to: string) => Promise<unknown>;
+  sendTest: (config: Config, to: string, locale: Locale) => Promise<unknown>;
   revalidate: () => void;
-  settingsError: (error: unknown) => string | undefined;
+  settingsError: (error: unknown, locale: Locale) => string | undefined;
 };
 
 function text(data: FormData, key: string) {
@@ -25,12 +27,17 @@ function integer(value: string | null, min: number, max: number) {
 
 export function createEmailActions<Config>(deps: Dependencies<Config>) {
   return {
-    async save(_previous: EmailActionState, data: FormData): Promise<EmailActionState> {
+    async save(
+      _previous: EmailActionState,
+      data: FormData,
+      locale: Locale = "pl",
+    ): Promise<EmailActionState> {
+      const t = adminMessages[locale];
       let actor: { id: string; sessionId: string };
       try {
         actor = await deps.requireAdmin();
       } catch {
-        return { error: "Nie masz uprawnień do wykonania tej operacji." };
+        return { error: t.emailActions.errors.unauthorized };
       }
 
       const host = text(data, "host");
@@ -47,7 +54,7 @@ export function createEmailActions<Config>(deps: Dependencies<Config>) {
         username === null || fromEmail === null || fromName === null || password === null ||
         (resetEnabled !== null && resetEnabled !== "on") || resetExpiryMinutes === null
       ) {
-        return { error: "Sprawdź dane formularza, port (1–65535) i czas ważności (15–1440 minut)." };
+        return { error: t.emailActions.errors.invalidForm };
       }
       try {
         await deps.save({
@@ -57,31 +64,44 @@ export function createEmailActions<Config>(deps: Dependencies<Config>) {
           resetExpiryMinutes,
         }, actor.id, actor.sessionId);
         deps.revalidate();
-        return { success: "Ustawienia e-mail zostały zapisane." };
+        return { success: t.emailActions.saved };
       } catch (error) {
-        return { error: deps.settingsError(error) ?? "Nie udało się zapisać ustawień. Sprawdź dane, kompletność konfiguracji i klucz szyfrowania SMTP." };
+        return {
+          error:
+            deps.settingsError(error, locale) ??
+            t.emailActions.errors.saveFailed,
+        };
       }
     },
-    async send(_previous: EmailActionState, data: FormData): Promise<EmailActionState> {
+    async send(
+      _previous: EmailActionState,
+      data: FormData,
+      locale: Locale = "pl",
+    ): Promise<EmailActionState> {
+      const t = adminMessages[locale];
       let actor: { id: string; sessionId: string };
       try {
         actor = await deps.requireAdmin();
       } catch {
-        return { error: "Nie masz uprawnień do wykonania tej operacji." };
+        return { error: t.emailActions.errors.unauthorized };
       }
       const to = text(data, "to")?.trim();
       if (!to || to.length > 254 || !/^[^\s@<>(),;:"\\]+@[^\s@<>(),;:"\\]+\.[^\s@<>(),;:"\\]+$/.test(to)) {
-        return { error: "Podaj poprawny adres odbiorcy." };
+        return { error: t.emailActions.errors.recipient };
       }
       try {
         if (!await deps.consumeTestLimit(actor.id)) {
-          return { error: "Wysyłka testowa jest obecnie niedostępna lub przekroczono limit. Spróbuj później." };
+          return { error: t.emailActions.errors.testUnavailable };
         }
         const config = await deps.getConfig(actor.id, actor.sessionId);
-        await deps.sendTest(config, to);
-        return { success: "Wiadomość testowa została wysłana." };
+        await deps.sendTest(config, to, locale);
+        return { success: t.emailActions.testSent };
       } catch (error) {
-        return { error: deps.settingsError(error) ?? "Nie udało się wysłać wiadomości testowej. Sprawdź zapisane ustawienia SMTP i klucz szyfrowania." };
+        return {
+          error:
+            deps.settingsError(error, locale) ??
+            t.emailActions.errors.testFailed,
+        };
       }
     },
   };

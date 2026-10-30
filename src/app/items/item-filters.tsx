@@ -3,6 +3,7 @@
 import { Button } from "@/components/button";
 import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type Option = { id: number; name: string };
 
@@ -13,6 +14,7 @@ export function ItemFilters({
   locations: Option[];
   categories: Option[];
 }) {
+  const t = useTranslations("items");
   const router = useRouter();
   const searchParams = useSearchParams();
   const filtersRef = useRef<HTMLDetailsElement>(null);
@@ -43,7 +45,7 @@ export function ItemFilters({
   return (
     <details ref={filtersRef} className="filters-panel panel-card group mt-5 p-4 sm:mt-8 sm:p-5">
       <summary className="flex cursor-pointer list-none items-center justify-between font-semibold sm:hidden">
-        <span>Filtry i wyszukiwanie</span>
+        <span>{t("filters.summary")}</span>
         <svg
           aria-hidden="true"
           viewBox="0 0 24 24"
@@ -68,20 +70,20 @@ export function ItemFilters({
       >
       <input
         name="search"
-        aria-label="Szukaj przedmiotu"
+        aria-label={t("filters.searchLabel")}
         key={searchParams.toString()}
         defaultValue={searchParams.get("search") ?? ""}
-        placeholder="Szukaj przedmiotu..."
+        placeholder={t("filters.searchPlaceholder")}
         className="field-input mt-0 lg:col-span-2"
       />
       <select
         name="locationId"
-        aria-label="Filtruj według lokalizacji"
+        aria-label={t("filters.locationLabel")}
         defaultValue={searchParams.get("locationId") ?? ""}
         onChange={(event) => updateFilter("locationId", event.target.value)}
         className="field-input field-select mt-0"
       >
-        <option value="">Wszystkie lokalizacje</option>
+        <option value="">{t("filters.allLocations")}</option>
         {locations.map((location) => (
           <option key={location.id} value={location.id}>
             {location.name}
@@ -90,13 +92,13 @@ export function ItemFilters({
       </select>
       <select
         name="categoryId"
-        aria-label="Filtruj według kategorii"
+        aria-label={t("filters.categoryLabel")}
         defaultValue={searchParams.get("categoryId") ?? ""}
         onChange={(event) => updateFilter("categoryId", event.target.value)}
         className="field-input field-select mt-0"
       >
-        <option value="">Wszystkie kategorie</option>
-        <option value="none">Bez kategorii</option>
+        <option value="">{t("filters.allCategories")}</option>
+        <option value="none">{t("filters.noCategory")}</option>
         {categories.map((category) => (
           <option key={category.id} value={category.id}>
             {category.name}
@@ -105,7 +107,7 @@ export function ItemFilters({
       </select>
       <select
         name="sort"
-        aria-label="Sortowanie"
+        aria-label={t("filters.sortLabel")}
         value={`${["quantity", "updatedAt"].includes(searchParams.get("sortBy") ?? "") ? searchParams.get("sortBy") : "name"}-${searchParams.get("sortDirection") === "desc" ? "desc" : "asc"}`}
         onChange={(event) => {
           const [sortBy, sortDirection] = event.target.value.split("-");
@@ -116,29 +118,29 @@ export function ItemFilters({
         }}
         className="field-input field-select mt-0"
       >
-        <option value="name-asc">Nazwa A-Z</option>
-        <option value="name-desc">Nazwa Z-A</option>
-        <option value="quantity-asc">Ilość rosnąco</option>
-        <option value="quantity-desc">Ilość malejąco</option>
-        <option value="updatedAt-desc">Ostatnio zmienione</option>
-        <option value="updatedAt-asc">Najdawniej zmienione</option>
+        <option value="name-asc">{t("filters.nameAsc")}</option>
+        <option value="name-desc">{t("filters.nameDesc")}</option>
+        <option value="quantity-asc">{t("filters.quantityAsc")}</option>
+        <option value="quantity-desc">{t("filters.quantityDesc")}</option>
+        <option value="updatedAt-desc">{t("filters.recentlyUpdated")}</option>
+        <option value="updatedAt-asc">{t("filters.leastRecentlyUpdated")}</option>
       </select>
       <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-5">
         <select
           name="archived"
-          aria-label="Stan archiwizacji"
+          aria-label={t("filters.archiveState")}
           defaultValue={searchParams.get("archived") ?? "active"}
           onChange={(event) => updateFilter("archived", event.target.value)}
           className="field-input field-select mt-0 min-w-0 sm:max-w-xs"
         >
-          <option value="active">Aktywne</option>
-          <option value="archived">Zarchiwizowane</option>
+          <option value="active">{t("filters.active")}</option>
+          <option value="archived">{t("filters.archived")}</option>
         </select>
         <Button variant="primary"
           type="submit"
           className="px-5 py-3 text-sm font-semibold transition"
         >
-          Szukaj
+          {t("filters.search")}
         </Button>
         <Button
           variant="secondary"
@@ -169,7 +171,7 @@ export function ItemFilters({
           }}
           className="px-5 py-3 text-sm"
         >
-          Wyczyść
+          {t("filters.clear")}
         </Button>
       </div>
       </form>

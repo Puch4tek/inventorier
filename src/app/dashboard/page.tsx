@@ -9,6 +9,7 @@ import {
   listAccessibleWarehouses,
 } from "@/server/warehouses/current-warehouse";
 import { MobileNav } from "./mobile-nav";
+import { getFormatter, getTranslations } from "next-intl/server";
 
 export const instant = false;
 
@@ -34,6 +35,10 @@ export default async function DashboardPage() {
   }
 
   const { counts, quantities, recentItems } = await getDashboardStats();
+  const [t, format] = await Promise.all([
+    getTranslations("organization.dashboard"),
+    getFormatter(),
+  ]);
 
   return (
     <main className="app-shell pb-24 sm:pb-0">
@@ -42,17 +47,17 @@ export default async function DashboardPage() {
       <section className="page-shell">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end sm:gap-6">
           <div>
-            <p className="page-kicker">Panel główny</p>
+            <p className="page-kicker">{t("title")}</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em] sm:mt-2 sm:text-4xl">
-              Witaj, {user.name}.
+              {t("greeting", { name: user.name })}
             </h1>
             <p className="page-description hidden sm:block">
-              To jest centrum zarządzania Twoim magazynem.
+              {t("description")}
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:ml-auto sm:flex-row sm:items-stretch">
             <div className="min-w-0 rounded-xl border border-app-border bg-app-surface px-3 py-2 text-xs shadow-card sm:max-w-xs sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm">
-              <p className="text-app-muted">Zalogowano jako</p>
+              <p className="text-app-muted">{t("signedInAs")}</p>
               <p className="mt-1 truncate font-medium" title={user.email}>
                 {user.email}
               </p>
@@ -63,32 +68,32 @@ export default async function DashboardPage() {
         <div className="mt-5 grid auto-rows-fr grid-cols-2 gap-2 sm:mt-12 sm:auto-rows-auto sm:gap-5">
           <Link href="/items" className="min-w-0">
             <DashboardCard
-              title="Przedmioty"
-              value={counts.activeItems.toString()}
-              description="Aktywne pozycje w ewidencji"
+              title={t("items")}
+              value={format.number(counts.activeItems)}
+              description={t("activeItemsDescription")}
               accent="bg-app-info-surface"
             />
           </Link>
           <Link href="/locations" className="min-w-0">
             <DashboardCard
-              title="Lokalizacje"
-              value={counts.locations.toString()}
-              description="Miejsca przechowywania"
+              title={t("locations")}
+              value={format.number(counts.locations)}
+              description={t("locationsDescription")}
               accent="bg-app-success-surface"
             />
           </Link>
           <Link href="/categories" className="min-w-0">
             <DashboardCard
-              title="Kategorie"
-              value={counts.categories.toString()}
-              description="Sposoby porządkowania"
+              title={t("categories")}
+              value={format.number(counts.categories)}
+              description={t("categoriesDescription")}
               accent="bg-app-warning-surface"
             />
           </Link>
           <DashboardCard
-            title="Zarchiwizowane"
-            value={counts.archivedItems.toString()}
-            description="Przedmioty poza aktywną listą"
+            title={t("archived")}
+            value={format.number(counts.archivedItems)}
+            description={t("archivedDescription")}
             accent="bg-app-surface-muted"
           />
         </div>
@@ -97,45 +102,45 @@ export default async function DashboardPage() {
           <section className="panel-card rounded-2xl p-4 sm:rounded-3xl sm:p-8">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
               <div>
-                <p className="text-xs font-medium text-app-muted sm:text-sm">Stan magazynu</p>
+                <p className="text-xs font-medium text-app-muted sm:text-sm">{t("warehouseStatus")}</p>
                 <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] sm:mt-2 sm:text-2xl">
-                  {counts.activeItems} aktywnych pozycji
+                  {t("activePositions", { count: counts.activeItems })}
                 </h2>
               </div>
               <Link
                 href="/items"
                 className="text-xs font-semibold text-app-foreground hover:underline sm:text-sm"
               >
-                Zobacz przedmioty →
+                {t("seeItems")}
               </Link>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-8 sm:gap-4">
               {quantities.map(({ unit, quantity }) => (
                 <SummaryValue
                   key={unit}
-                  label={`Łączna ilość (${unit})`}
-                  value={quantity.toString()}
-                  description="suma ilości aktywnych przedmiotów"
+                  label={t("totalQuantity", { unit })}
+                  value={format.number(quantity)}
+                  description={t("activeQuantityDescription")}
                 />
               ))}
               <SummaryValue
-                label="Bez kategorii"
-                value={counts.uncategorizedItems.toString()}
-                description="aktywnych przedmiotów do uporządkowania"
+                label={t("uncategorized")}
+                value={format.number(counts.uncategorizedItems)}
+                description={t("uncategorizedDescription")}
               />
             </div>
           </section>
 
           <section className="panel-card rounded-2xl p-4 sm:rounded-3xl sm:p-8">
-            <p className="text-xs font-medium text-app-muted sm:text-sm">Szybkie akcje</p>
+            <p className="text-xs font-medium text-app-muted sm:text-sm">{t("quickActions")}</p>
             <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] sm:mt-2 sm:text-2xl">
-              Zarządzaj magazynem
+              {t("manageWarehouse")}
             </h2>
             <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-6 sm:gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <QuickAction href="/scan" label="Skanuj kod aparatem" />
-              <QuickAction href="/items" label="Przeglądaj przedmioty" />
-              <QuickAction href="/locations" label="Zarządzaj lokalizacjami" />
-              <QuickAction href="/categories" label="Zarządzaj kategoriami" />
+              <QuickAction href="/scan" label={t("scan")} />
+              <QuickAction href="/items" label={t("browseItems")} />
+              <QuickAction href="/locations" label={t("manageLocations")} />
+              <QuickAction href="/categories" label={t("manageCategories")} />
             </div>
           </section>
         </div>
@@ -143,22 +148,22 @@ export default async function DashboardPage() {
         <section className="panel-card mt-3 rounded-2xl p-4 sm:mt-8 sm:rounded-3xl sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-medium text-app-muted sm:text-sm">Ostatnio dodane</p>
+              <p className="text-xs font-medium text-app-muted sm:text-sm">{t("recentlyAdded")}</p>
               <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] sm:mt-2 sm:text-2xl">
-                Najnowsze przedmioty
+                {t("latestItems")}
               </h2>
             </div>
             {recentItems.length > 0 ? (
               <Link href="/items" className="text-xs font-semibold text-app-foreground hover:underline sm:text-sm">
-                Wszystkie →
+                {t("allItems")}
               </Link>
             ) : null}
           </div>
           {recentItems.length === 0 ? (
             <div className="mt-6 rounded-2xl bg-app-surface-muted p-5">
-              <p className="font-medium">Magazyn jest jeszcze pusty.</p>
+              <p className="font-medium">{t("emptyWarehouse")}</p>
               <p className="mt-1 truncate text-xs text-app-muted sm:text-sm">
-                Dodaj pierwszy przedmiot, aby zobaczyć go tutaj.
+                {t("addFirstItem")}
               </p>
             </div>
           ) : (
@@ -172,11 +177,11 @@ export default async function DashboardPage() {
                   <div>
                     <p className="font-medium">{item.name}</p>
                     <p className="mt-1 text-sm text-app-muted">
-                      {item.location.name} · {item.category?.name ?? "Bez kategorii"}
+                      {item.location.name} · {item.category?.name ?? t("uncategorizedCategory")}
                     </p>
                   </div>
                   <p className="text-sm font-semibold sm:text-right">
-                    {item.quantity} {item.unit}
+                    {format.number(item.quantity)} {item.unit}
                   </p>
                 </Link>
               ))}
@@ -197,36 +202,37 @@ async function EmptyWorkspaceDashboard({
   hasAccessibleWarehouses: boolean;
 }) {
   const isAdmin = user.role === "ADMIN";
+  const t = await getTranslations("organization.dashboard");
   return (
     <main className="app-shell pb-24 sm:pb-0">
       <AppHeader />
       <section className="page-shell">
         <div className="mx-auto max-w-2xl">
-          <p className="page-kicker">Panel główny</p>
+          <p className="page-kicker">{t("title")}</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
-            Witaj, {user.name}.
+            {t("greeting", { name: user.name })}
           </h1>
           <section className="panel-card mt-8 rounded-3xl p-6 sm:p-8">
             <h2 className="text-xl font-semibold">
               {hasAccessibleWarehouses
-                ? "Wybierz magazyn"
+                ? t("chooseWarehouse")
                 : isAdmin
-                  ? "Utwórz pierwszy magazyn"
-                  : "Brak dostępu do magazynu"}
+                  ? t("createFirstWarehouse")
+                  : t("noWarehouseAccess")}
             </h2>
             <p className="mt-3 leading-6 text-app-muted">
               {hasAccessibleWarehouses
-                ? "Wybierz magazyn z listy w nagłówku, aby rozpocząć pracę."
+                ? t("chooseWarehouseDescription")
                 : isAdmin
-                  ? "Ta instancja nie ma jeszcze magazynu. Utwórz pierwszy, aby rozpocząć pracę."
-                  : "Nie przypisano Cię jeszcze do żadnego magazynu. Poproś administratora lub menedżera magazynu o dostęp."}
+                  ? t("createFirstWarehouseDescription")
+                  : t("noWarehouseAccessDescription")}
             </p>
             {!hasAccessibleWarehouses && isAdmin ? (
               <Link
                 href="/settings/warehouses"
                 className={getButtonClassName("primary", "mt-6 px-5 py-3 text-sm")}
               >
-                Utwórz magazyn
+                {t("createWarehouse")}
               </Link>
             ) : null}
           </section>

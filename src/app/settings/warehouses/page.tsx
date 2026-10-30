@@ -11,10 +11,15 @@ import { DeleteWarehouseForm } from "@/app/warehouses/delete-warehouse-form";
 import { WarehouseAccessManagement } from "@/app/warehouses/warehouse-access-management";
 import { WarehouseForm } from "@/app/warehouses/warehouse-form";
 import { WarehouseSwitcher } from "@/components/warehouse-switcher";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export const instant = false;
 
 export default async function WarehousesSettingsPage() {
+  const [t, locale] = await Promise.all([
+    getTranslations("admin.warehousesPage"),
+    getLocale(),
+  ]);
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
@@ -33,23 +38,20 @@ export default async function WarehousesSettingsPage() {
 
   return (
     <main className="app-shell">
-      <AppHeader sectionLabel="Zarządzanie magazynami" />
+      <AppHeader sectionLabel={t("title")} />
       <section className="page-shell">
-        <p className="page-kicker">Magazyny</p>
-        <h1 className="page-title">Zarządzanie magazynami</h1>
-        <p className="page-description max-w-2xl">
-          Lista zawiera wyłącznie magazyny dostępne dla Twojego konta.
-        </p>
+        <p className="page-kicker">{t("section")}</p>
+        <h1 className="page-title">{t("title")}</h1>
+        <p className="page-description max-w-2xl">{t("description")}</p>
 
         {isAdmin ? (
           <section className="panel-card mt-8 p-5 sm:p-6">
-            <h2 className="text-xl font-semibold">Utwórz magazyn</h2>
+            <h2 className="text-xl font-semibold">{t("createTitle")}</h2>
             <p className="mt-2 text-sm text-app-muted">
-              Nowy magazyn będzie dostępny administratorom. Dostęp pozostałych
-              użytkowników nadajesz osobno.
+              {t("createDescription")}
             </p>
             <div className="mt-5">
-              <WarehouseForm />
+              <WarehouseForm key={locale} />
             </div>
           </section>
         ) : null}
@@ -57,7 +59,7 @@ export default async function WarehousesSettingsPage() {
         <section className="panel-card mt-8 overflow-hidden">
           <div className="border-b border-app-border p-5 sm:p-6">
             <h2 className="text-xl font-semibold">
-              {isAdmin ? "Wszystkie magazyny" : "Magazyny z dostępem"}
+              {isAdmin ? t("allWarehouses") : t("accessibleWarehouses")}
             </h2>
             {warehouses.length > 1 ? (
               <div className="mt-4 max-w-sm">
@@ -71,8 +73,8 @@ export default async function WarehousesSettingsPage() {
           {warehouses.length === 0 ? (
             <p className="p-5 text-sm text-app-muted">
               {isAdmin
-                ? "W tej instancji nie utworzono jeszcze magazynu."
-                : "Nie masz przypisanego dostępu do żadnego magazynu."}
+                ? t("noWarehouses")
+                : t("noAssignedWarehouses")}
             </p>
           ) : (
             <div className="divide-y divide-app-border">
@@ -86,7 +88,7 @@ export default async function WarehousesSettingsPage() {
                     <p className="mt-1 text-sm text-app-muted">{warehouse.slug}</p>
                     {currentWarehouse?.warehouse.id === warehouse.id ? (
                       <p className="mt-2 text-xs font-medium text-app-success">
-                        Aktywny magazyn
+                        {t("activeWarehouse")}
                       </p>
                     ) : null}
                   </div>
@@ -94,10 +96,11 @@ export default async function WarehousesSettingsPage() {
                     <div className="sm:w-72">
                       {warehouses.length === 1 ? (
                         <p className="text-xs text-app-muted">
-                          Nie można usunąć ostatniego magazynu.
+                          {t("lastWarehouseCannotDelete")}
                         </p>
                       ) : null}
                       <DeleteWarehouseForm
+                        key={locale}
                         warehouseId={warehouse.id}
                         warehouseName={warehouse.name}
                         disabled={warehouses.length === 1}
@@ -112,15 +115,16 @@ export default async function WarehousesSettingsPage() {
 
         {accessManagement ? (
           <WarehouseAccessManagement
+            key={locale}
             data={accessManagement}
             currentUserId={currentWarehouse!.user.id}
             isAdmin={isAdmin}
           />
         ) : currentWarehouse && !isAdmin ? (
           <section className="panel-card mt-8 p-5 sm:p-6">
-            <h2 className="text-xl font-semibold">Dostęp użytkowników</h2>
+            <h2 className="text-xl font-semibold">{t("accessTitle")}</h2>
             <p className="mt-2 text-sm text-app-muted">
-              Zarządzanie dostępem jest dostępne dla menedżerów tego magazynu.
+              {t("managerAccessDescription")}
             </p>
           </section>
         ) : null}

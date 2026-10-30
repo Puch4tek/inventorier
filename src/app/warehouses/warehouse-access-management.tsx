@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/button";
 import {
   removeWarehouseMemberAction,
@@ -32,13 +33,14 @@ export function WarehouseAccessManagement({
   currentUserId: string;
   isAdmin: boolean;
 }) {
+  const t = useTranslations("admin.warehouseAccess");
   return (
     <section className="panel-card mt-8 overflow-hidden">
       <div className="border-b border-app-border p-5 sm:p-6">
-        <p className="page-kicker">Dostęp do magazynu</p>
+        <p className="page-kicker">{t("kicker")}</p>
         <h2 className="mt-1 text-xl font-semibold">{data.warehouse.name}</h2>
         <p className="mt-2 text-sm text-app-muted">
-          Nadaj dostęp użytkownikom instancji. Lista pokazuje wyłącznie rolę w tym magazynie.
+          {t("description")}
         </p>
       </div>
       <div className="divide-y divide-app-border">
@@ -57,20 +59,20 @@ export function WarehouseAccessManagement({
                 <p className="mt-1 truncate text-sm text-app-muted">{user.email}</p>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
                   <span className={user.isActive ? "text-app-success" : "text-app-danger"}>
-                    {user.isActive ? "Aktywne konto" : "Konto zablokowane"}
+                    {user.isActive ? t("active") : t("blocked")}
                   </span>
                   {user.globalRole === "ADMIN" ? (
-                    <span className="text-app-subtle">Administrator globalny</span>
+                    <span className="text-app-subtle">{t("globalAdministrator")}</span>
                   ) : null}
                   {user.id === currentUserId && !isAdmin ? (
-                    <span className="text-app-subtle">Twoje przypisanie</span>
+                    <span className="text-app-subtle">{t("yourAssignment")}</span>
                   ) : null}
                 </div>
               </div>
               <div className="w-full sm:max-w-sm">
                 {user.globalRole === "ADMIN" ? (
                   <p className="text-sm font-medium text-app-muted">
-                    Administrator — pełny dostęp
+                    {t("administratorFullAccess")}
                   </p>
                 ) : (
                   <MemberRoleForm
@@ -85,7 +87,7 @@ export function WarehouseAccessManagement({
           );
         })}
         {data.users.length === 0 ? (
-          <p className="p-5 text-sm text-app-muted">Brak kont do wyświetlenia.</p>
+          <p className="p-5 text-sm text-app-muted">{t("noUsers")}</p>
         ) : null}
       </div>
     </section>
@@ -103,6 +105,7 @@ function MemberRoleForm({
   role: "USER" | "MANAGER" | null;
   canEdit: boolean;
 }) {
+  const t = useTranslations("admin.warehouseAccess");
   const [state, formAction, isPending] = useActionState<WarehouseActionState, FormData>(
     setWarehouseMemberRoleAction,
     initialState,
@@ -118,7 +121,7 @@ function MemberRoleForm({
         <input type="hidden" name="warehouseId" value={warehouseId} />
         <input type="hidden" name="userId" value={userId} />
         <label className="sr-only" htmlFor={`warehouse-role-${warehouseId}-${userId}`}>
-          Rola użytkownika w magazynie
+          {t("roleLabel")}
         </label>
         <select
           id={`warehouse-role-${warehouseId}-${userId}`}
@@ -130,11 +133,11 @@ function MemberRoleForm({
         >
           {!role ? (
             <option value="" disabled>
-              Brak dostępu
+              {t("noAccess")}
             </option>
           ) : null}
-          <option value="USER">Użytkownik</option>
-          <option value="MANAGER">Menedżer</option>
+          <option value="USER">{t("user")}</option>
+          <option value="MANAGER">{t("manager")}</option>
         </select>
         <Button
           variant="secondary"
@@ -142,7 +145,7 @@ function MemberRoleForm({
           disabled={!canEdit || isPending}
           className="px-3 py-2 text-xs"
         >
-          {isPending ? "Zapisywanie..." : "Zapisz"}
+          {isPending ? t("saving") : t("save")}
         </Button>
       </form>
       {role && canEdit ? (
@@ -154,7 +157,7 @@ function MemberRoleForm({
             disabled={isRemoving}
             className="text-xs font-semibold text-app-danger hover:underline disabled:opacity-50"
           >
-            {isRemoving ? "Usuwanie dostępu..." : "Odbierz dostęp"}
+            {isRemoving ? t("removing") : t("remove")}
           </button>
         </form>
       ) : null}
@@ -164,7 +167,9 @@ function MemberRoleForm({
       {removeState.success ? <p role="status" className="mt-2 text-xs text-app-success">{removeState.success}</p> : null}
       {!canEdit ? (
         <p className="mt-2 text-xs text-app-muted">
-          {role ? `Rola: ${role === "MANAGER" ? "menedżer" : "użytkownik"}` : "Brak dostępu"}
+          {role
+            ? t("role", { role: role === "MANAGER" ? t("manager").toLowerCase() : t("user").toLowerCase() })
+            : t("noAccess")}
         </p>
       ) : null}
     </div>

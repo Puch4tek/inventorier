@@ -2,10 +2,11 @@
 
 import { changeCurrentUserPassword } from "@/server/users/change-password";
 import { updateCurrentUserProfile } from "@/server/users/update-profile";
+import { UserOperationError } from "@/server/users/public-errors";
 
 export type SettingsActionState = {
-  error?: string;
-  success?: string;
+  error?: "nameRequired" | "nameTooShort" | "nameTooLong" | "profileGeneric" | "requiredFields" | "passwordMismatch" | "passwordTooShort" | "passwordSame" | "notAuthenticated" | "invalidPassword" | "alreadyChanged" | "passwordGeneric";
+  success?: "profileSaved" | "passwordChanged";
 };
 
 export async function updateProfileAction(
@@ -15,16 +16,24 @@ export async function updateProfileAction(
   const name = formData.get("name");
 
   if (typeof name !== "string") {
-    return { error: "Podaj imię i nazwisko." };
+    return { error: "nameRequired" };
   }
 
   try {
     await updateCurrentUserProfile(name);
-    return { success: "Dane profilu zostały zapisane." };
+    return { success: "profileSaved" };
   } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : "Nie udało się zapisać profilu.",
-    };
+    if (error instanceof UserOperationError) {
+      return {
+        error: error.code === "profile-name-too-short"
+          ? "nameTooShort"
+          : error.code === "profile-name-too-long"
+            ? "nameTooLong"
+            : "profileGeneric",
+      };
+    }
+    console.error("Could not save the current user's profile:", error);
+    return { error: "profileGeneric" };
   }
 }
 
@@ -41,18 +50,29 @@ export async function updatePasswordAction(
     typeof newPassword !== "string" ||
     typeof confirmation !== "string"
   ) {
-    return { error: "Uzupełnij wszystkie pola." };
+    return { error: "requiredFields" };
   }
   if (newPassword !== confirmation) {
-    return { error: "Nowe hasła nie są takie same." };
+    return { error: "passwordMismatch" };
   }
 
   try {
     await changeCurrentUserPassword(currentPassword, newPassword);
-    return { success: "Hasło zostało zmienione." };
+    return { success: "passwordChanged" };
   } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : "Nie udało się zmienić hasła.",
-    };
+    if (error instanceof UserOperationError) {
+      const errorKeys = {
+        "password-too-short": "passwordTooShort",
+        "password-same": "passwordSame",
+        "not-authenticated": "notAuthenticated",
+        "invalid-current-password": "invalidPassword",
+        "password-already-changed": "alreadyChanged",
+        "profile-name-too-short": "passwordGeneric",
+        "profile-name-too-long": "passwordGeneric",
+      } as const;
+      return { error: errorKeys[error.code] };
+    }
+    console.error("Could not update the current user's password:", error);
+    return { error: "passwordGeneric" };
   }
 }

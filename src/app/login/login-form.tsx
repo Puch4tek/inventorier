@@ -2,6 +2,7 @@
 
 import { useState, useActionState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/button";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -13,23 +14,8 @@ import {
 
 const initialState: LoginActionState = {};
 
-function getPasskeyError(code?: string, errorName?: string): string {
-    if (code === "AUTH_CANCELLED" || errorName === "NotAllowedError" || errorName === "AbortError") {
-        return "Logowanie passkey zostało anulowane.";
-    }
-    if (code === "PASSKEY_NOT_FOUND" || code === "USER_NOT_FOUND") {
-        return "Nie znaleziono passkey dla tego konta.";
-    }
-    if (code === "ACCOUNT_DISABLED") {
-        return "To konto jest zablokowane. Skontaktuj się z administratorem.";
-    }
-    if (errorName === "NotSupportedError") {
-        return "Ta przeglądarka lub urządzenie nie obsługuje passkey.";
-    }
-    return "Nie udało się zalogować passkey. Spróbuj ponownie.";
-}
-
 function TwoFactorForm({ next, onBack }: { next?: string; onBack: () => void }) {
+    const t = useTranslations("auth.login");
     const [twoFactorState, twoFactorFormAction, isTwoFactorPending] = useActionState(
         verifyTwoFactorAction,
         initialState
@@ -40,7 +26,7 @@ function TwoFactorForm({ next, onBack }: { next?: string; onBack: () => void }) 
             {next ? <input type="hidden" name="next" value={next} /> : null}
             <div>
                 <label htmlFor="two-factor-method" className="field-label">
-                    Sposób weryfikacji
+                    {t("twoFactorMethod")}
                 </label>
                 <select
                     id="two-factor-method"
@@ -48,13 +34,13 @@ function TwoFactorForm({ next, onBack }: { next?: string; onBack: () => void }) 
                     className="field-input field-select"
                     defaultValue="totp"
                 >
-                    <option value="totp">Aplikacja uwierzytelniająca</option>
-                    <option value="backup">Kod zapasowy</option>
+                    <option value="totp">{t("authenticatorApp")}</option>
+                    <option value="backup">{t("backupCode")}</option>
                 </select>
             </div>
             <div>
                 <label htmlFor="two-factor-code" className="field-label">
-                    Kod weryfikacyjny
+                    {t("verificationCode")}
                 </label>
                 <input
                     id="two-factor-code"
@@ -65,7 +51,7 @@ function TwoFactorForm({ next, onBack }: { next?: string; onBack: () => void }) 
                     required
                     autoFocus
                     className="field-input"
-                    placeholder="Wprowadź kod"
+                    placeholder={t("verificationCodePlaceholder")}
                 />
             </div>
             <label className="flex items-start gap-3 text-sm text-app-muted">
@@ -74,11 +60,11 @@ function TwoFactorForm({ next, onBack }: { next?: string; onBack: () => void }) 
                     name="trustDevice"
                     className="mt-1"
                 />
-                <span>Zaufaj temu urządzeniu</span>
+                <span>{t("trustDevice")}</span>
             </label>
             {twoFactorState.error ? (
                 <p role="alert" className="status-error">
-                    {twoFactorState.error}
+                    {t(`errors.${twoFactorState.error}`)}
                 </p>
             ) : null}
             <Button
@@ -87,7 +73,7 @@ function TwoFactorForm({ next, onBack }: { next?: string; onBack: () => void }) 
                 disabled={isTwoFactorPending}
                 className="w-full px-5 py-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
-                {isTwoFactorPending ? "Weryfikowanie..." : "Potwierdź i zaloguj się"}
+                {isTwoFactorPending ? t("verifying") : t("verify")}
             </Button>
             <Button
                 variant="secondary"
@@ -96,18 +82,19 @@ function TwoFactorForm({ next, onBack }: { next?: string; onBack: () => void }) 
                 disabled={isTwoFactorPending}
                 className="w-full px-5 py-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
-                Wróć do logowania hasłem
+                {t("backToPassword")}
             </Button>
         </form>
     );
 }
 
 export default function LoginForm({ next }: { next?: string }) {
+    const t = useTranslations("auth.login");
     const [loginState, loginFormAction, isLoginPending] = useActionState(
         loginAction,
         initialState
     );
-    const [passkeyError, setPasskeyError] = useState<string>();
+    const [passkeyError, setPasskeyError] = useState<LoginActionState["error"]>();
     const [isPasskeyPending, setIsPasskeyPending] = useState(false);
     // Stan, z którego użytkownik wrócił do kroku hasła; nowy wynik loginAction znów otwiera krok 2FA.
     const [dismissedState, setDismissedState] = useState<LoginActionState>();
@@ -119,14 +106,22 @@ export default function LoginForm({ next }: { next?: string }) {
         try {
             const result = await authClient.signIn.passkey();
             if (result.error) {
-                setPasskeyError(getPasskeyError(
-                    "code" in result.error ? result.error.code : undefined,
-                    result.error.statusText
-                ));
+                const code = "code" in result.error ? result.error.code : undefined;
+                if (code === "PASSKEY_NOT_FOUND" || code === "USER_NOT_FOUND") {
+                    setPasskeyError("passkeyNotFound");
+                } else if (code === "PASSKEY_RESET") {
+                    setPasskeyError("passkeyReset");
+                } else if (code === "ACCOUNT_DISABLED") {
+                    setPasskeyError("accountDisabled");
+                } else if (code === "AUTH_CANCELLED") {
+                    setPasskeyError("passkeyCancelled");
+                } else {
+                    setPasskeyError("passkeyFailure");
+                }
                 return;
             }
             if (!result.data) {
-                setPasskeyError("Nie udało się potwierdzić logowania passkey. Spróbuj ponownie.");
+                setPasskeyError("passkeyConfirmationFailure");
                 return;
             }
 
@@ -134,7 +129,13 @@ export default function LoginForm({ next }: { next?: string }) {
             if (completion.error) setPasskeyError(completion.error);
         } catch (error) {
             const errorName = error instanceof Error ? error.name : undefined;
-            setPasskeyError(getPasskeyError(undefined, errorName));
+            setPasskeyError(
+                errorName === "NotAllowedError" || errorName === "AbortError"
+                    ? "passkeyCancelled"
+                    : errorName === "NotSupportedError"
+                      ? "passkeyUnsupported"
+                      : "passkeyFailure",
+            );
         } finally {
             setIsPasskeyPending(false);
         }
@@ -149,7 +150,7 @@ export default function LoginForm({ next }: { next?: string }) {
                     {next ? <input type="hidden" name="next" value={next} /> : null}
                     <div>
                         <label htmlFor="email" className="field-label">
-                            Adres e-mail
+                            {t("email")}
                         </label>
                         <input
                             id="email"
@@ -158,12 +159,12 @@ export default function LoginForm({ next }: { next?: string }) {
                             autoComplete="email"
                             required
                             className="field-input"
-                            placeholder="Wprowadź adres e-mail"
+                            placeholder={t("emailPlaceholder")}
                         />
                     </div>
                     <div>
                         <label htmlFor="password" className="field-label">
-                            Hasło
+                            {t("password")}
                         </label>
                         <input
                             id="password"
@@ -172,18 +173,18 @@ export default function LoginForm({ next }: { next?: string }) {
                             autoComplete="current-password"
                             required
                             className="field-input"
-                            placeholder="Wprowadź hasło"
+                            placeholder={t("passwordPlaceholder")}
                         />
                     </div>
                     <Link
                         href="/forgot-password"
                         className="inline-block text-sm font-medium underline underline-offset-4"
                     >
-                        Nie pamiętasz hasła?
+                        {t("forgotPassword")}
                     </Link>
                     {loginState.error ? (
                         <p role="alert" className="status-error">
-                            {loginState.error}
+                            {t(`errors.${loginState.error}`)}
                         </p>
                     ) : null}
                     <Button
@@ -192,7 +193,7 @@ export default function LoginForm({ next }: { next?: string }) {
                         disabled={isLoginPending}
                         className="w-full px-5 py-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        {isLoginPending ? "Logowanie..." : "Zaloguj się"}
+                        {isLoginPending ? t("submitting") : t("submit")}
                     </Button>
                 </form>
             )}
@@ -200,7 +201,7 @@ export default function LoginForm({ next }: { next?: string }) {
             <div className="space-y-3">
                 <div className="flex items-center gap-3 text-xs text-app-muted">
                     <span className="h-px flex-1 bg-app-border" />
-                    <span>lub</span>
+                    <span>{t("or")}</span>
                     <span className="h-px flex-1 bg-app-border" />
                 </div>
                 <Button
@@ -210,11 +211,11 @@ export default function LoginForm({ next }: { next?: string }) {
                     disabled={isPasskeyPending}
                     className="w-full px-5 py-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    {isPasskeyPending ? "Oczekiwanie na passkey..." : "Zaloguj się passkey"}
+                    {isPasskeyPending ? t("passkeyWaiting") : t("passkey")}
                 </Button>
                 {passkeyError ? (
                     <p role="alert" className="status-error">
-                        {passkeyError}
+                        {t(`errors.${passkeyError}`)}
                     </p>
                 ) : null}
             </div>

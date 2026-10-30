@@ -1,19 +1,20 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
-const tabs = [
-  { id: "profile", label: "Profil" },
-  { id: "password", label: "Hasło" },
-  { id: "email", label: "E-mail" },
-  { id: "security", label: "Bezpieczeństwo" },
-] as const;
-
-export function AccountTabs({
+export async function AccountTabs({
   active,
 }: {
-  active: (typeof tabs)[number]["id"];
+  active: "profile" | "password" | "email" | "security";
 }) {
+  const t = await getTranslations("auth.settings");
+  const tabs = [
+    { id: "profile", label: t("tabs.profile") },
+    { id: "password", label: t("tabs.password") },
+    { id: "email", label: t("tabs.email") },
+    { id: "security", label: t("tabs.security") },
+  ] as const;
   return (
-    <nav className="mt-8 flex gap-1 overflow-x-auto rounded-2xl border border-app-border bg-app-surface-muted p-1" aria-label="Ustawienia konta">
+    <nav className="mt-8 flex gap-1 overflow-x-auto rounded-2xl border border-app-border bg-app-surface-muted p-1" aria-label={t("ariaLabel")}>
       {tabs.map((tab) => (
         <Link
           key={tab.id}

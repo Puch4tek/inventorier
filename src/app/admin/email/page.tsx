@@ -5,10 +5,15 @@ import { requireRole } from "@/server/auth/permissions";
 import { EmailSettingsError, getEmailSettings, type EmailSettings } from "@/server/settings/email";
 import { AdminTabs } from "../admin-tabs";
 import { EmailSettingsForm, TestEmailForm } from "./settings-forms";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export const instant = false;
 
 export default async function AdminEmailPage() {
+  const [t, locale] = await Promise.all([
+    getTranslations("admin"),
+    getLocale(),
+  ]);
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   try {
@@ -23,42 +28,46 @@ export default async function AdminEmailPage() {
   try {
     settings = await getEmailSettings(user.id, active.session.id);
   } catch (error) {
-    settingsError = error instanceof EmailSettingsError
-      ? error.message
-      : "Nie udało się odczytać ustawień e-mail.";
+    settingsError =
+      error instanceof EmailSettingsError
+        ? t(
+            error.code === "VALIDATION"
+              ? "emailActions.errors.validation"
+              : error.code === "CONFIGURATION"
+                ? "emailActions.errors.configuration"
+                : "emailActions.errors.encryption",
+          )
+        : t("emailActions.errors.readFailed");
   }
 
   return (
     <main className="app-shell">
-      <AppHeader sectionLabel="Administracja" />
+      <AppHeader sectionLabel={t("usersPage.section")} />
       <section className="page-shell">
-        <p className="page-kicker">Panel administratora</p>
-        <h1 className="page-title">Ustawienia e-mail</h1>
-        <p className="page-description max-w-2xl">Skonfiguruj serwer poczty i resetowanie hasła przez e-mail.</p>
+        <p className="page-kicker">{t("usersPage.title")}</p>
+        <h1 className="page-title">{t("emailSettings.title")}</h1>
+        <p className="page-description max-w-2xl">{t("emailSettings.description")}</p>
         <AdminTabs active="email" />
         {process.env.NODE_ENV === "production" && process.env.TRUSTED_PROXY_IP_HEADER !== "x-real-ip" ? (
           <p role="alert" className="status-error mt-5">
-            Reset hasła nie działa: skonfiguruj zaufane reverse proxy i ustaw TRUSTED_PROXY_IP_HEADER=x-real-ip.
+            {t("emailSettings.proxyWarning")}
           </p>
         ) : null}
         <section className="panel-card mt-8 p-5 sm:p-6">
-          <h2 className="text-xl font-semibold">Konfiguracja SMTP</h2>
-          {settings ? <EmailSettingsForm settings={settings} /> : (
+          <h2 className="text-xl font-semibold">{t("emailSettings.smtpTitle")}</h2>
+          {settings ? <EmailSettingsForm key={locale} settings={settings} /> : (
             <p role="alert" className="status-error mt-5">{settingsError}</p>
           )}
         </section>
         <section className="panel-card mt-8 p-5 sm:p-6">
-          <h2 className="text-xl font-semibold">Wiadomość testowa</h2>
+          <h2 className="text-xl font-semibold">{t("emailSettings.testTitle")}</h2>
           <p className="mt-2 text-sm text-app-muted">
-            Test używa zapisanych ustawień SMTP. Przed wysłaniem testu zapisz zmiany.
-            Administrator może wysłać maksymalnie 5 wiadomości testowych na godzinę.
+            {t("emailSettings.testDescription")}
           </p>
-          <TestEmailForm />
+          <TestEmailForm key={locale} />
         </section>
         <p className="mt-6 text-sm text-app-muted">
-          W środowisku produkcyjnym reset haseł wymaga zaufanego reverse proxy,
-          które nadpisuje nagłówek <code>x-real-ip</code>, oraz ustawienia
-          <code> TRUSTED_PROXY_IP_HEADER=x-real-ip</code>.
+          {t("emailSettings.proxyDescription")}
         </p>
       </section>
     </main>

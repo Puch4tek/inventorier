@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { deleteWarehouseAction } from "./actions";
+import type { WarehouseActionState } from "./actions";
 
 export function DeleteWarehouseForm({
   warehouseId,
@@ -12,8 +14,10 @@ export function DeleteWarehouseForm({
   warehouseName: string;
   disabled?: boolean;
 }) {
+  const t = useTranslations("admin.deleteWarehouse");
+  const errorT = useTranslations("admin.actions.errors");
   const [confirmed, setConfirmed] = useState(false);
-  const [state, setState] = useState<{ error?: string; success?: string }>({});
+  const [state, setState] = useState<WarehouseActionState>({});
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -28,15 +32,9 @@ export function DeleteWarehouseForm({
         const formData = new FormData(event.currentTarget);
         startTransition(async () => {
           try {
-            await deleteWarehouseAction(formData);
-            setState({ success: "Magazyn został usunięty." });
-          } catch (error) {
-            setState({
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Nie udało się usunąć magazynu.",
-            });
+            setState(await deleteWarehouseAction(formData));
+          } catch {
+            setState({ error: errorT("deleteWarehouse") });
           }
         });
       }}
@@ -47,11 +45,11 @@ export function DeleteWarehouseForm({
         required
         placeholder={warehouseName}
         className="field-input"
-        aria-label="Nazwa magazynu"
+        aria-label={t("nameLabel")}
       />
       {confirmed ? (
         <p className="mt-3 rounded-xl bg-app-danger-surface px-4 py-3 text-sm text-app-danger">
-          Kliknij ponownie, aby trwale usunąć magazyn i jego dane.
+          {t("confirmWarning")}
         </p>
       ) : null}
       <button
@@ -59,7 +57,7 @@ export function DeleteWarehouseForm({
         disabled={disabled || isPending}
         className="mt-3 inline-flex rounded-xl border border-app-danger bg-app-danger px-4 py-3 text-sm font-semibold text-app-inverse hover:opacity-90"
       >
-        {isPending ? "Usuwanie..." : confirmed ? "Potwierdź usunięcie" : "Usuń magazyn"}
+        {isPending ? t("deleting") : confirmed ? t("confirm") : t("delete")}
       </button>
       {state.error ? (
         <p role="alert" className="mt-3 text-sm text-app-danger">{state.error}</p>

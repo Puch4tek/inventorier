@@ -8,6 +8,7 @@ import {
   newLocationAction,
   type NewLocationActionState,
 } from "./new/actions";
+import { useLocale, useTranslations } from "next-intl";
 
 const initialState: NewLocationActionState = {};
 
@@ -24,6 +25,8 @@ type LocationCreateModalProps = {
 export function LocationCreateModal({
   locations,
 }: LocationCreateModalProps) {
+  const locale = useLocale();
+  const t = useTranslations("organization.locations");
   const [isOpen, setIsOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const router = useRouter();
@@ -49,12 +52,12 @@ export function LocationCreateModal({
         onClick={openModal}
         className="px-5 py-3 text-sm font-semibold transition"
       >
-        Dodaj lokalizację
+        {t("create")}
       </Button>
 
       {isOpen ? (
         <LocationCreateDialog
-          key={formKey}
+          key={`${formKey}-${locale}`}
           locations={locations}
           onClose={closeModal}
           onCreated={refreshLocations}
@@ -75,6 +78,7 @@ function LocationCreateDialog({
   onCreated: () => void;
   onReset: () => void;
 }) {
+  const t = useTranslations("organization.locations");
   const [state, formAction, isPending] = useActionState(
     newLocationAction,
     initialState,
@@ -95,18 +99,18 @@ function LocationCreateDialog({
             <div className="flex items-start justify-between gap-6">
               <div>
                 <p className="text-sm font-medium text-app-muted">
-                  Lokalizacje
+                  {t("modalKicker")}
                 </p>
                 <h2
                   id="location-modal-title"
                   className="mt-2 text-2xl font-semibold tracking-[-0.03em]"
                 >
-                  Dodaj lokalizację
+                  {t("createTitle")}
                 </h2>
               </div>
               <button
                 type="button"
-                aria-label="Zamknij"
+                aria-label={t("close")}
                 onClick={onClose}
                 disabled={isPending}
                 className="rounded-full px-3 py-1 text-2xl leading-none text-app-muted transition hover:bg-app-surface-muted hover:text-app-foreground"
@@ -116,7 +120,7 @@ function LocationCreateDialog({
             </div>
 
             <p className="mt-3 text-[15px] leading-6 text-app-muted">
-              Utwórz miejsce, w którym przechowujesz swoje przedmioty.
+              {t("createDescription")}
             </p>
 
             {state.id ? (
@@ -125,7 +129,7 @@ function LocationCreateDialog({
                   role="status"
                   className="rounded-xl bg-app-success-surface px-4 py-3 text-sm text-app-success"
                 >
-                  Lokalizacja została utworzona.
+                  {t("created")}
                 </p>
                 <div className="flex justify-end">
                   <Button variant="primary"
@@ -134,7 +138,7 @@ function LocationCreateDialog({
                     disabled={isPending}
                     className="px-5 py-3 text-sm font-semibold transition"
                   >
-                    Zamknij
+                    {t("close")}
                   </Button>
                 </div>
                 <Button variant="secondary"
@@ -142,14 +146,14 @@ function LocationCreateDialog({
                   onClick={onReset}
                   className="px-5 py-3 text-sm font-semibold transition w-full"
                 >
-                  Dodaj kolejną lokalizację
+                  {t("createAnother")}
                 </Button>
               </div>
             ) : (
               <form action={formAction} className="mt-8 space-y-5">
                 <div>
                   <label htmlFor="location-name" className="field-label">
-                    Nazwa lokalizacji
+                    {t("name")}
                   </label>
                   <input
                     id="location-name"
@@ -157,14 +161,14 @@ function LocationCreateDialog({
                     type="text"
                     required
                     className="field-input"
-                    placeholder="np. Magazyn"
+                    placeholder={t("exampleName")}
                   />
                 </div>
 
                 <div>
                   <label htmlFor="location-parent" className="field-label">
-                    Lokalizacja nadrzędna{" "}
-                    <span className="text-app-muted">(opcjonalnie)</span>
+                    {t("parentLabel")}{" "}
+                    <span className="text-app-muted">{t("optional")}</span>
                   </label>
                   <select
                     id="location-parent"
@@ -172,7 +176,7 @@ function LocationCreateDialog({
                     defaultValue=""
                     className="field-input field-select"
                   >
-                    <option value="">Brak — lokalizacja główna</option>
+                    <option value="">{t("noParent")}</option>
                     {locations.map((location) => (
                       <option key={location.id} value={location.id}>
                         {location.name}
@@ -183,14 +187,14 @@ function LocationCreateDialog({
 
                 <div>
                   <label htmlFor="location-description" className="field-label">
-                    Opis <span className="text-app-muted">(opcjonalnie)</span>
+                    {t("descriptionLabel")} <span className="text-app-muted">{t("optional")}</span>
                   </label>
                   <textarea
                     id="location-description"
                     name="description"
                     rows={4}
                     className="field-input resize-none"
-                    placeholder="Krótki opis lokalizacji"
+                    placeholder={t("descriptionPlaceholder")}
                   />
                 </div>
 
@@ -210,14 +214,14 @@ function LocationCreateDialog({
                     disabled={isPending}
                     className="px-5 py-3 text-sm font-semibold transition"
                   >
-                    Anuluj
+                    {t("cancel")}
                   </Button>
                   <Button variant="primary"
                     type="submit"
                     disabled={isPending}
                     className="px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {isPending ? "Zapisywanie..." : "Dodaj lokalizację"}
+                    {isPending ? t("saving") : t("create")}
                   </Button>
                 </div>
               </form>

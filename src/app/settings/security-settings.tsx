@@ -9,6 +9,7 @@ import {
 import Image from "next/image";
 import bwipjs from "bwip-js/browser";
 import { Button } from "@/components/button";
+import { useLocale, useTranslations } from "next-intl";
 import type { SecuritySettingsData } from "@/server/security/get-security-settings";
 import {
   authorizePasskeyManagement,
@@ -17,6 +18,7 @@ import {
   confirmTotpSetup,
   disableTotp,
   regenerateBackupCodes,
+  type SecurityErrorKey,
 } from "./security-actions";
 import { authClient } from "@/lib/auth-client";
 
@@ -26,6 +28,28 @@ type TotpSetupState = {
 };
 
 type PasskeySettingsItem = SecuritySettingsData["passkeys"][number];
+type PasskeyMessageKey =
+  | "passkeys.unsupported"
+  | "passkeys.invalidName"
+  | "passkeys.addFailed"
+  | "passkeys.renameFailed"
+  | "passkeys.deleteFailed"
+  | "passkeys.added"
+  | "passkeys.renamed"
+  | "passkeys.deleted";
+type TwoFactorNoticeKey =
+  | "twoFactor.notices.scanAndSave"
+  | "twoFactor.notices.enabled"
+  | "twoFactor.notices.cancelled"
+  | "twoFactor.notices.regenerated"
+  | "twoFactor.notices.disabled";
+
+function getAuthErrorCode(error: unknown): string | undefined {
+  return error && typeof error === "object" && "code" in error &&
+    typeof error.code === "string"
+    ? error.code
+    : undefined;
+}
 
 function subscribeToBrowser() {
   return () => {};
@@ -44,13 +68,15 @@ export function SecuritySettings({
 }: {
   initialSettings: SecuritySettingsData;
 }) {
+  const locale = useLocale();
+  const t = useTranslations("auth.security");
   const [settings, setSettings] = useState(initialSettings);
   const [setup, setSetup] = useState<TotpSetupState | null>(null);
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [passkeyError, setPasskeyError] = useState("");
-  const [passkeyNotice, setPasskeyNotice] = useState("");
+  const [error, setError] = useState<SecurityErrorKey>();
+  const [notice, setNotice] = useState<TwoFactorNoticeKey>();
+  const [passkeyError, setPasskeyError] = useState<SecurityErrorKey | PasskeyMessageKey>();
+  const [passkeyNotice, setPasskeyNotice] = useState<PasskeyMessageKey>();
   const webauthnAvailable = useSyncExternalStore(
     subscribeToBrowser,
     isWebauthnAvailable,
@@ -74,8 +100,8 @@ export function SecuritySettings({
   }, [totpURI]);
 
   function run(action: () => Promise<void>) {
-    setError("");
-    setNotice("");
+    setError(undefined);
+    setNotice(undefined);
     startTransition(action);
   }
 
@@ -90,7 +116,7 @@ export function SecuritySettings({
       setSetup(result.data);
       setBackupCodes(null);
       setSettings((current) => ({ ...current, totpSetupPending: true }));
-      setNotice("Zeskanuj kod, zapisz kody zapasowe i potwierdź kod z aplikacji.");
+      setNotice("twoFactor.notices.scanAndSave");
     });
   }
 
@@ -112,7 +138,7 @@ export function SecuritySettings({
         twoFactorEnabled: true,
         totpSetupPending: false,
       }));
-      setNotice("Uwierzytelnianie TOTP zostało włączone.");
+      setNotice("twoFactor.notices.enabled");
     });
   }
 
@@ -126,7 +152,7 @@ export function SecuritySettings({
       }
       setSetup(null);
       setSettings((current) => ({ ...current, totpSetupPending: false }));
-      setNotice("Niedokończona konfiguracja TOTP została anulowana.");
+      setNotice("twoFactor.notices.cancelled");
     });
   }
 
@@ -139,7 +165,7 @@ export function SecuritySettings({
         return;
       }
       setBackupCodes(result.data.backupCodes);
-      setNotice("Poprzednie kody zapasowe zostały unieważnione.");
+      setNotice("twoFactor.notices.regenerated");
     });
   }
 
@@ -158,7 +184,7 @@ export function SecuritySettings({
         twoFactorEnabled: false,
         totpSetupPending: false,
       }));
-      setNotice("Uwierzytelnianie TOTP zostało wyłączone.");
+      setNotice("twoFactor.notices.disabled");
     });
   }
 
@@ -169,15 +195,15 @@ export function SecuritySettings({
   function handleAddPasskey(formData: FormData) {
     const currentPassword = String(formData.get("password") ?? "");
     const name = String(formData.get("name") ?? "").trim();
-    setPasskeyError("");
-    setPasskeyNotice("");
+    setPasskeyError(undefined);
+    setPasskeyNotice(undefined);
     run(async () => {
       if (webauthnAvailable !== true) {
-        setPasskeyError("Ta przeglądarka lub urządzenie nie obsługuje WebAuthn.");
+        setPasskeyError("passkeys.unsupported");
         return;
       }
       if (!name || name.length > 64) {
-        setPasskeyError("Podaj nazwę passkey (maksymalnie 64 znaki).");
+        setPasskeyError("passkeys.invalidName");
         return;
       }
 
@@ -194,12 +220,17 @@ export function SecuritySettings({
           createSession: false,
         });
       } catch {
-        setPasskeyError("Nie udało się dodać passkey. Spróbuj ponownie.");
+        setPasskeyError("passkeys.addFailed");
         return;
       }
       if (result.error || !result.data) {
+        const code = getAuthErrorCode(result.error);
         setPasskeyError(
-          result.error?.message || "Nie udało się dodać passkey.",
+          code === "INVALID_PASSKEY_NAME"
+            ? "passkeys.invalidName"
+            : code === "PASSKEY_REAUTH_REQUIRED"
+              ? "passkeys.reauthenticateFailed"
+              : "passkeys.addFailed",
         );
         return;
       }
@@ -212,18 +243,18 @@ export function SecuritySettings({
           ...current.passkeys.filter((item) => item.id !== passkey.id),
         ],
       }));
-      setPasskeyNotice("Passkey został dodany.");
+      setPasskeyNotice("passkeys.added");
     });
   }
 
   function handleRenamePasskey(passkeyId: string, formData: FormData) {
     const currentPassword = String(formData.get("password") ?? "");
     const name = String(formData.get("name") ?? "").trim();
-    setPasskeyError("");
-    setPasskeyNotice("");
+    setPasskeyError(undefined);
+    setPasskeyNotice(undefined);
     run(async () => {
       if (!name || name.length > 64) {
-        setPasskeyError("Podaj nazwę passkey (maksymalnie 64 znaki).");
+        setPasskeyError("passkeys.invalidName");
         return;
       }
 
@@ -247,12 +278,17 @@ export function SecuritySettings({
           throw: false,
         });
       } catch {
-        setPasskeyError("Nie udało się zmienić nazwy passkey. Spróbuj ponownie.");
+        setPasskeyError("passkeys.renameFailed");
         return;
       }
       if (result.error || !result.data?.passkey) {
+        const code = getAuthErrorCode(result.error);
         setPasskeyError(
-          result.error?.message || "Nie udało się zmienić nazwy passkey.",
+          code === "INVALID_PASSKEY_NAME"
+            ? "passkeys.invalidName"
+            : code === "PASSKEY_REAUTH_REQUIRED"
+              ? "passkeys.reauthenticateFailed"
+              : "passkeys.renameFailed",
         );
         return;
       }
@@ -263,14 +299,14 @@ export function SecuritySettings({
           item.id === passkeyId ? { ...item, name: result.data.passkey.name ?? name } : item,
         ),
       }));
-      setPasskeyNotice("Nazwa passkey została zmieniona.");
+      setPasskeyNotice("passkeys.renamed");
     });
   }
 
   function handleDeletePasskey(passkeyId: string, formData: FormData) {
     const currentPassword = String(formData.get("password") ?? "");
-    setPasskeyError("");
-    setPasskeyNotice("");
+    setPasskeyError(undefined);
+    setPasskeyNotice(undefined);
     run(async () => {
       const authorization = await authorizePasskey(currentPassword);
       if (!authorization.success) {
@@ -291,12 +327,15 @@ export function SecuritySettings({
           },
         );
       } catch {
-        setPasskeyError("Nie udało się usunąć passkey. Spróbuj ponownie.");
+        setPasskeyError("passkeys.deleteFailed");
         return;
       }
       if (result.error || result.data?.status !== true) {
+        const code = getAuthErrorCode(result.error);
         setPasskeyError(
-          result.error?.message || "Nie udało się usunąć passkey.",
+          code === "PASSKEY_REAUTH_REQUIRED"
+            ? "passkeys.reauthenticateFailed"
+            : "passkeys.deleteFailed",
         );
         return;
       }
@@ -305,7 +344,7 @@ export function SecuritySettings({
         ...current,
         passkeys: current.passkeys.filter((item) => item.id !== passkeyId),
       }));
-      setPasskeyNotice("Passkey został usunięty.");
+      setPasskeyNotice("passkeys.deleted");
     });
   }
 
@@ -314,22 +353,21 @@ export function SecuritySettings({
       <section className="panel-card p-6 sm:p-8">
         <div className="mb-6">
           <h2 className="text-xl font-semibold tracking-[-0.03em]">
-            Uwierzytelnianie dwuskładnikowe
+            {t("twoFactor.heading")}
           </h2>
           <p className="mt-2 text-sm text-app-muted">
-            Zabezpiecz konto kodem z aplikacji uwierzytelniającej i kodami
-            zapasowymi.
+            {t("twoFactor.description")}
           </p>
         </div>
 
         <p className="mb-5 text-sm">
-          Status:{" "}
+          {t("twoFactor.status")}{" "}
           <strong>
             {settings.twoFactorEnabled
-              ? "włączone"
+              ? t("twoFactor.enabled")
               : settings.totpSetupPending
-                ? "konfiguracja oczekuje na potwierdzenie"
-                : "wyłączone"}
+                ? t("twoFactor.pending")
+                : t("twoFactor.disabled")}
           </strong>
         </p>
 
@@ -337,7 +375,7 @@ export function SecuritySettings({
           <form action={handleBeginSetup} className="space-y-4">
             <PasswordField
               id="mfa-enable-password"
-              label="Obecne hasło"
+              label={t("currentPassword")}
             />
             <Button
               variant="primary"
@@ -345,7 +383,7 @@ export function SecuritySettings({
               disabled={isPending}
               className="px-5 py-3 text-sm disabled:opacity-50"
             >
-              {isPending ? "Przygotowywanie..." : "Skonfiguruj TOTP"}
+              {isPending ? t("twoFactor.preparing") : t("twoFactor.configure")}
             </Button>
           </form>
         ) : null}
@@ -354,20 +392,20 @@ export function SecuritySettings({
           <div className="space-y-5">
             <div className="rounded-xl border border-app-border bg-app-surface-muted p-4">
               <p className="mb-3 text-sm font-semibold">
-                Zeskanuj kod w aplikacji uwierzytelniającej
+                {t("twoFactor.scanCode")}
               </p>
               {qrSvg ? (
                 <Image
                   className="inline-block rounded-lg bg-white p-3"
                   src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(qrSvg)}`}
-                  alt="Lokalnie wygenerowany kod QR do konfiguracji TOTP"
+                  alt={t("twoFactor.qrAlt")}
                   width={220}
                   height={220}
                   unoptimized
                 />
               ) : (
                 <p className="text-sm text-app-muted">
-                  Nie udało się wygenerować kodu QR. Wprowadź adres ręcznie:
+                  {t("twoFactor.qrUnavailable")}
                 </p>
               )}
               <p className="mt-3 break-all font-mono text-xs text-app-muted">
@@ -375,15 +413,15 @@ export function SecuritySettings({
               </p>
             </div>
             <div className="rounded-xl border border-app-warning/30 bg-app-warning-surface p-4">
-              <p className="font-semibold">Zapisz kody zapasowe teraz</p>
+              <p className="font-semibold">{t("twoFactor.saveBackupCodes")}</p>
               <p className="mt-1 text-sm text-app-muted">
-                Nie będą ponownie wyświetlone. Każdy kod można użyć tylko raz.
+                {t("twoFactor.backupCodesDescription")}
               </p>
               <BackupCodeList codes={setup.backupCodes} />
             </div>
             <form action={handleConfirmSetup} className="space-y-4">
               <label className="block">
-                <span className="field-label">Kod z aplikacji</span>
+                <span className="field-label">{t("twoFactor.code")}</span>
                 <input
                   name="code"
                   inputMode="numeric"
@@ -394,14 +432,14 @@ export function SecuritySettings({
                   className="field-input"
                 />
               </label>
-              <PasswordField id="mfa-confirm-password" label="Obecne hasło" />
+              <PasswordField id="mfa-confirm-password" label={t("currentPassword")} />
               <Button
                 variant="primary"
                 type="submit"
                 disabled={isPending}
                 className="px-5 py-3 text-sm disabled:opacity-50"
               >
-                {isPending ? "Weryfikowanie..." : "Potwierdź i włącz"}
+                {isPending ? t("twoFactor.verifying") : t("twoFactor.confirmEnable")}
               </Button>
             </form>
           </div>
@@ -410,12 +448,11 @@ export function SecuritySettings({
         {settings.totpSetupPending && !setup ? (
           <div className="space-y-4">
             <p className="text-sm text-app-muted">
-              Konfiguracja rozpoczęto, ale kod nie został jeszcze potwierdzony.
-              Wprowadź kod z aplikacji lub anuluj tę konfigurację.
+              {t("twoFactor.pendingDescription")}
             </p>
             <form action={handleConfirmSetup} className="space-y-4">
               <label className="block">
-                <span className="field-label">Kod z aplikacji</span>
+                <span className="field-label">{t("twoFactor.code")}</span>
                 <input
                   name="code"
                   inputMode="numeric"
@@ -426,20 +463,20 @@ export function SecuritySettings({
                   className="field-input"
                 />
               </label>
-              <PasswordField id="mfa-resume-password" label="Obecne hasło" />
+              <PasswordField id="mfa-resume-password" label={t("currentPassword")} />
               <Button
                 variant="primary"
                 type="submit"
                 disabled={isPending}
                 className="px-5 py-3 text-sm disabled:opacity-50"
               >
-                Potwierdź konfigurację
+                {t("twoFactor.confirmSetup")}
               </Button>
             </form>
             <form action={handleCancelSetup} className="space-y-4">
               <PasswordField
                 id="mfa-cancel-password"
-                label="Hasło, aby anulować konfigurację"
+                label={t("twoFactor.cancelPassword")}
               />
               <Button
                 variant="secondary"
@@ -447,7 +484,7 @@ export function SecuritySettings({
                 disabled={isPending}
                 className="px-5 py-3 text-sm disabled:opacity-50"
               >
-                Anuluj konfigurację
+                {t("twoFactor.cancelSetup")}
               </Button>
             </form>
           </div>
@@ -457,33 +494,30 @@ export function SecuritySettings({
           <div className="space-y-5">
             <form action={handleRegenerateCodes} className="space-y-4">
               <p className="text-sm text-app-muted">
-                Wygenerowanie nowych kodów natychmiast unieważni poprzednie.
+                {t("twoFactor.regenerateDescription")}
               </p>
-              <PasswordField
-                id="mfa-backup-password"
-                label="Obecne hasło"
-              />
+              <PasswordField id="mfa-backup-password" label={t("currentPassword")} />
               <Button
                 variant="secondary"
                 type="submit"
                 disabled={isPending}
                 className="px-5 py-3 text-sm disabled:opacity-50"
               >
-                Wygeneruj nowe kody zapasowe
+                {t("twoFactor.regenerate")}
               </Button>
             </form>
             <form action={handleDisableTotp} className="space-y-4 border-t border-app-border pt-5">
               <p className="text-sm text-app-muted">
-                Wyłączenie TOTP usuwa zaufane urządzenia tego konta.
+                {t("twoFactor.disableDescription")}
               </p>
-              <PasswordField id="mfa-disable-password" label="Obecne hasło" />
+              <PasswordField id="mfa-disable-password" label={t("currentPassword")} />
               <Button
                 variant="danger"
                 type="submit"
                 disabled={isPending}
                 className="px-5 py-3 text-sm disabled:opacity-50"
               >
-                Wyłącz TOTP
+                {t("twoFactor.disable")}
               </Button>
             </form>
           </div>
@@ -491,23 +525,23 @@ export function SecuritySettings({
 
         {backupCodes ? (
           <div className="mt-5 rounded-xl border border-app-warning/30 bg-app-warning-surface p-4">
-            <p className="font-semibold">Nowe kody zapasowe</p>
+            <p className="font-semibold">{t("twoFactor.newBackupCodes")}</p>
             <p className="mt-1 text-sm text-app-muted">
-              Zapisz je w bezpiecznym miejscu. Nie będą ponownie wyświetlone.
+              {t("twoFactor.saveCodesSafely")}
             </p>
             <BackupCodeList codes={backupCodes} />
           </div>
         ) : null}
 
-        {error ? <p role="alert" className="status-error mt-4">{error}</p> : null}
-        {notice ? <p role="status" className="status-success mt-4">{notice}</p> : null}
+        {error ? <p role="alert" className="status-error mt-4">{t(error)}</p> : null}
+        {notice ? <p role="status" className="status-success mt-4">{t(notice)}</p> : null}
       </section>
 
       <section className="panel-card p-6 sm:p-8">
         <div className="mb-6">
-          <h2 className="text-xl font-semibold tracking-[-0.03em]">Passkeys</h2>
+          <h2 className="text-xl font-semibold tracking-[-0.03em]">{t("passkeys.heading")}</h2>
           <p className="mt-2 text-sm text-app-muted">
-            Klucze dostępu zapisane na tym koncie.
+            {t("passkeys.description")}
           </p>
         </div>
         {settings.passkeys.length > 0 ? (
@@ -519,17 +553,17 @@ export function SecuritySettings({
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="font-semibold">
-                    {passkey.name || "Passkey bez nazwy"}
+                    {passkey.name || t("passkeys.unnamed")}
                   </p>
                   <p className="mt-1 text-sm text-app-muted">
                     {passkey.deviceType === "multiDevice"
-                      ? "Synchronizowany"
-                      : "Powiązany z urządzeniem"}
-                    {passkey.backedUp ? " · kopia zapasowa dostępna" : ""}
+                      ? t("passkeys.synchronized")
+                      : t("passkeys.deviceBound")}
+                    {passkey.backedUp ? ` · ${t("passkeys.backupAvailable")}` : ""}
                     {passkey.createdAt
-                      ? ` · dodano ${new Intl.DateTimeFormat("pl-PL", {
+                      ? ` · ${t("passkeys.addedAt", { date: new Intl.DateTimeFormat(locale, {
                           dateStyle: "medium",
-                        }).format(new Date(passkey.createdAt))}`
+                        }).format(new Date(passkey.createdAt)) })}`
                       : ""}
                   </p>
                 </div>
@@ -541,7 +575,7 @@ export function SecuritySettings({
                     className="space-y-3"
                   >
                     <label className="block">
-                      <span className="field-label">Zmień nazwę</span>
+                      <span className="field-label">{t("passkeys.rename")}</span>
                       <input
                         name="name"
                         defaultValue={passkey.name ?? ""}
@@ -552,7 +586,7 @@ export function SecuritySettings({
                     </label>
                     <PasswordField
                       id={`passkey-rename-password-${passkey.id}`}
-                      label="Obecne hasło"
+                      label={t("currentPassword")}
                     />
                     <Button
                       variant="secondary"
@@ -560,7 +594,7 @@ export function SecuritySettings({
                       disabled={isPending}
                       className="px-4 py-2.5 text-sm disabled:opacity-50"
                     >
-                      Zmień nazwę
+                      {t("passkeys.rename")}
                     </Button>
                   </form>
                   <form
@@ -569,13 +603,13 @@ export function SecuritySettings({
                     }
                     className="space-y-3"
                   >
-                    <div className="field-label">Usuń passkey</div>
+                    <div className="field-label">{t("passkeys.delete")}</div>
                     <p className="text-sm text-app-muted">
-                      Aby usunąć ten klucz, potwierdź obecne hasło.
+                      {t("passkeys.deleteDescription")}
                     </p>
                     <PasswordField
                       id={`passkey-delete-password-${passkey.id}`}
-                      label="Obecne hasło"
+                      label={t("currentPassword")}
                     />
                     <Button
                       variant="danger"
@@ -583,7 +617,7 @@ export function SecuritySettings({
                       disabled={isPending}
                       className="px-4 py-2.5 text-sm disabled:opacity-50"
                     >
-                      Usuń passkey
+                      {t("passkeys.delete")}
                     </Button>
                   </form>
                 </div>
@@ -591,30 +625,30 @@ export function SecuritySettings({
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-app-muted">Nie dodano jeszcze żadnego passkey.</p>
+          <p className="text-sm text-app-muted">{t("passkeys.empty")}</p>
         )}
         {webauthnAvailable === false ? (
           <p className="status-error mt-5">
-            Ta przeglądarka lub urządzenie nie obsługuje WebAuthn.
+            {t("passkeys.unsupported")}
           </p>
         ) : null}
         {webauthnAvailable !== false ? (
           <form action={handleAddPasskey} className="mt-6 space-y-4 border-t border-app-border pt-5">
-            <h3 className="font-semibold">Dodaj passkey</h3>
+            <h3 className="font-semibold">{t("passkeys.add")}</h3>
             <label className="block">
-              <span className="field-label">Nazwa klucza</span>
+              <span className="field-label">{t("passkeys.name")}</span>
               <input
                 name="name"
                 maxLength={64}
                 required
                 autoComplete="off"
                 className="field-input"
-                placeholder="np. Telefon służbowy"
+                placeholder={t("passkeys.namePlaceholder")}
               />
             </label>
             <PasswordField
               id="passkey-add-password"
-              label="Obecne hasło"
+              label={t("currentPassword")}
             />
             <Button
               variant="primary"
@@ -622,18 +656,18 @@ export function SecuritySettings({
               disabled={isPending || webauthnAvailable !== true}
               className="px-5 py-3 text-sm disabled:opacity-50"
             >
-              {isPending ? "Oczekiwanie na urządzenie..." : "Dodaj passkey"}
+              {isPending ? t("passkeys.waiting") : t("passkeys.adding")}
             </Button>
           </form>
         ) : null}
         {passkeyError ? (
           <p role="alert" className="status-error mt-4">
-            {passkeyError}
+            {t(passkeyError)}
           </p>
         ) : null}
         {passkeyNotice ? (
           <p role="status" className="status-success mt-4">
-            {passkeyNotice}
+            {t(passkeyNotice)}
           </p>
         ) : null}
       </section>

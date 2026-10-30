@@ -1,13 +1,15 @@
 import Link from "next/link";
-
-const tabs = [
-  { id: "users", label: "Użytkownicy", href: "/admin" },
-  { id: "email", label: "E-mail", href: "/admin/email" },
-] as const;
+import { useTranslations } from "next-intl";
 
 export function AdminTabs({ active }: { active: "users" | "email" }) {
+  const t = useTranslations("admin.tabs");
+  const tabs = [
+    { id: "users", label: t("users"), href: "/admin" },
+    { id: "email", label: t("email"), href: "/admin/email" },
+  ] as const;
+
   return (
-    <nav className="mt-8 flex gap-1 overflow-x-auto rounded-2xl border border-app-border bg-app-surface-muted p-1" aria-label="Administracja">
+    <nav className="mt-8 flex gap-1 overflow-x-auto rounded-2xl border border-app-border bg-app-surface-muted p-1" aria-label={t("ariaLabel")}>
       {tabs.map((tab) => (
         <Link
           key={tab.id}

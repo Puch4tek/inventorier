@@ -5,15 +5,31 @@ import { BrowserMultiFormatReader } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+
+type ScannerError =
+  | ""
+  | "barcodeRequired"
+  | "barcodeNotFound"
+  | "lookupFailed"
+  | "connectionFailed"
+  | "cameraPreviewMissing"
+  | "cameraStartFailed";
+type ScannerStatus =
+  | ""
+  | "cameraStarting"
+  | "cameraActive"
+  | "codeRecognized";
 
 export function Scanner() {
+  const t = useTranslations("organization.scanner");
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [manualBarcode, setManualBarcode] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ScannerError>("");
   const [isLookingUp, setIsLookingUp] = useState(false);
-  const [scanStatus, setScanStatus] = useState("");
+  const [scanStatus, setScanStatus] = useState<ScannerStatus>("");
   const hasResultRef = useRef(false);
   const router = useRouter();
 
@@ -26,7 +42,7 @@ export function Scanner() {
   async function lookupBarcode(barcode: string) {
     const normalizedBarcode = barcode.trim();
     if (!normalizedBarcode) {
-      setError("Wpisz kod kreskowy.");
+      setError("barcodeRequired");
       return;
     }
 
@@ -37,18 +53,14 @@ export function Scanner() {
         `/api/items/by-barcode?barcode=${encodeURIComponent(normalizedBarcode)}`,
       );
       if (!response.ok) {
-        setError(
-          response.status === 404
-            ? "Nie znaleziono przedmiotu o tym kodzie."
-            : "Nie udało się wyszukać przedmiotu.",
-        );
+        setError(response.status === 404 ? "barcodeNotFound" : "lookupFailed");
         return;
       }
 
       const item = (await response.json()) as { id: number };
       router.push(`/items/${item.id}`);
     } catch {
-      setError("Nie udało się połączyć z serwerem.");
+      setError("connectionFailed");
     } finally {
       setIsLookingUp(false);
     }
@@ -56,7 +68,7 @@ export function Scanner() {
 
   async function startCamera() {
     setError("");
-    setScanStatus("Uruchamianie kamery...");
+    setScanStatus("cameraStarting");
     hasResultRef.current = false;
     setIsScanning(true);
 
@@ -88,19 +100,19 @@ export function Scanner() {
             hasResultRef.current = true;
             controlsRef.current?.stop();
             setIsScanning(false);
-            setScanStatus("Kod rozpoznany. Otwieranie przedmiotu...");
+            setScanStatus("codeRecognized");
             void lookupBarcode(result.getText());
           }
         },
       );
-      setScanStatus("Kamera aktywna — ustaw kod w ramce.");
+      setScanStatus("cameraActive");
     } catch (cameraError) {
       setIsScanning(false);
       setScanStatus("");
       setError(
         cameraError instanceof Error && cameraError.message === "NO_CAMERA"
-          ? "Nie znaleziono elementu podglądu kamery."
-          : "Nie udało się uruchomić kamery. Sprawdź uprawnienia i połączenie HTTPS.",
+          ? "cameraPreviewMissing"
+          : "cameraStartFailed",
       );
     }
   }
@@ -130,13 +142,13 @@ export function Scanner() {
         ) : null}
         {!isScanning ? (
           <div className="flex aspect-video items-center justify-center px-6 text-center text-sm text-app-accent/70">
-            Kamera jest wyłączona
+            {t("emptyCamera")}
           </div>
         ) : null}
       </div>
       {scanStatus ? (
         <p aria-live="polite" className="text-center text-sm text-app-muted">
-          {scanStatus}
+          {t(scanStatus)}
         </p>
       ) : null}
 
@@ -147,7 +159,7 @@ export function Scanner() {
             onClick={stopCamera}
             className="px-5 py-3 text-sm font-semibold transition"
           >
-            Zatrzymaj kamerę
+            {t("stopCamera")}
           </Button>
         ) : (
           <Button
@@ -157,14 +169,14 @@ export function Scanner() {
             disabled={isLookingUp}
             className="px-5 py-3 text-sm disabled:opacity-50"
           >
-            Uruchom kamerę
+            {t("startCamera")}
           </Button>
         )}
       </div>
 
       <div className="border-t border-app-border pt-5">
         <label htmlFor="manual-barcode" className="field-label">
-          Wpisz kod ręcznie
+          {t("enterBarcode")}
         </label>
         <form
           className="flex flex-col gap-3 sm:flex-row"
@@ -177,7 +189,7 @@ export function Scanner() {
             id="manual-barcode"
             value={manualBarcode}
             onChange={(event) => setManualBarcode(event.target.value)}
-            placeholder="np. INV-ABC123"
+            placeholder={t("barcodePlaceholder")}
             className="field-input mt-0 flex-1 font-mono"
             autoComplete="off"
           />
@@ -186,14 +198,14 @@ export function Scanner() {
             disabled={isLookingUp}
             className="px-5 py-3 text-sm font-semibold transition disabled:opacity-50"
           >
-            {isLookingUp ? "Szukam..." : "Otwórz"}
+            {isLookingUp ? t("searching") : t("open")}
           </Button>
         </form>
       </div>
 
       {error ? (
         <p role="alert" className="status-error">
-          {error}
+          {t(error)}
         </p>
       ) : null}
     </div>

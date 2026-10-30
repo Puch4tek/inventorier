@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { logoutAction } from "@/app/dashboard/actions";
 import { WarehouseSwitcher } from "./warehouse-switcher";
+import { useTranslations } from "next-intl";
 
 type UserMenuProps = {
   name: string;
@@ -32,6 +33,7 @@ export function UserMenu({
   activeWarehouseId,
   canManageWarehouses,
 }: UserMenuProps) {
+  const t = useTranslations("organization.userMenu");
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -64,7 +66,7 @@ export function UserMenu({
         className="flex h-9 w-9 items-center justify-center rounded-full bg-app-accent text-xs font-semibold text-app-inverse transition hover:bg-app-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
         aria-expanded={open}
         aria-controls="user-menu"
-        aria-label={`Menu użytkownika: ${name}`}
+        aria-label={t("buttonLabel", { name })}
       >
         {getInitials(name)}
       </button>
@@ -76,11 +78,11 @@ export function UserMenu({
         >
           <div className="border-b border-app-border px-3 py-2">
             <p className="truncate text-sm font-medium">{name}</p>
-            <p className="mt-1 text-xs text-app-muted">Zalogowany użytkownik</p>
+            <p className="mt-1 text-xs text-app-muted">{t("signedIn")}</p>
           </div>
           <div className="space-y-3 border-b border-app-border px-3 py-3 sm:hidden">
             <div>
-              <p className="mb-1 text-xs font-medium text-app-muted">Magazyn</p>
+              <p className="mb-1 text-xs font-medium text-app-muted">{t("warehouse")}</p>
               <WarehouseSwitcher
                 warehouses={warehouses}
                 activeId={activeWarehouseId}
@@ -93,14 +95,14 @@ export function UserMenu({
             onClick={() => setOpen(false)}
             className="mt-1 block rounded-xl px-3 py-2 text-sm text-app-foreground transition hover:bg-app-surface-muted"
           >
-            Panel główny
+            {t("dashboard")}
           </Link>
           <Link
             href="/settings"
             onClick={() => setOpen(false)}
             className="mt-1 block rounded-xl px-3 py-2 text-sm text-app-foreground transition hover:bg-app-surface-muted"
           >
-            Ustawienia konta
+            {t("accountSettings")}
           </Link>
           {isAdmin ? (
             <Link
@@ -108,7 +110,7 @@ export function UserMenu({
               onClick={() => setOpen(false)}
               className="mt-1 block rounded-xl px-3 py-2 text-sm text-app-foreground transition hover:bg-app-surface-muted"
             >
-              Panel administratora
+              {t("administrator")}
             </Link>
           ) : null}
           {canManageWarehouses ? (
@@ -117,7 +119,7 @@ export function UserMenu({
             onClick={() => setOpen(false)}
             className="mt-1 block rounded-xl px-3 py-2 text-sm text-app-foreground transition hover:bg-app-surface-muted"
             >
-            Zarządzanie magazynami
+            {t("warehouseManagement")}
             </Link>
           ) : null}
           <form action={logoutAction}>
@@ -125,7 +127,7 @@ export function UserMenu({
               type="submit"
               className="mt-1 w-full rounded-xl px-3 py-2 text-left text-sm text-app-danger transition hover:bg-app-danger-surface"
             >
-              Wyloguj się
+              {t("signOut")}
             </button>
           </form>
         </div>

@@ -3,12 +3,11 @@
 import { createUser } from "@/server/users/create-user";
 import {
     isRegistrationEnabled,
-    REGISTRATION_DISABLED_MESSAGE,
 } from "@/server/settings/registration";
 
 export type CreateUserState = {
-    error?: string;
-    success?: string;
+    error?: "requiredFields" | "passwordMismatch" | "unavailable" | "unavailableCheck" | "duplicateEmail" | "createFailed" | "passwordTooShort";
+    success?: "created";
 };
 
 export async function createUserAction(
@@ -26,20 +25,20 @@ export async function createUserAction(
         typeof password !== "string" ||
         typeof passwordConfirmation !== "string"
     ) {
-        return { error: "Uzupełnij wszystkie pola." };
+        return { error: "requiredFields" };
     }
 
     if (password !== passwordConfirmation) {
-        return { error: "Hasła muszą być takie same." };
+        return { error: "passwordMismatch" };
     }
 
     try {
         if (!(await isRegistrationEnabled())) {
-            return { error: REGISTRATION_DISABLED_MESSAGE };
+            return { error: "unavailable" };
         }
     } catch (error) {
-        console.error("Nie udało się sprawdzić ustawienia rejestracji:", error);
-        return { error: "Nie udało się sprawdzić dostępności rejestracji. Spróbuj ponownie później." };
+        console.error("Could not check the registration setting:", error);
+        return { error: "unavailableCheck" };
     }
 
     try {
@@ -55,15 +54,16 @@ export async function createUserAction(
             "code" in error &&
             error.code === "P2002"
         ) {
-            return { error: "Konto z tym adresem e-mail już istnieje." };
+            return { error: "duplicateEmail" };
         }
 
-        if (error instanceof Error) {
-            return { error: error.message };
+        if (error instanceof Error && error.message === "Password must be at least 8 characters long") {
+            return { error: "passwordTooShort" };
         }
 
-        return { error: "Nie udało się utworzyć konta." };
+        console.error("Could not create an account:", error);
+        return { error: "createFailed" };
     }
 
-    return { success: "Konto zostało utworzone." };
+    return { success: "created" };
 }

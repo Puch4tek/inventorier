@@ -9,23 +9,47 @@ import { getActiveSession } from "@/server/auth/get-current-user";
 
 export type SecurityActionResult<T> =
   | { success: true; data: T }
-  | { success: false; error: string };
+  | { success: false; error: SecurityErrorKey };
 
 type TotpSetup = { totpURI: string; backupCodes: string[] };
+type TwoFactorErrorId =
+  | "currentPasswordRequired"
+  | "sessionExpired"
+  | "wrongPassword"
+  | "invalidCode"
+  | "alreadyEnabled"
+  | "notEnabled"
+  | "startFailed"
+  | "confirmFailed"
+  | "cancelFailed"
+  | "regenerateFailed"
+  | "disableFailed"
+  | "setupCodeRequired";
+export type SecurityErrorKey =
+  | `twoFactor.errors.${TwoFactorErrorId}`
+  | "passkeys.reauthenticateFailed";
 
 const PASSKEY_REAUTH_COOKIE = "inventory-passkey-reauth";
 const PASSKEY_REAUTH_COOKIE_PATH = "/api/auth/passkey";
 const PASSKEY_REAUTH_IDENTIFIER_PREFIX = "passkey-reauth:";
 const PASSKEY_REAUTH_TTL_MS = 5 * 60 * 1000;
 
-class PublicSecurityError extends Error {}
+class PublicSecurityError extends Error {
+  constructor(readonly code: "currentPasswordRequired" | "sessionExpired" | "wrongPassword") {
+    super(code);
+  }
+}
 
-function failure<T>(error: string): SecurityActionResult<T> {
+function failure<T>(error: SecurityErrorKey): SecurityActionResult<T> {
   return { success: false, error };
 }
 
-function publicErrorMessage(error: unknown, fallback: string) {
-  return error instanceof PublicSecurityError ? error.message : fallback;
+function publicErrorMessage(
+  error: unknown,
+  fallback: SecurityErrorKey,
+): SecurityErrorKey {
+  if (!(error instanceof PublicSecurityError)) return fallback;
+  return `twoFactor.errors.${error.code}`;
 }
 
 function getApiErrorCode(body: unknown) {
@@ -33,19 +57,22 @@ function getApiErrorCode(body: unknown) {
   return typeof body.code === "string" ? body.code : null;
 }
 
-function messageForApiError(body: unknown, fallback: string) {
+function messageForApiError(
+  body: unknown,
+  fallback: SecurityErrorKey,
+): SecurityErrorKey {
   switch (getApiErrorCode(body)) {
     case "INVALID_PASSWORD":
-      return "Nieprawidłowe obecne hasło.";
+      return "twoFactor.errors.wrongPassword";
     case "INVALID_CODE":
-      return "Kod jest nieprawidłowy lub wygasł.";
+      return "twoFactor.errors.invalidCode";
     case "TOTP_ALREADY_ENABLED":
-      return "Uwierzytelnianie TOTP jest już aktywne.";
+      return "twoFactor.errors.alreadyEnabled";
     case "TWO_FACTOR_NOT_ENABLED":
-      return "Uwierzytelnianie dwuskładnikowe nie jest aktywne.";
+      return "twoFactor.errors.notEnabled";
     case "INVALID_SESSION":
     case "UNAUTHORIZED":
-      return "Sesja wygasła. Zaloguj się ponownie i spróbuj jeszcze raz.";
+      return "twoFactor.errors.sessionExpired";
     default:
       return fallback;
   }
@@ -57,12 +84,12 @@ async function reauthenticate(password: unknown) {
     password.length === 0 ||
     password.length > 1024
   ) {
-    throw new PublicSecurityError("Podaj obecne hasło.");
+    throw new PublicSecurityError("currentPasswordRequired");
   }
 
   const active = await getActiveSession();
   if (!active || active.user.mustChangePassword) {
-    throw new PublicSecurityError("Sesja wygasła. Zaloguj się ponownie.");
+    throw new PublicSecurityError("sessionExpired");
   }
 
   const account = await prisma.account.findFirst({
@@ -71,7 +98,7 @@ async function reauthenticate(password: unknown) {
   });
 
   if (!account?.password || !(await bcrypt.compare(password, account.password))) {
-    throw new PublicSecurityError("Nieprawidłowe obecne hasło.");
+    throw new PublicSecurityError("wrongPassword");
   }
 
   return {
@@ -137,7 +164,10 @@ async function copyResponseCookies(response: Response) {
   }
 }
 
-async function apiErrorMessage(response: Response, fallback: string) {
+async function apiErrorMessage(
+  response: Response,
+  fallback: SecurityErrorKey,
+): Promise<SecurityErrorKey> {
   let body: unknown;
   try {
     body = await response.clone().json();
@@ -162,7 +192,7 @@ export async function beginTotpSetup(
       !result.totpURI ||
       !Array.isArray(result.backupCodes)
     ) {
-      return failure("Nie udało się rozpocząć konfiguracji TOTP.");
+      return failure("twoFactor.errors.startFailed");
     }
 
     return {
@@ -170,7 +200,7 @@ export async function beginTotpSetup(
       data: { totpURI: result.totpURI, backupCodes: result.backupCodes },
     };
   } catch (error) {
-    return failure(publicErrorMessage(error, "Nie udało się rozpocząć konfiguracji TOTP."));
+    return failure(publicErrorMessage(error, "twoFactor.errors.startFailed"));
   }
 }
 
@@ -181,7 +211,7 @@ export async function confirmTotpSetup(input: {
   try {
     await reauthenticate(input?.password);
     if (typeof input?.code !== "string" || !/^\d{6,8}$/.test(input.code)) {
-      return failure("Wpisz aktualny kod z aplikacji uwierzytelniającej.");
+      return failure("twoFactor.errors.setupCodeRequired");
     }
 
     const response = await auth.api.verifyTOTP({
@@ -191,14 +221,14 @@ export async function confirmTotpSetup(input: {
     });
     if (!response.ok) {
       return failure(
-        await apiErrorMessage(response, "Nie udało się potwierdzić kodu TOTP."),
+        await apiErrorMessage(response, "twoFactor.errors.confirmFailed"),
       );
     }
 
     await copyResponseCookies(response);
     return { success: true, data: null };
   } catch (error) {
-    return failure(publicErrorMessage(error, "Nie udało się potwierdzić kodu TOTP."));
+    return failure(publicErrorMessage(error, "twoFactor.errors.confirmFailed"));
   }
 }
 
@@ -214,14 +244,14 @@ export async function cancelPendingTotpSetup(
     });
     if (!response.ok) {
       return failure(
-        await apiErrorMessage(response, "Nie udało się anulować konfiguracji TOTP."),
+        await apiErrorMessage(response, "twoFactor.errors.cancelFailed"),
       );
     }
 
     await copyResponseCookies(response);
     return { success: true, data: null };
   } catch (error) {
-    return failure(publicErrorMessage(error, "Nie udało się anulować konfiguracji TOTP."));
+    return failure(publicErrorMessage(error, "twoFactor.errors.cancelFailed"));
   }
 }
 
@@ -237,7 +267,7 @@ export async function regenerateBackupCodes(
     return { success: true, data: { backupCodes: result.backupCodes } };
   } catch (error) {
     return failure(
-      publicErrorMessage(error, "Nie udało się wygenerować nowych kodów zapasowych."),
+      publicErrorMessage(error, "twoFactor.errors.regenerateFailed"),
     );
   }
 }
@@ -260,14 +290,14 @@ export async function disableTotp(
     });
     if (!response.ok) {
       return failure(
-        await apiErrorMessage(response, "Nie udało się wyłączyć TOTP."),
+        await apiErrorMessage(response, "twoFactor.errors.disableFailed"),
       );
     }
 
     await copyResponseCookies(response);
     return { success: true, data: null };
   } catch (error) {
-    return failure(publicErrorMessage(error, "Nie udało się wyłączyć TOTP."));
+    return failure(publicErrorMessage(error, "twoFactor.errors.disableFailed"));
   }
 }
 
@@ -315,7 +345,7 @@ export async function authorizePasskeyManagement(
     return failure(
       publicErrorMessage(
         error,
-        "Nie udało się potwierdzić hasła przed zarządzaniem passkeys.",
+        "passkeys.reauthenticateFailed",
       ),
     );
   }

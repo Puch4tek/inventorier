@@ -9,6 +9,7 @@ import {
   updateLocationAction,
   type LocationActionState,
 } from "./actions";
+import { useLocale, useTranslations } from "next-intl";
 
 type LocationOption = {
   id: number;
@@ -32,6 +33,8 @@ export function LocationActions({
   location,
   locations,
 }: LocationActionsProps) {
+  const locale = useLocale();
+  const t = useTranslations("organization.locations");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -43,18 +46,19 @@ export function LocationActions({
         onClick={() => setEditOpen(true)}
         className="px-5 py-3 text-sm"
       >
-        Edytuj
+        {t("edit")}
       </Button>
       <button
         type="button"
         onClick={() => setDeleteOpen(true)}
         className="rounded-xl border border-app-danger/30 px-5 py-3 text-sm font-semibold text-app-danger transition hover:bg-app-danger-surface"
       >
-        Usuń
+        {t("delete")}
       </button>
 
       {editOpen ? (
         <EditLocationModal
+          key={locale}
           location={location}
           locations={locations}
           onClose={() => setEditOpen(false)}
@@ -62,6 +66,7 @@ export function LocationActions({
       ) : null}
       {deleteOpen ? (
         <DeleteLocationModal
+          key={locale}
           location={location}
           onClose={() => setDeleteOpen(false)}
         />
@@ -75,6 +80,7 @@ function EditLocationModal({
   locations,
   onClose,
 }: LocationActionsProps & { onClose: () => void }) {
+  const t = useTranslations("organization.locations");
   const [state, formAction, isPending] = useActionState(
     updateLocationAction,
     initialState,
@@ -93,7 +99,7 @@ function EditLocationModal({
   );
 
   return (
-    <Dialog title="Edytuj lokalizację" onClose={onClose} disabled={isPending}>
+    <Dialog title={t("editTitle")} onClose={onClose} disabled={isPending}>
       {state.success ? (
         <div className="space-y-5">
           <p className="rounded-xl bg-app-success-surface px-4 py-3 text-sm text-app-success">
@@ -105,7 +111,7 @@ function EditLocationModal({
             onClick={onClose}
             className="w-full px-5 py-3 text-sm"
           >
-            Zamknij
+            {t("close")}
           </Button>
         </div>
       ) : (
@@ -113,7 +119,7 @@ function EditLocationModal({
           <input type="hidden" name="id" value={location.id} />
           <div>
             <label htmlFor="edit-location-name" className="field-label">
-              Nazwa lokalizacji
+              {t("name")}
             </label>
             <input
               id="edit-location-name"
@@ -125,7 +131,7 @@ function EditLocationModal({
           </div>
           <div>
             <label htmlFor="edit-location-description" className="field-label">
-              Opis
+              {t("descriptionLabel")}
             </label>
             <textarea
               id="edit-location-description"
@@ -137,7 +143,7 @@ function EditLocationModal({
           </div>
           <div>
             <label htmlFor="edit-location-parent" className="field-label">
-              Lokalizacja nadrzędna
+              {t("parentLabel")}
             </label>
             <select
               id="edit-location-parent"
@@ -145,7 +151,7 @@ function EditLocationModal({
               defaultValue={location.parentId?.toString() ?? ""}
               className="field-input field-select"
             >
-              <option value="">Brak — lokalizacja główna</option>
+              <option value="">{t("noParent")}</option>
               {parentOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}
@@ -164,7 +170,7 @@ function EditLocationModal({
               onClick={onClose}
               className="rounded-xl border border-app-border-strong px-5 py-3 text-sm font-semibold text-app-foreground transition hover:bg-app-surface-muted"
             >
-              Anuluj
+              {t("cancel")}
             </button>
             <Button
               variant="primary"
@@ -172,7 +178,7 @@ function EditLocationModal({
               disabled={isPending}
               className="px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isPending ? "Zapisywanie..." : "Zapisz zmiany"}
+              {isPending ? t("saving") : t("saveChanges")}
             </Button>
           </div>
         </form>
@@ -188,6 +194,7 @@ function DeleteLocationModal({
   location: LocationActionsProps["location"];
   onClose: () => void;
 }) {
+  const t = useTranslations("organization.locations");
   const [state, formAction, isPending] = useActionState(
     deleteLocationAction,
     initialState,
@@ -201,11 +208,14 @@ function DeleteLocationModal({
   }, [router, state.success]);
 
   return (
-    <Dialog title="Usuń lokalizację" onClose={onClose} disabled={isPending}>
+    <Dialog title={t("deleteTitle")} onClose={onClose} disabled={isPending}>
       <p className="text-sm leading-6 text-app-muted">
-        Czy na pewno chcesz usunąć lokalizację{" "}
-        <strong className="text-app-foreground">{location.name}</strong>? Operacja
-        jest możliwa tylko wtedy, gdy nie ma ona dzieci ani przedmiotów.
+        {t.rich("deleteConfirmation", {
+          name: (chunks) => (
+            <strong className="text-app-foreground">{chunks}</strong>
+          ),
+        })}{" "}
+        {t("deleteRestriction")}
       </p>
       {state.error ? (
         <p role="alert" className="status-error mt-5">
@@ -219,14 +229,14 @@ function DeleteLocationModal({
           onClick={onClose}
           className="rounded-xl border border-app-border-strong px-5 py-3 text-sm font-semibold text-app-foreground transition hover:bg-app-surface-muted"
         >
-          Anuluj
+          {t("cancel")}
         </button>
         <Button variant="danger"
           type="submit"
           disabled={isPending}
           className="px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isPending ? "Usuwanie..." : "Usuń lokalizację"}
+          {isPending ? t("saving") : t("confirmDelete")}
         </Button>
       </form>
     </Dialog>
@@ -244,6 +254,7 @@ function Dialog({
   onClose: () => void;
   disabled: boolean;
 }) {
+  const t = useTranslations("organization.locations");
   return (
     <Modal labelledBy="location-dialog-title" onClose={onClose} disabled={disabled}>
       <section
@@ -253,7 +264,7 @@ function Dialog({
           <h2 id="location-dialog-title" className="text-2xl font-semibold tracking-[-0.03em]">
             {title}
           </h2>
-          <button type="button" aria-label="Zamknij" onClick={onClose} disabled={disabled} className="text-2xl text-app-muted">
+          <button type="button" aria-label={t("close")} onClick={onClose} disabled={disabled} className="text-2xl text-app-muted">
             &times;
           </button>
         </div>

@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Locale } from "@/i18n/locale";
+import { emailMessages } from "../../i18n/messages/email.mjs";
 import nodemailer from "nodemailer";
 
 export type SmtpConfig = {
@@ -55,12 +57,17 @@ function escapeHtml(value: string): string {
   });
 }
 
-export async function sendTestEmail(config: SmtpConfig, to: string): Promise<void> {
+export async function sendTestEmail(
+  config: SmtpConfig,
+  to: string,
+  locale: Locale = "pl",
+): Promise<void> {
+  const t = emailMessages[locale].test;
   await sendMail(config, {
     to,
-    subject: "Test konfiguracji poczty",
-    text: "To jest wiadomość testowa. Konfiguracja poczty działa poprawnie.",
-    html: "<p>To jest wiadomość testowa. Konfiguracja poczty działa poprawnie.</p>",
+    subject: t.subject,
+    text: t.text,
+    html: `<p>${escapeHtml(t.text)}</p>`,
   });
 }
 
@@ -68,6 +75,7 @@ export async function sendPasswordResetEmail(
   config: SmtpConfig,
   to: string,
   url: string,
+  locale: Locale = "pl",
 ): Promise<void> {
   // The caller must supply a URL produced from the trusted Better Auth configuration.
   let parsedUrl: URL;
@@ -85,10 +93,11 @@ export async function sendPasswordResetEmail(
     throw new Error("Nieprawidłowy adres resetowania hasła.");
   }
 
+  const t = emailMessages[locale].passwordReset;
   await sendMail(config, {
     to,
-    subject: "Resetowanie hasła",
-    text: `Otrzymaliśmy prośbę o zresetowanie hasła. Aby ustawić nowe hasło, otwórz poniższy link:\n\n${url}\n\nJeśli nie wysłano tej prośby, zignoruj tę wiadomość.`,
-    html: `<p>Otrzymaliśmy prośbę o zresetowanie hasła.</p><p><a href="${escapeHtml(url)}">Ustaw nowe hasło</a></p><p>Jeśli nie wysłano tej prośby, zignoruj tę wiadomość.</p>`,
+    subject: t.subject,
+    text: `${t.intro}\n\n${url}\n\n${t.ignore}`,
+    html: `<p>${escapeHtml(t.intro)}</p><p><a href="${escapeHtml(url)}">${escapeHtml(t.link)}</a></p><p>${escapeHtml(t.ignore)}</p>`,
   });
 }

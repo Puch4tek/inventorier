@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/button";
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import { updateUserRoleAction, type AdminActionState } from "./actions";
 
 const initialState: AdminActionState = {};
@@ -13,6 +14,7 @@ export function UserRoleForm({
   userId: string;
   role: "USER" | "ADMIN";
 }) {
+  const t = useTranslations("admin.userRole");
   const [state, formAction, isPending] = useActionState(
     updateUserRoleAction,
     initialState,
@@ -25,17 +27,17 @@ export function UserRoleForm({
         name="role"
         defaultValue={role}
         className="field-input field-select mt-0"
-        aria-label="Rola systemowa użytkownika"
+        aria-label={t("label")}
       >
-        <option value="USER">Użytkownik</option>
-        <option value="ADMIN">Administrator</option>
+        <option value="USER">{t("user")}</option>
+        <option value="ADMIN">{t("administrator")}</option>
       </select>
       <Button variant="primary"
         type="submit"
         disabled={isPending}
         className="text-sm font-semibold transition px-3 py-2 text-xs disabled:opacity-50"
       >
-        {isPending ? "Zapisywanie..." : "Zapisz"}
+        {isPending ? t("saving") : t("save")}
       </Button>
       {state.error ? (
         <span role="alert" className="basis-full text-xs text-app-danger">

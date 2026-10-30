@@ -7,6 +7,7 @@ import { canManageWarehouseData } from "@/server/warehouses/permissions";
 import { LocationCreateModal } from "./location-create-modal";
 import { LocationTree } from "./location-tree";
 import { MobileNav } from "@/app/dashboard/mobile-nav";
+import { getTranslations } from "next-intl/server";
 
 export const instant = false;
 
@@ -18,6 +19,7 @@ export default async function LocationsPage() {
   }
 
   const [locations, current] = await Promise.all([listLocations(), requireCurrentWarehouse()]);
+  const t = await getTranslations("organization.locations");
   const canManage = canManageWarehouseData(current);
 
   return (
@@ -27,13 +29,9 @@ export default async function LocationsPage() {
       <section className="page-shell">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div>
-            <p className="page-kicker">Magazyn</p>
-            <h1 className="page-title">
-              Lokalizacje
-            </h1>
-            <p className="page-description">
-              Zarządzaj miejscami przechowywania swoich przedmiotów.
-            </p>
+            <p className="page-kicker">{t("section")}</p>
+            <h1 className="page-title">{t("title")}</h1>
+            <p className="page-description">{t("description")}</p>
           </div>
           {canManage ? (
             <LocationCreateModal
@@ -48,9 +46,9 @@ export default async function LocationsPage() {
 
         {locations.length === 0 ? (
           <section className="panel-card mt-10 p-8 text-center">
-            <h2 className="text-xl font-semibold">Brak lokalizacji</h2>
+            <h2 className="text-xl font-semibold">{t("emptyTitle")}</h2>
             <p className="mt-2 text-sm text-app-muted">
-              {canManage ? "Dodaj pierwsze miejsce przechowywania, aby rozpocząć." : "W tym magazynie nie ma lokalizacji."}
+              {canManage ? t("emptyCanManage") : t("emptyReadOnly")}
             </p>
           </section>
         ) : (

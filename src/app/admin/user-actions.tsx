@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/button";
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import {
   deleteUserAction,
   requirePasswordChangeAction,
@@ -26,6 +27,7 @@ export function UserActions({
   twoFactorEnabled: boolean;
   passkeyCount: number;
 }) {
+  const t = useTranslations("admin.userActions");
   const [resetState, resetAction, isResetting] = useActionState(
     resetUserPasswordAction,
     initialState,
@@ -54,13 +56,13 @@ export function UserActions({
           <input type="hidden" name="userId" value={userId} />
           <input type="hidden" name="active" value={String(!isActive)} />
           <Button variant="secondary" type="submit" disabled={isChangingStatus} className="text-sm font-semibold transition px-3 py-2 text-xs disabled:opacity-50">
-            {isChangingStatus ? "Zapisywanie..." : isActive ? "Zablokuj konto" : "Odblokuj konto"}
+            {isChangingStatus ? t("saving") : isActive ? t("block") : t("unblock")}
           </Button>
         </form>
         <form action={passwordAction}>
           <input type="hidden" name="userId" value={userId} />
           <Button variant="secondary" type="submit" disabled={isRequiringPasswordChange || mustChangePassword} className="text-sm font-semibold transition px-3 py-2 text-xs disabled:opacity-50">
-            {mustChangePassword ? "Zmiana hasła wymagana" : isRequiringPasswordChange ? "Zapisywanie..." : "Wymuś zmianę hasła"}
+            {mustChangePassword ? t("passwordChangeRequired") : isRequiringPasswordChange ? t("saving") : t("requirePasswordChange")}
           </Button>
         </form>
       </div>
@@ -70,11 +72,11 @@ export function UserActions({
       {passwordState.success ? <p role="status" className="text-xs text-app-success">{passwordState.success}</p> : null}
       {twoFactorEnabled || passkeyCount > 0 ? (
         <form action={twoFactorAction} onSubmit={(event) => {
-          if (!window.confirm("Reset usunie TOTP i kody zapasowe, zarejestrowane klucze dostępu, zaufane urządzenia oraz wyzwania logowania, a także unieważni istniejące sesje użytkownika. Uwaga: weryfikacja logowania rozpoczęta przed resetem może zakończyć się równolegle. Kontynuować?")) event.preventDefault();
+          if (!window.confirm(t("resetTwoFactorConfirmation"))) event.preventDefault();
         }}>
           <input type="hidden" name="userId" value={userId} />
           <Button variant="secondary" type="submit" disabled={isResettingTwoFactor} className="px-3 py-2 text-xs">
-            {isResettingTwoFactor ? "Resetowanie..." : "Resetuj metody uwierzytelniania"}
+            {isResettingTwoFactor ? t("resetting") : t("resetTwoFactor")}
           </Button>
         </form>
       ) : null}
@@ -85,10 +87,10 @@ export function UserActions({
         <input
           name="password"
           type="password"
-          aria-label="Nowe hasło użytkownika"
+          aria-label={t("newPassword")}
           minLength={8}
           required
-          placeholder="Nowe hasło (min. 8 znaków)"
+          placeholder={t("passwordPlaceholder")}
           className="field-input mt-0 min-w-0 flex-1 basis-52"
         />
         <Button variant="secondary"
@@ -96,7 +98,7 @@ export function UserActions({
           disabled={isResetting}
           className="text-sm font-semibold transition px-3 py-2 text-xs disabled:opacity-50"
         >
-          {isResetting ? "Resetowanie..." : "Resetuj hasło"}
+          {isResetting ? t("resetting") : t("resetPassword")}
         </Button>
       </form>
       {resetState.error ? <p role="alert" className="text-xs text-app-danger">{resetState.error}</p> : null}
@@ -108,7 +110,7 @@ export function UserActions({
           disabled={isDeleting}
           className="inline-flex items-center justify-center rounded-xl border border-app-danger/[0.32] bg-app-surface text-sm font-semibold text-app-danger transition hover:bg-app-danger-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-danger px-3 py-2 text-xs disabled:opacity-50"
         >
-          {isDeleting ? "Usuwanie..." : "Usuń użytkownika"}
+          {isDeleting ? t("deleting") : t("deleteUser")}
         </button>
       </form>
       {deleteState.error ? <p role="alert" className="text-xs text-app-danger">{deleteState.error}</p> : null}

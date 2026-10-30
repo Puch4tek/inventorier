@@ -1,5 +1,6 @@
 import { AppHeader } from "@/components/app-header";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/server/auth/get-current-user";
 import { PasswordForm, ProfileForm } from "./settings-forms";
 import { AccountTabs } from "./account-tabs";
@@ -15,6 +16,7 @@ export default async function SettingsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await getCurrentUser();
+  const t = await getTranslations("auth.settings");
 
   if (!user) {
     redirect("/login");
@@ -32,12 +34,12 @@ export default async function SettingsPage({
 
   return (
     <main className="app-shell pb-24 sm:pb-0">
-      <AppHeader sectionLabel="Ustawienia konta" />
+      <AppHeader sectionLabel={t("title")} />
       <section className="page-shell page-shell-narrow">
-        <p className="page-kicker">Konto</p>
-        <h1 className="page-title">Ustawienia konta</h1>
+        <p className="page-kicker">{t("title")}</p>
+        <h1 className="page-title">{t("title")}</h1>
         <p className="page-description">
-          Zarządzaj swoimi danymi i bezpieczeństwem konta.
+          {t("description")}
         </p>
         <AccountTabs active={tab} />
 
@@ -46,10 +48,10 @@ export default async function SettingsPage({
           <section className="panel-card p-6 sm:p-8">
             <div className="mb-6">
               <h2 className="text-xl font-semibold tracking-[-0.03em]">
-                Dane profilu
+                {t("profile.heading")}
               </h2>
               <p className="mt-2 text-sm text-app-muted">
-                Zmień sposób, w jaki Twoje konto jest wyświetlane w aplikacji.
+                {t("profile.description")}
               </p>
             </div>
             <ProfileForm name={user.name} />
@@ -59,10 +61,10 @@ export default async function SettingsPage({
           <section className="panel-card p-6 sm:p-8">
             <div className="mb-6">
               <h2 className="text-xl font-semibold tracking-[-0.03em]">
-                Hasło
+                {t("password.heading")}
               </h2>
               <p className="mt-2 text-sm text-app-muted">
-                Użyj obecnego hasła, aby ustawić nowe.
+                {t("password.description")}
               </p>
             </div>
             <PasswordForm />
@@ -72,21 +74,21 @@ export default async function SettingsPage({
           <section className="panel-card p-6 sm:p-8">
             <div className="mb-2">
               <h2 className="text-xl font-semibold tracking-[-0.03em]">
-                Adres e-mail
+                {t("email.heading")}
               </h2>
               <p className="mt-2 text-sm text-app-muted">
-                Nowy adres stanie się adresem konta po potwierdzeniu linku wysłanego na ten adres.
+                {t("email.description")}
               </p>
             </div>
             <div className="mt-5">
               {emailChangeCompleted ? (
                 <p role="status" className="status-success mb-5">
-                  Adres e-mail został potwierdzony i zmieniony.
+                  {t("email.changeCompleted")}
                 </p>
               ) : null}
               {params.error ? (
                 <p role="alert" className="status-error mb-5">
-                  Nie udało się potwierdzić adresu. Poproś o nowy link i spróbuj ponownie.
+                  {t("email.confirmationFailed")}
                 </p>
               ) : null}
               <EmailChangeForm currentEmail={user.email} />

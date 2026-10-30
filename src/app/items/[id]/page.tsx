@@ -11,6 +11,8 @@ import { ItemActions } from "./item-actions";
 import { QuantityActions } from "./quantity-actions";
 import { BarcodePanel, CopyBarcode } from "./barcode-panel";
 import { MobileNav } from "@/app/dashboard/mobile-nav";
+import { getFormatter, getTranslations } from "next-intl/server";
+import { getItemHistoryMessageKey } from "@/lib/items/history";
 
 export const instant = false;
 
@@ -21,6 +23,10 @@ export default async function ItemPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const [t, format] = await Promise.all([
+    getTranslations("items"),
+    getFormatter(),
+  ]);
   const user = await getCurrentUser();
 
   if (!user) {
@@ -62,22 +68,22 @@ export default async function ItemPage({
         }
         backLabel={
           fromLocation && /^\d+$/.test(fromLocation)
-            ? "Wróć do lokalizacji"
-            : "Wróć do przedmiotów"
+            ? t("detail.backToLocation")
+            : t("detail.backToItems")
         }
       />
       <section className="page-shell page-shell-narrow">
-        <p className="page-kicker">Przedmiot</p>
+        <p className="page-kicker">{t("detail.section")}</p>
         <h1 className="page-title">
           {item.name}
         </h1>
         {item.isArchived ? (
           <p className="mt-3 inline-flex rounded-full bg-app-danger-surface px-3 py-1 text-sm font-medium text-app-danger">
-            Przedmiot zarchiwizowany
+            {t("detail.archived")}
           </p>
         ) : null}
         <p className="page-description">
-          {item.description || "Brak opisu"}
+          {item.description || t("detail.missingDescription")}
         </p>
         {canManage ? <ItemActions
           item={{
@@ -103,14 +109,14 @@ export default async function ItemPage({
         ) : null}
         <div className="mt-4 grid gap-5 lg:grid-cols-2">
           <section className="panel-card p-6 lg:row-span-3">
-            <p className="text-sm font-medium text-app-muted">Informacje</p>
+            <p className="text-sm font-medium text-app-muted">{t("detail.information")}</p>
             <div className="mt-5 space-y-5">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.08em] text-app-muted">
-                  Ilość
+                  {t("detail.quantity")}
                 </p>
                 <p className="mt-1 text-2xl font-semibold">
-                  {item.quantity}{" "}
+                  {format.number(item.quantity)}{" "}
                   <span className="text-base font-normal text-app-muted">
                     {item.unit}
                   </span>
@@ -118,32 +124,35 @@ export default async function ItemPage({
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.08em] text-app-muted">
-                  Kod kreskowy
+                  {t("detail.barcode")}
                 </p>
                 <CopyBarcode barcode={item.barcode} />
                 <BarcodePanel itemId={item.id} />
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.08em] text-app-muted">
-                  Ostatnia zmiana
+                  {t("detail.lastChanged")}
                 </p>
                 <p className="mt-1 text-sm text-app-muted">
-                  {item.updatedAt.toLocaleString("pl-PL")}
+                  {format.dateTime(item.updatedAt, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
                 </p>
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.08em] text-app-muted">
-                  Opis
+                  {t("detail.description")}
                 </p>
                 <p className="mt-1 text-sm leading-6 text-app-muted">
-                  {item.description || "Brak opisu"}
+                  {item.description || t("detail.missingDescription")}
                 </p>
               </div>
             </div>
           </section>
 
           <section className="panel-card p-6">
-            <p className="text-sm font-medium text-app-muted">Lokalizacja</p>
+            <p className="text-sm font-medium text-app-muted">{t("detail.location")}</p>
             <Link
               href={`/locations/${item.location.id}?fromItem=${item.id}`}
               className="mt-3 block text-xl font-semibold hover:underline"
@@ -151,12 +160,12 @@ export default async function ItemPage({
               {item.location.name}
             </Link>
             <p className="mt-2 text-sm text-app-muted">
-              Przejdź do strony lokalizacji
+              {t("detail.goToLocation")}
             </p>
           </section>
 
           <section className="panel-card p-6">
-            <p className="text-sm font-medium text-app-muted">Kategoria</p>
+            <p className="text-sm font-medium text-app-muted">{t("detail.category")}</p>
             {item.category ? (
               <>
                 <Link
@@ -166,11 +175,11 @@ export default async function ItemPage({
                   {item.category.name}
                 </Link>
                 <p className="mt-2 text-sm text-app-muted">
-                  Przejdź do strony kategorii
+                  {t("detail.goToCategory")}
                 </p>
               </>
             ) : (
-              <p className="mt-3 text-xl font-semibold">Bez kategorii</p>
+              <p className="mt-3 text-xl font-semibold">{t("list.noCategory")}</p>
             )}
           </section>
           {!item.isArchived ? (
@@ -184,27 +193,39 @@ export default async function ItemPage({
           ) : null}
         </div>
         <section className="panel-card mt-5 p-6">
-          <h2 className="text-xl font-semibold">Historia zmian</h2>
+          <h2 className="text-xl font-semibold">{t("detail.history")}</h2>
           {item.itemHistories.length === 0 ? (
-            <p className="mt-4 text-sm text-app-muted">Brak historii zmian.</p>
+            <p className="mt-4 text-sm text-app-muted">{t("detail.noHistory")}</p>
           ) : (
             <div className="mt-4 divide-y divide-app-border">
-              {item.itemHistories.map((entry) => (
-                <div key={entry.id} className="py-4 first:pt-0 last:pb-0">
-                  <p className="text-sm font-medium">
-                    {entry.description ?? entry.type}
-                  </p>
-                  <p className="mt-1 text-xs text-app-muted">
-                    {entry.actorName} ·{" "}
-                    {entry.createdAt.toLocaleString("pl-PL")}
-                  </p>
-                  {entry.oldValue !== null || entry.newValue !== null ? (
-                    <p className="mt-2 text-sm text-app-muted">
-                      {entry.oldValue ?? "brak"} → {entry.newValue ?? "brak"}
+              {item.itemHistories.map((entry) => {
+                const messageKey = getItemHistoryMessageKey(
+                  entry.description,
+                  entry.type,
+                );
+                const description = messageKey
+                  ? t(messageKey)
+                  : (entry.description ?? entry.type);
+
+                return (
+                  <div key={entry.id} className="py-4 first:pt-0 last:pb-0">
+                    <p className="text-sm font-medium">{description}</p>
+                    <p className="mt-1 text-xs text-app-muted">
+                      {entry.actorName} ·{" "}
+                      {format.dateTime(entry.createdAt, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
                     </p>
-                  ) : null}
-                </div>
-              ))}
+                    {entry.oldValue !== null || entry.newValue !== null ? (
+                      <p className="mt-2 text-sm text-app-muted">
+                        {entry.oldValue ?? t("detail.noValue")} →{" "}
+                        {entry.newValue ?? t("detail.noValue")}
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

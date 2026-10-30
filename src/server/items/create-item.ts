@@ -3,6 +3,7 @@ import "server-only";
 import { generateBarcode } from "./generate-barcode";
 import { requireWarehouseDataManager, withWarehouseMutation } from "@/server/warehouses/permissions";
 import { Prisma } from "@/generated/prisma/client";
+import { itemHistoryDescriptions } from "@/lib/items/history";
 
 export type CreateItemInput = {
     name: string;
@@ -97,7 +98,7 @@ export async function createItem(input: CreateItemInput) {
                         userId: current.user.id,
                         actorName: current.user.name,
                         type: "ITEM_CREATED",
-                        description: "Utworzono przedmiot",
+                        description: itemHistoryDescriptions.created,
                     },
                 });
 

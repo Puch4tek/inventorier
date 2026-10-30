@@ -1,6 +1,8 @@
 "use server";
 
 import {createLocation} from "@/server/locations/create-location";
+import { getTranslations } from "next-intl/server";
+import { getLocationActionErrorKey } from "../action-errors";
 
 export type NewLocationActionState = {
     error?: string;
@@ -11,12 +13,13 @@ export async function newLocationAction(
     _previousState: NewLocationActionState,
     formData: FormData,
 ): Promise<NewLocationActionState> {
+    const t = await getTranslations("organization.actions.locations");
     const name = formData.get("name");
     const description = formData.get("description");
     const parentId = formData.get("parentId");
 
     if (typeof name !== "string" || typeof description !== "string") {
-        return { error: "Uzupełnij poprawnie dane lokalizacji." };
+        return { error: t("invalidData") };
     }
 
     let parsedParentId: number | undefined;
@@ -25,7 +28,7 @@ export async function newLocationAction(
         parsedParentId = Number(parentId);
 
         if (!Number.isInteger(parsedParentId) || parsedParentId <= 0) {
-            return { error: "Nieprawidłowa lokalizacja nadrzędna." };
+            return { error: t("invalidParent") };
         }
     }
 
@@ -41,7 +44,7 @@ export async function newLocationAction(
         };
     } catch (error) {
         return {
-            error: error instanceof Error ? error.message : "An unknown error occurred",
+            error: t(getLocationActionErrorKey(error) ?? "createFailed"),
         };
     }
 }

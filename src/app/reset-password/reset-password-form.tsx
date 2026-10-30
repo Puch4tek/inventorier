@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/button";
 import {
   resetPasswordAction,
@@ -11,6 +12,7 @@ import {
 const initialState: ResetPasswordActionState = {};
 
 export function ResetPasswordForm({ token }: { token: string }) {
+  const t = useTranslations("auth.reset");
   const [state, formAction, pending] = useActionState(
     resetPasswordAction,
     initialState,
@@ -20,13 +22,13 @@ export function ResetPasswordForm({ token }: { token: string }) {
     return (
       <div className="space-y-5">
         <p className="status-success" role="status" aria-live="polite">
-          Hasło zostało zmienione. Zaloguj się, używając nowego hasła.
+          {t("success")}
         </p>
         <Link
           href="/login"
           className="block text-center text-sm font-medium text-app-foreground underline decoration-app-border-strong underline-offset-4"
         >
-          Wróć do logowania
+          {t("backToLogin")}
         </Link>
       </div>
     );
@@ -36,7 +38,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="token" value={token} />
       <div>
-        <label htmlFor="password" className="field-label">Nowe hasło</label>
+        <label htmlFor="password" className="field-label">{t("newPassword")}</label>
         <input
           id="password"
           name="password"
@@ -50,7 +52,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
       </div>
       <div>
         <label htmlFor="confirmation" className="field-label">
-          Powtórz nowe hasło
+          {t("passwordConfirmation")}
         </label>
         <input
           id="confirmation"
@@ -63,14 +65,14 @@ export function ResetPasswordForm({ token }: { token: string }) {
           className="field-input"
         />
       </div>
-      {state.error ? <p role="alert" className="status-error">{state.error}</p> : null}
+      {state.error ? <p role="alert" className="status-error">{t(`errors.${state.error}`)}</p> : null}
       <Button
         variant="primary"
         type="submit"
         disabled={pending}
         className="w-full px-5 py-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pending ? "Zapisywanie..." : "Ustaw nowe hasło"}
+        {pending ? t("submitting") : t("submit")}
       </Button>
     </form>
   );

@@ -9,9 +9,10 @@ test("the public response never waits for account lookup or SMTP delivery", asyn
   const pendingMail = new Promise((resolve) => { release = resolve; });
   const action = createForgotPasswordAction({
     getHeaders: async () => new Headers({ "x-real-ip": "192.0.2.1" }),
+    getLocale: async () => "en",
     schedule: (callback) => callbacks.push(callback),
     requestReset: async (email, context) => {
-      requests.push([email, context.headers.get("x-real-ip")]);
+      requests.push([email, context.headers.get("x-real-ip"), context.locale]);
       if (email === "known@example.test") await pendingMail;
     },
   });
@@ -23,7 +24,10 @@ test("the public response never waits for account lookup or SMTP delivery", asyn
   assert.equal(requests.length, 0);
   const delivery = callbacks[0]();
   await callbacks[1]();
-  assert.deepEqual(requests, [["known@example.test", "192.0.2.1"], ["unknown@example.test", "192.0.2.1"]]);
+  assert.deepEqual(requests, [
+    ["known@example.test", "192.0.2.1", "en"],
+    ["unknown@example.test", "192.0.2.1", "en"],
+  ]);
   release();
   await delivery;
 });

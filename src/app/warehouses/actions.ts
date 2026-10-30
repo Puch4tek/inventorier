@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getLocale, getTranslations } from "next-intl/server";
+import { getAdminActionError } from "@/i18n/admin-errors";
 import {
   createWarehouse,
   deleteWarehouse,
@@ -14,32 +16,45 @@ export async function createWarehouseAction(
   _previous: WarehouseActionState,
   formData: FormData,
 ): Promise<WarehouseActionState> {
+  const t = await getTranslations("admin");
+  const locale = await getLocale();
   const name = formData.get("name");
-  if (typeof name !== "string") return { error: "Podaj nazwę magazynu." };
+  if (typeof name !== "string") return { error: t("actions.errors.invalidWarehouse") };
   try {
     await createWarehouse(name);
     revalidatePath("/settings/warehouses");
-    return { success: "Magazyn został utworzony." };
+    return { success: t("actions.success.warehouseCreated") };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Nie udało się utworzyć magazynu." };
+    return { error: getAdminActionError(error, locale, "createWarehouse") };
   }
 }
 
-export async function deleteWarehouseAction(formData: FormData) {
+export async function deleteWarehouseAction(
+  formData: FormData,
+): Promise<WarehouseActionState> {
+  const t = await getTranslations("admin");
+  const locale = await getLocale();
   const warehouseId = formData.get("warehouseId");
   const confirmationName = formData.get("confirmationName");
   if (typeof warehouseId !== "string" || typeof confirmationName !== "string") {
-    throw new Error("Nieprawidłowe dane usuwania magazynu.");
+    return { error: t("actions.errors.invalidWarehouse") };
   }
-  await deleteWarehouse(warehouseId, confirmationName);
-  revalidatePath("/settings/warehouses");
-  revalidatePath("/dashboard");
+  try {
+    await deleteWarehouse(warehouseId, confirmationName);
+    revalidatePath("/settings/warehouses");
+    revalidatePath("/dashboard");
+    return { success: t("actions.success.warehouseDeleted") };
+  } catch (error) {
+    return { error: getAdminActionError(error, locale, "deleteWarehouse") };
+  }
 }
 
 export async function setWarehouseMemberRoleAction(
   _previous: WarehouseActionState,
   formData: FormData,
 ): Promise<WarehouseActionState> {
+  const t = await getTranslations("admin");
+  const locale = await getLocale();
   const warehouseId = formData.get("warehouseId");
   const userId = formData.get("userId");
   const role = formData.get("role");
@@ -48,15 +63,15 @@ export async function setWarehouseMemberRoleAction(
     typeof userId !== "string" ||
     (role !== "USER" && role !== "MANAGER")
   ) {
-    return { error: "Nieprawidłowe dane przypisania." };
+    return { error: t("actions.errors.invalidAssignment") };
   }
   try {
     await setWarehouseMemberRole(warehouseId, userId, role);
     revalidatePath("/settings/warehouses");
     revalidatePath("/admin");
-    return { success: "Dostęp do magazynu został zaktualizowany." };
+    return { success: t("actions.success.warehouseAccessUpdated") };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Nie udało się zmienić dostępu." };
+    return { error: getAdminActionError(error, locale, "changeWarehouseAccess") };
   }
 }
 
@@ -64,17 +79,19 @@ export async function removeWarehouseMemberAction(
   _previous: WarehouseActionState,
   formData: FormData,
 ): Promise<WarehouseActionState> {
+  const t = await getTranslations("admin");
+  const locale = await getLocale();
   const warehouseId = formData.get("warehouseId");
   const userId = formData.get("userId");
   if (typeof warehouseId !== "string" || typeof userId !== "string") {
-    return { error: "Nieprawidłowe dane przypisania." };
+    return { error: t("actions.errors.invalidAssignment") };
   }
   try {
     await removeWarehouseMember(warehouseId, userId);
     revalidatePath("/settings/warehouses");
     revalidatePath("/admin");
-    return { success: "Dostęp do magazynu został odebrany." };
+    return { success: t("actions.success.warehouseAccessRemoved") };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Nie udało się odebrać dostępu." };
+    return { error: getAdminActionError(error, locale, "removeWarehouseAccess") };
   }
 }

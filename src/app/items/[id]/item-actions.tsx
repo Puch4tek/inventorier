@@ -4,6 +4,7 @@ import { Button } from "@/components/button";
 import { Modal } from "@/components/modal";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import {
   deleteItemAction,
   restoreItemAction,
@@ -37,6 +38,8 @@ export function ItemActions({
   locations,
   categories,
 }: ItemActionsProps) {
+  const locale = useLocale();
+  const t = useTranslations("items");
   const [editOpen, setEditOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
@@ -50,7 +53,7 @@ export function ItemActions({
           onClick={() => setRestoreOpen(true)}
           className="px-5 py-3 text-sm"
         >
-          Przywróć
+          {t("restore.open")}
         </Button>
       ) : (
         <>
@@ -60,20 +63,21 @@ export function ItemActions({
             onClick={() => setEditOpen(true)}
             className="px-5 py-3 text-sm"
           >
-            Edytuj
+            {t("edit.open")}
           </Button>
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
             className="rounded-xl border border-app-danger/30 px-5 py-3 text-sm font-semibold text-app-danger transition hover:bg-app-danger-surface"
           >
-            Archiwizuj
+            {t("archive.open")}
           </button>
         </>
       )}
 
       {editOpen ? (
         <EditItemDialog
+          key={locale}
           item={item}
           locations={locations}
           categories={categories}
@@ -82,12 +86,14 @@ export function ItemActions({
       ) : null}
       {archiveOpen ? (
         <ArchiveItemDialog
+          key={locale}
           item={item}
           onClose={() => setArchiveOpen(false)}
         />
       ) : null}
       {restoreOpen ? (
         <RestoreItemDialog
+          key={locale}
           item={item}
           onClose={() => setRestoreOpen(false)}
         />
@@ -103,6 +109,7 @@ function RestoreItemDialog({
   item: Pick<ItemActionsProps["item"], "id" | "name">;
   onClose: () => void;
 }) {
+  const t = useTranslations("items");
   const [state, formAction, isPending] = useActionState(
     restoreItemAction,
     initialState,
@@ -116,11 +123,11 @@ function RestoreItemDialog({
   }, [item.id, router, state.success]);
 
   return (
-    <Dialog title="Przywróć przedmiot" onClose={onClose} disabled={isPending}>
+    <Dialog title={t("restore.title")} onClose={onClose} disabled={isPending}>
       <p className="text-sm leading-6 text-app-muted">
-        Czy na pewno chcesz przywrócić przedmiot{" "}
-        <strong className="text-app-foreground">{item.name}</strong>? Pojawi się
-        ponownie na aktywnej liście.
+        {t("restore.confirmation")}{" "}
+        <strong className="text-app-foreground">{item.name}</strong>?{" "}
+        {t("restore.confirmationEnd")}
       </p>
       {state.error ? (
         <p
@@ -137,7 +144,7 @@ function RestoreItemDialog({
           onClick={onClose}
           className="rounded-xl border border-app-border-strong px-5 py-3 text-sm font-semibold text-app-foreground"
         >
-          Anuluj
+          {t("restore.cancel")}
         </button>
         <Button
           variant="primary"
@@ -145,7 +152,7 @@ function RestoreItemDialog({
           disabled={isPending}
           className="px-5 py-3 text-sm disabled:opacity-50"
         >
-          {isPending ? "Przywracanie..." : "Przywróć"}
+          {isPending ? t("restore.inProgress") : t("restore.submit")}
         </Button>
       </form>
     </Dialog>
@@ -158,6 +165,7 @@ function EditItemDialog({
   categories,
   onClose,
 }: ItemActionsProps & { onClose: () => void }) {
+  const t = useTranslations("items");
   const [state, formAction, isPending] = useActionState(
     updateItemAction,
     initialState,
@@ -171,7 +179,7 @@ function EditItemDialog({
   }, [router, state.success]);
 
   return (
-    <Dialog  title="Edytuj przedmiot" onClose={onClose} disabled={isPending}>
+    <Dialog title={t("edit.title")} onClose={onClose} disabled={isPending}>
       {state.success ? (
         <div className="space-y-5">
           <p className="rounded-xl bg-app-success-surface px-4 py-3 text-sm text-app-success">
@@ -183,7 +191,7 @@ function EditItemDialog({
             onClick={onClose}
             className="w-full px-5 py-3 text-sm"
           >
-            Zamknij
+            {t("edit.close")}
           </Button>
         </div>
       ) : (
@@ -191,7 +199,7 @@ function EditItemDialog({
           <input type="hidden" name="id" value={item.id} />
           <div>
             <label htmlFor="edit-item-name" className="field-label">
-              Nazwa
+              {t("edit.name")}
             </label>
             <input
               id="edit-item-name"
@@ -203,7 +211,7 @@ function EditItemDialog({
           </div>
           <div>
             <label htmlFor="edit-item-description" className="field-label">
-              Opis
+              {t("edit.description")}
             </label>
             <textarea
               id="edit-item-description"
@@ -216,7 +224,7 @@ function EditItemDialog({
           <div>
             <div>
               <label htmlFor="edit-item-unit" className="field-label">
-                Jednostka
+                {t("edit.unit")}
               </label>
               <input
                 id="edit-item-unit"
@@ -229,7 +237,7 @@ function EditItemDialog({
           </div>
           <div>
             <label htmlFor="edit-item-location" className="field-label">
-              Lokalizacja
+              {t("edit.location")}
             </label>
             <select
               id="edit-item-location"
@@ -247,7 +255,7 @@ function EditItemDialog({
           </div>
           <div>
             <label htmlFor="edit-item-category" className="field-label">
-              Kategoria
+              {t("edit.category")}
             </label>
             <select
               id="edit-item-category"
@@ -255,7 +263,7 @@ function EditItemDialog({
               defaultValue={item.categoryId?.toString() ?? ""}
               className="field-input field-select"
             >
-              <option value="">Brak kategorii</option>
+              <option value="">{t("edit.noCategory")}</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -277,7 +285,7 @@ function EditItemDialog({
               onClick={onClose}
               className="rounded-xl border border-app-border-strong px-5 py-3 text-sm font-semibold text-app-foreground transition hover:bg-app-surface-muted"
             >
-              Anuluj
+              {t("edit.cancel")}
             </button>
             <Button
               variant="primary"
@@ -285,7 +293,7 @@ function EditItemDialog({
               disabled={isPending}
               className="px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isPending ? "Zapisywanie..." : "Zapisz zmiany"}
+              {isPending ? t("edit.saving") : t("edit.save")}
             </Button>
           </div>
         </form>
@@ -301,6 +309,7 @@ function ArchiveItemDialog({
   item: Pick<ItemActionsProps["item"], "id" | "name">;
   onClose: () => void;
 }) {
+  const t = useTranslations("items");
   const [state, formAction, isPending] = useActionState(
     deleteItemAction,
     initialState,
@@ -314,11 +323,11 @@ function ArchiveItemDialog({
   }, [router, state.success]);
 
   return (
-    <Dialog title="Archiwizuj przedmiot" onClose={onClose} disabled={isPending}>
+    <Dialog title={t("archive.title")} onClose={onClose} disabled={isPending}>
       <p className="text-sm leading-6 text-app-muted">
-        Czy na pewno chcesz zarchiwizować przedmiot{" "}
-        <strong className="text-app-foreground">{item.name}</strong>? Zniknie z
-        aktywnej listy przedmiotów, ale historia zostanie zachowana.
+        {t("archive.confirmation")}{" "}
+        <strong className="text-app-foreground">{item.name}</strong>?{" "}
+        {t("archive.confirmationEnd")}
       </p>
       {state.error ? (
         <p
@@ -335,14 +344,14 @@ function ArchiveItemDialog({
           onClick={onClose}
           className="rounded-xl border border-app-border-strong px-5 py-3 text-sm font-semibold text-app-foreground transition hover:bg-app-surface-muted"
         >
-          Anuluj
+          {t("archive.cancel")}
         </button>
         <Button variant="danger"
           type="submit"
           disabled={isPending}
           className="px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isPending ? "Archiwizowanie..." : "Archiwizuj"}
+          {isPending ? t("archive.inProgress") : t("archive.submit")}
         </Button>
       </form>
     </Dialog>
@@ -360,6 +369,7 @@ function Dialog({
   onClose: () => void;
   disabled: boolean;
 }) {
+  const t = useTranslations("items");
   return (
     <Modal labelledBy="item-dialog-title" onClose={onClose} disabled={disabled}>
       <section
@@ -374,7 +384,7 @@ function Dialog({
           </h2>
           <button
             type="button"
-            aria-label="Zamknij"
+            aria-label={t("create.close")}
             onClick={onClose}
             disabled={disabled}
             className="rounded-full px-3 py-1 text-2xl leading-none text-app-muted transition hover:bg-app-surface-muted hover:text-app-foreground disabled:opacity-50"

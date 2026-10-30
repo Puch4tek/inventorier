@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { getLocale, getTranslations } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
 import { InstallPrompt } from "@/components/install-prompt";
 import "./globals.css";
+
+export const instant = false;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,15 +17,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Inventorier",
-  description: "System ewidencji i lokalizacji przedmiotów.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("common.metadata");
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const locale = await getLocale();
+
   return (
     <html
-      lang="pl"
+      lang={locale}
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
@@ -31,8 +40,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             __html: `(() => { const s = localStorage.getItem("inventory-theme"); const dark = s === "dark" || (s !== "light" && matchMedia("(prefers-color-scheme: dark)").matches); document.documentElement.classList.toggle("dark", dark); })();`,
           }}
         />
-        {children}
-        <InstallPrompt />
+        <NextIntlClientProvider>
+          {children}
+          <InstallPrompt />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

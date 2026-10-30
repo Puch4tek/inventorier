@@ -4,6 +4,8 @@ import { UserMenu } from "./user-menu";
 import { getCurrentUser } from "@/server/auth/get-current-user";
 import { ThemeToggle } from "@/app/theme-toggle";
 import { WarehouseSwitcher } from "./warehouse-switcher";
+import { LocaleSwitcher } from "./locale-switcher";
+import { getTranslations } from "next-intl/server";
 import {
   getCurrentWarehouse,
   listAccessibleWarehouses,
@@ -22,7 +24,10 @@ export async function AppHeader({
   sectionLabel,
   maxWidth = "max-w-7xl",
 }: AppHeaderProps) {
-  const user = await getCurrentUser();
+  const [user, t] = await Promise.all([
+    getCurrentUser(),
+    getTranslations("common.header"),
+  ]);
   const [warehouses, currentWarehouse] = user
     ? await Promise.all([listAccessibleWarehouses(), getCurrentWarehouse()])
     : [[], null];
@@ -55,6 +60,7 @@ export async function AppHeader({
 
         <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle />
+          <LocaleSwitcher />
           {user ? (
             <>
               <WarehouseSwitcher
@@ -66,7 +72,7 @@ export async function AppHeader({
                   href="/dashboard"
                   className={getButtonClassName("secondary", "px-4 py-2 text-sm")}
                 >
-                  Panel główny
+                  {t("dashboard")}
                 </Link>
               </span>
               <UserMenu
@@ -87,7 +93,7 @@ export async function AppHeader({
                 "px-3 py-2 text-xs sm:px-4 sm:text-sm",
               )}
             >
-              Zaloguj się
+              {t("signIn")}
             </Link>
           )}
         </div>

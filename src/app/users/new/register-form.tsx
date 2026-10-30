@@ -2,11 +2,13 @@
 
 import { Button } from "@/components/button";
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import { createUserAction, type CreateUserState } from "./actions";
 
 const initialState: CreateUserState = {};
 
 export function RegisterForm() {
+  const t = useTranslations("auth.registration");
   const [state, formAction, isPending] = useActionState(
     createUserAction,
     initialState,
@@ -16,7 +18,7 @@ export function RegisterForm() {
     <form action={formAction} className="space-y-5">
       <div>
         <label htmlFor="name" className="field-label">
-          Imię i nazwisko
+          {t("name")}
         </label>
         <input
           id="name"
@@ -25,13 +27,13 @@ export function RegisterForm() {
           autoComplete="name"
           required
           className="field-input"
-          placeholder="Jan Kowalski"
+          placeholder={t("namePlaceholder")}
         />
       </div>
 
       <div>
         <label htmlFor="email" className="field-label">
-          Adres e-mail
+          {t("email")}
         </label>
         <input
           id="email"
@@ -40,13 +42,13 @@ export function RegisterForm() {
           autoComplete="email"
           required
           className="field-input"
-          placeholder="jan@example.com"
+          placeholder={t("emailPlaceholder")}
         />
       </div>
 
       <div>
         <label htmlFor="password" className="field-label">
-          Hasło
+          {t("password")}
         </label>
         <input
           id="password"
@@ -56,13 +58,13 @@ export function RegisterForm() {
           minLength={8}
           required
           className="field-input"
-          placeholder="Minimum 8 znaków"
+          placeholder={t("passwordPlaceholder")}
         />
       </div>
 
       <div>
         <label htmlFor="passwordConfirmation" className="field-label">
-          Powtórz hasło
+          {t("passwordConfirmation")}
         </label>
         <input
           id="passwordConfirmation"
@@ -72,7 +74,7 @@ export function RegisterForm() {
           minLength={8}
           required
           className="field-input"
-          placeholder="Wpisz hasło ponownie"
+          placeholder={t("passwordConfirmationPlaceholder")}
         />
       </div>
 
@@ -81,7 +83,7 @@ export function RegisterForm() {
           role="alert"
           className="status-error"
         >
-          {state.error}
+          {t(`errors.${state.error}`)}
         </p>
       ) : null}
 
@@ -90,7 +92,7 @@ export function RegisterForm() {
           role="status"
           className="status-success"
         >
-          {state.success}
+          {t("success")}
         </p>
       ) : null}
 
@@ -99,7 +101,7 @@ export function RegisterForm() {
         disabled={isPending}
         className="px-5 text-sm font-semibold transition w-full py-3.5 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isPending ? "Tworzenie konta..." : "Utwórz konto"}
+        {isPending ? t("submitting") : t("submit")}
       </Button>
     </form>
   );

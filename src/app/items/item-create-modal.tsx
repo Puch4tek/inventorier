@@ -5,6 +5,7 @@ import { Modal } from "@/components/modal";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createItemAction, type CreateItemState } from "./actions";
+import { useLocale, useTranslations } from "next-intl";
 
 type Option = {
   id: number;
@@ -22,6 +23,8 @@ export function ItemCreateModal({
   locations,
   categories,
 }: ItemCreateModalProps) {
+  const locale = useLocale();
+  const t = useTranslations("items");
   const [isOpen, setIsOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
 
@@ -38,12 +41,12 @@ export function ItemCreateModal({
         onClick={() => setIsOpen(true)}
         className="px-5 py-3 text-sm"
       >
-        Dodaj przedmiot
+        {t("create.open")}
       </Button>
 
       {isOpen ? (
         <ItemCreateDialog
-          key={formKey}
+          key={`${formKey}-${locale}`}
           locations={locations}
           categories={categories}
           onClose={closeModal}
@@ -63,6 +66,7 @@ function ItemCreateDialog({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const t = useTranslations("items");
   const [state, formAction, isPending] = useActionState(
     createItemAction,
     initialState,
@@ -83,17 +87,17 @@ function ItemCreateDialog({
       >
         <div className="flex items-start justify-between gap-6">
           <div>
-            <p className="text-sm font-medium text-app-muted">Przedmioty</p>
+            <p className="text-sm font-medium text-app-muted">{t("list.title")}</p>
             <h2
               id="item-create-modal-title"
               className="mt-2 text-2xl font-semibold tracking-[-0.03em]"
             >
-              Dodaj przedmiot
+              {t("create.title")}
             </h2>
           </div>
           <button
             type="button"
-            aria-label="Zamknij"
+            aria-label={t("create.close")}
             onClick={onClose}
             disabled={isPending}
             className="rounded-full px-3 py-1 text-2xl leading-none text-app-muted transition hover:bg-app-surface-muted hover:text-app-foreground disabled:opacity-50"
@@ -105,7 +109,7 @@ function ItemCreateDialog({
         <form action={formAction} className="mt-8 space-y-5">
           <div>
             <label htmlFor="item-name" className="field-label">
-              Nazwa
+              {t("create.name")}
             </label>
             <input
               id="item-name"
@@ -113,13 +117,13 @@ function ItemCreateDialog({
               type="text"
               required
               className="field-input"
-              placeholder="np. Wiertarka"
+              placeholder={t("create.namePlaceholder")}
             />
           </div>
 
           <div>
             <label htmlFor="item-description" className="field-label">
-              Opis <span className="text-app-muted">(opcjonalnie)</span>
+              {t("create.description")} <span className="text-app-muted">{t("create.optional")}</span>
             </label>
             <textarea
               id="item-description"
@@ -132,7 +136,7 @@ function ItemCreateDialog({
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <label htmlFor="item-quantity" className="field-label">
-                Ilość
+                {t("create.quantity")}
               </label>
               <input
                 id="item-quantity"
@@ -147,21 +151,21 @@ function ItemCreateDialog({
             </div>
             <div>
               <label htmlFor="item-unit" className="field-label">
-                Jednostka
+                {t("create.unit")}
               </label>
               <input
                 id="item-unit"
                 name="unit"
                 required
                 className="field-input"
-                placeholder="np. szt."
+                placeholder={t("create.unitPlaceholder")}
               />
             </div>
           </div>
 
           <div>
             <label htmlFor="item-location" className="field-label">
-              Lokalizacja
+              {t("create.location")}
             </label>
             <select
               id="item-location"
@@ -171,7 +175,7 @@ function ItemCreateDialog({
               className="field-input field-select"
             >
               <option value="" disabled>
-                Wybierz lokalizację
+                {t("create.chooseLocation")}
               </option>
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>
@@ -183,7 +187,7 @@ function ItemCreateDialog({
 
           <div>
             <label htmlFor="item-category" className="field-label">
-              Kategoria
+              {t("create.category")}
             </label>
             <select
               id="item-category"
@@ -191,7 +195,7 @@ function ItemCreateDialog({
               defaultValue=""
               className="field-input field-select"
             >
-              <option value="">Brak kategorii</option>
+              <option value="">{t("create.noCategory")}</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -225,14 +229,14 @@ function ItemCreateDialog({
               disabled={isPending}
               className="px-5 py-3 text-sm font-semibold transition disabled:opacity-50"
             >
-              Anuluj
+              {t("create.cancel")}
             </Button>
             <Button variant="primary"
               type="submit"
               disabled={isPending || locations.length === 0}
               className="px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isPending ? "Zapisywanie..." : "Dodaj przedmiot"}
+              {isPending ? t("create.saving") : t("create.submit")}
             </Button>
           </div>
         </form>

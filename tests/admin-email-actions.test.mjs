@@ -9,7 +9,7 @@ function fixture(overrides = {}) {
     save: async (input, actor, session) => calls.push(["save", input, actor, session]),
     consumeTestLimit: async (actor) => { calls.push(["limit", actor]); return true; },
     getConfig: async (actor, session) => { calls.push(["config", actor, session]); return { password: "sekret-konfiguracji" }; },
-    sendTest: async (config, to) => { calls.push(["send", config, to]); },
+    sendTest: async (config, to, locale) => { calls.push(["send", config, to, locale]); },
     revalidate: () => calls.push(["revalidate"]),
     settingsError: () => undefined,
     ...overrides,
@@ -72,9 +72,21 @@ test("test email is limited before accessing saved settings or sending", async (
   assert.deepEqual(allowed.calls.map(([name]) => name), ["limit", "config", "send"]);
   assert.deepEqual(allowed.calls[1], ["config", "admin", "session"]);
   assert.equal(allowed.calls[2][2], "test@example.org");
+  assert.equal(allowed.calls[2][3], "pl");
   data.set("to", "test@example.org\r\nBcc: victim@example.org");
   assert.ok((await allowed.actions.send({}, data)).error);
   assert.equal(allowed.calls.length, 3);
+});
+
+test("test email uses the request locale for its action result and message", async () => {
+  const { actions, calls } = fixture();
+  const data = new FormData();
+  data.set("to", "test@example.org");
+
+  const result = await actions.send({}, data, "en");
+
+  assert.equal(result.success, "The test email has been sent.");
+  assert.equal(calls.find(([name]) => name === "send")[3], "en");
 });
 
 test("unexpected errors cannot disclose SMTP secrets and limiter failures fail closed", async () => {

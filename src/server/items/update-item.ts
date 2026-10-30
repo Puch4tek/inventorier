@@ -1,6 +1,7 @@
 import "server-only";
 
 import { requireWarehouseDataManager, withWarehouseMutation } from "@/server/warehouses/permissions";
+import { itemHistoryDescriptions } from "@/lib/items/history";
 
 type ItemHistoryEntry = {
   type: "ITEM_UPDATED" | "LOCATION_CHANGED";
@@ -90,19 +91,19 @@ export async function updateItem(input: UpdateItemInput) {
 
     const history: ItemHistoryEntry[] = [];
     if (data.name !== undefined && data.name !== existingItem.name) {
-      history.push({ type: "ITEM_UPDATED", oldValue: existingItem.name, newValue: data.name, description: "Zmieniono nazwę" });
+      history.push({ type: "ITEM_UPDATED", oldValue: existingItem.name, newValue: data.name, description: itemHistoryDescriptions.nameChanged });
     }
     if (data.locationId !== undefined && data.locationId !== existingItem.locationId) {
-      history.push({ type: "LOCATION_CHANGED", oldValue: String(existingItem.locationId), newValue: String(data.locationId), description: "Zmieniono lokalizację" });
+      history.push({ type: "LOCATION_CHANGED", oldValue: String(existingItem.locationId), newValue: String(data.locationId), description: itemHistoryDescriptions.locationChanged });
     }
     if (data.description !== undefined && data.description !== existingItem.description) {
-      history.push({ type: "ITEM_UPDATED", oldValue: existingItem.description, newValue: data.description, description: "Zmieniono opis" });
+      history.push({ type: "ITEM_UPDATED", oldValue: existingItem.description, newValue: data.description, description: itemHistoryDescriptions.descriptionChanged });
     }
     if (data.unit !== undefined && data.unit !== existingItem.unit) {
-      history.push({ type: "ITEM_UPDATED", oldValue: existingItem.unit, newValue: data.unit, description: "Zmieniono jednostkę" });
+      history.push({ type: "ITEM_UPDATED", oldValue: existingItem.unit, newValue: data.unit, description: itemHistoryDescriptions.unitChanged });
     }
     if (data.categoryId !== undefined && data.categoryId !== existingItem.categoryId) {
-      history.push({ type: "ITEM_UPDATED", oldValue: existingItem.categoryId?.toString() ?? null, newValue: data.categoryId?.toString() ?? null, description: "Zmieniono kategorię" });
+      history.push({ type: "ITEM_UPDATED", oldValue: existingItem.categoryId?.toString() ?? null, newValue: data.categoryId?.toString() ?? null, description: itemHistoryDescriptions.categoryChanged });
     }
 
     const updatedItem = await transaction.item.update({

@@ -33,7 +33,7 @@ export function LocationTree({ locations }: LocationTreeProps) {
   );
 }
 
-function LocationTreeItem({
+async function LocationTreeItem({
   node,
   level,
   parentName,
@@ -42,6 +42,7 @@ function LocationTreeItem({
   level: number;
   parentName?: string;
 }) {
+  const t = await getTranslations("organization.locations");
   return (
     <div className="min-w-0">
       <article
@@ -50,7 +51,7 @@ function LocationTreeItem({
       >
         {parentName ? (
           <p className={level > 3 ? "mb-2 break-words text-xs text-app-muted" : "sr-only"}>
-            Lokalizacja nadrzędna: {parentName}
+            {t("parent", { name: parentName })}
           </p>
         ) : null}
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
@@ -69,12 +70,12 @@ function LocationTreeItem({
               </Link>
             </div>
             <p className="mt-2 text-sm leading-6 text-app-muted">
-              {node.description || "Brak opisu"}
+              {node.description || t("noDescription")}
             </p>
           </div>
           <div className="flex flex-wrap gap-4 text-xs text-app-muted">
-            <span>Przedmioty: {node.itemCount}</span>
-            <span>Podlokalizacje: {node.childCount}</span>
+            <span>{t("itemsCount", { count: node.itemCount })}</span>
+            <span>{t("childrenCount", { count: node.childCount })}</span>
           </div>
         </div>
       </article>
@@ -124,3 +125,4 @@ function buildLocationTree(locations: LocationTreeProps["locations"]) {
   return roots;
 }
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";

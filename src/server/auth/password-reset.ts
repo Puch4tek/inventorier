@@ -3,6 +3,7 @@ import "server-only";
 import bcrypt from "bcryptjs";
 import { randomBytes, randomUUID } from "node:crypto";
 import { isIP } from "node:net";
+import type { Locale } from "@/i18n/locale";
 import { prisma } from "@/lib/db/prisma";
 import { sendPasswordResetEmail } from "@/server/email/send-mail";
 import { consumeEmailRateLimit } from "@/server/settings/email-rate-limit";
@@ -52,6 +53,7 @@ function passwordResetUrl(token: string): string {
 
 export type PasswordResetRequestContext = {
   headers?: Pick<Headers, "get">;
+  locale?: Locale;
 };
 
 function getTrustedClientIp(headers?: Pick<Headers, "get">): string | null {
@@ -161,6 +163,7 @@ export async function requestPasswordReset(
         smtpConfig,
         user.email,
         passwordResetUrl(token),
+        requestContext?.locale ?? "pl",
       );
     } catch {
       try {

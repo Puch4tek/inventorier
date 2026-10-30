@@ -7,21 +7,22 @@ import { lockInstanceMutation } from "@/server/warehouses/transaction-lock";
 import {
   deleteUserPasswordResetTokens,
 } from "@/server/auth/password-reset-tokens";
+import { UserOperationError } from "./public-errors";
 
 export async function changeCurrentUserPassword(
   currentPassword: string,
   newPassword: string,
 ) {
   if (newPassword.length < 8) {
-    throw new Error("Hasło musi mieć co najmniej 8 znaków.");
+    throw new UserOperationError("password-too-short", "Hasło musi mieć co najmniej 8 znaków.");
   }
   if (currentPassword === newPassword) {
-    throw new Error("Nowe hasło musi różnić się od obecnego.");
+    throw new UserOperationError("password-same", "Nowe hasło musi różnić się od obecnego.");
   }
 
   const activeSession = await getActiveSession();
   if (!activeSession) {
-    throw new Error("Musisz być zalogowany.");
+    throw new UserOperationError("not-authenticated", "Musisz być zalogowany.");
   }
   const { user, session } = activeSession;
 
@@ -30,7 +31,7 @@ export async function changeCurrentUserPassword(
     select: { password: true },
   });
   if (!account?.password || !(await bcrypt.compare(currentPassword, account.password))) {
-    throw new Error("Nieprawidłowe obecne hasło.");
+    throw new UserOperationError("invalid-current-password", "Nieprawidłowe obecne hasło.");
   }
 
   const password = await bcrypt.hash(newPassword, 12);
@@ -40,12 +41,12 @@ export async function changeCurrentUserPassword(
       where: { id: session.id, userId: user.id, expiresAt: { gt: new Date() }, user: { isActive: true } },
       select: { id: true },
     });
-    if (!active) throw new Error("Musisz być zalogowany.");
+    if (!active) throw new UserOperationError("not-authenticated", "Musisz być zalogowany.");
     const updated = await transaction.account.updateMany({
       where: { userId: user.id, providerId: "credential", password: account.password },
       data: { password },
     });
-    if (updated.count !== 1) throw new Error("Hasło zostało już zmienione. Zaloguj się ponownie.");
+    if (updated.count !== 1) throw new UserOperationError("password-already-changed", "Hasło zostało już zmienione. Zaloguj się ponownie.");
     await transaction.user.update({
       where: { id: user.id },
       data: { mustChangePassword: false },

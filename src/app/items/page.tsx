@@ -10,6 +10,7 @@ import { canManageWarehouseData } from "@/server/warehouses/permissions";
 import { ItemCreateModal } from "./item-create-modal";
 import { ItemFilters } from "./item-filters";
 import { MobileNav } from "@/app/dashboard/mobile-nav";
+import { getFormatter, getTranslations } from "next-intl/server";
 
 export const instant = false;
 
@@ -18,6 +19,10 @@ export default async function ItemsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const [t, format] = await Promise.all([
+    getTranslations("items"),
+    getFormatter(),
+  ]);
   const user = await getCurrentUser();
 
   if (!user) {
@@ -73,14 +78,14 @@ export default async function ItemsPage({
       <section className="page-shell">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end sm:gap-5">
           <div className="min-w-0">
-            <p className="page-kicker">Magazyn</p>
+            <p className="page-kicker">{t("list.section")}</p>
             <h1 className="page-title">
-              Przedmioty
+              {t("list.title")}
             </h1>
             <p className="page-description hidden sm:block">
               {archived
-                ? "Przeglądaj przedmioty znajdujące się w archiwum."
-                : "Przeglądaj wszystkie aktywne przedmioty."}
+                ? t("list.archivedDescription")
+                : t("list.activeDescription")}
             </p>
           </div>
           {canManage ? (
@@ -98,9 +103,9 @@ export default async function ItemsPage({
 
         {items.length === 0 ? (
           <section className="panel-card mt-5 p-6 text-center">
-            <h2 className="text-l font-semibold">Brak przedmiotów</h2>
+            <h2 className="text-l font-semibold">{t("list.emptyTitle")}</h2>
             <p className="mt-2 text-sm text-app-muted">
-              {canManage ? "Dodaj pierwszy przedmiot, aby pojawił się na liście." : "W tym magazynie nie ma przedmiotów."}
+              {canManage ? t("list.emptyManage") : t("list.emptyReadOnly")}
             </p>
           </section>
         ) : (
@@ -116,11 +121,11 @@ export default async function ItemsPage({
                     <div>
                       <h2 className="font-semibold">{item.name}</h2>
                       <p className="mt-1 truncate text-xs text-app-muted sm:text-sm">
-                        {item.location.name} · {item.category?.name ?? "Bez kategorii"}
+                        {item.location.name} · {item.category?.name ?? t("list.noCategory")}
                       </p>
                     </div>
                     <p className="shrink-0 text-sm font-semibold sm:text-base">
-                      {item.quantity} {item.unit}
+                      {format.number(item.quantity)} {item.unit}
                     </p>
                   </div>
                 </Link>

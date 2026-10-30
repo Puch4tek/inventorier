@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Locale } from "@/i18n/locale";
+import { emailMessages } from "../../i18n/messages/email.mjs";
 import { sendMail, type SmtpConfig } from "@/server/email/send-mail";
 
 function escapeHtml(value: string): string {
@@ -18,6 +20,7 @@ export async function sendEmailVerificationMail(
   config: SmtpConfig,
   to: string,
   url: string,
+  locale: Locale = "pl",
 ): Promise<void> {
   const parsed = new URL(url);
   if (
@@ -29,10 +32,11 @@ export async function sendEmailVerificationMail(
     throw new Error("Nieprawidłowy adres potwierdzenia.");
   }
 
+  const t = emailMessages[locale].verification;
   await sendMail(config, {
     to,
-    subject: "Potwierdź adres e-mail",
-    text: `Aby potwierdzić adres e-mail konta, otwórz poniższy link:\n\n${url}\n\nJeśli nie wysłano tej prośby, zignoruj tę wiadomość.`,
-    html: `<p>Aby potwierdzić adres e-mail konta, otwórz poniższy link:</p><p><a href="${escapeHtml(url)}">Potwierdź adres e-mail</a></p><p>Jeśli nie wysłano tej prośby, zignoruj tę wiadomość.</p>`,
+    subject: t.subject,
+    text: `${t.intro}\n\n${url}\n\n${t.ignore}`,
+    html: `<p>${escapeHtml(t.intro)}</p><p><a href="${escapeHtml(url)}">${escapeHtml(t.link)}</a></p><p>${escapeHtml(t.ignore)}</p>`,
   });
 }

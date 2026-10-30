@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { after } from "next/server";
+import { getLocale } from "next-intl/server";
 import { requestPasswordReset } from "@/server/auth/password-reset";
 import { createForgotPasswordAction, type ForgotPasswordActionState } from "./action-core";
 
@@ -9,6 +10,7 @@ export type { ForgotPasswordActionState } from "./action-core";
 
 const action = createForgotPasswordAction({
   getHeaders: headers,
+  getLocale,
   schedule: after,
   requestReset: requestPasswordReset,
 });

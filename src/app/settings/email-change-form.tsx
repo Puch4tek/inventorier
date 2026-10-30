@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/button";
 import { authClient } from "@/lib/auth-client";
 
@@ -9,15 +10,16 @@ export function EmailChangeForm({
 }: {
   currentEmail: string;
 }) {
+  const t = useTranslations("auth.settings.email");
   const [newEmail, setNewEmail] = useState("");
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [hasError, setHasError] = useState(false);
+  const [hasNotice, setHasNotice] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
-    setNotice("");
+    setHasError(false);
+    setHasNotice(false);
     startTransition(async () => {
       try {
         const result = await authClient.changeEmail({
@@ -25,13 +27,13 @@ export function EmailChangeForm({
           callbackURL: "/settings?tab=email&emailChange=success",
         });
         if (result.error) {
-          setError("Nie udało się wysłać linku potwierdzającego. Sprawdź adres i spróbuj ponownie.");
+          setHasError(true);
           return;
         }
         setNewEmail("");
-        setNotice("Jeśli adres jest dostępny, wysłaliśmy na niego link potwierdzający. Obecny adres pozostaje bez zmian do czasu potwierdzenia.");
+        setHasNotice(true);
       } catch {
-        setError("Nie udało się wysłać linku potwierdzającego. Spróbuj ponownie.");
+        setHasError(true);
       }
     });
   }
@@ -39,7 +41,7 @@ export function EmailChangeForm({
   return (
     <div className="space-y-5">
       <div>
-        <p className="field-label">Obecny adres e-mail</p>
+        <p className="field-label">{t("current")}</p>
         <p className="mt-2 rounded-xl bg-app-surface-muted px-4 py-3 text-sm text-app-muted">
           {currentEmail}
         </p>
@@ -47,7 +49,7 @@ export function EmailChangeForm({
       <form onSubmit={submit} className="space-y-5">
         <div>
           <label htmlFor="new-account-email" className="field-label">
-            Nowy adres e-mail
+            {t("new")}
           </label>
           <input
             id="new-account-email"
@@ -61,10 +63,10 @@ export function EmailChangeForm({
             onChange={(event) => setNewEmail(event.target.value)}
           />
         </div>
-        {error ? <p role="alert" className="status-error">{error}</p> : null}
-        {notice ? <p role="status" className="status-success">{notice}</p> : null}
+        {hasError ? <p role="alert" className="status-error">{t("errors.sendFailed")}</p> : null}
+        {hasNotice ? <p role="status" className="status-success">{t("success")}</p> : null}
         <Button type="submit" disabled={pending} className="px-5 py-3 text-sm disabled:opacity-50">
-          {pending ? "Wysyłanie..." : "Wyślij link potwierdzający"}
+          {pending ? t("submitting") : t("submit")}
         </Button>
       </form>
     </div>

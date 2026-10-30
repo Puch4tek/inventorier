@@ -1,6 +1,7 @@
 import "server-only";
 
 import { requireWarehouseDataManager, withWarehouseMutation } from "@/server/warehouses/permissions";
+import { itemHistoryDescriptions } from "@/lib/items/history";
 
 export async function restoreItem(id: number) {
   if (
@@ -31,7 +32,7 @@ export async function restoreItem(id: number) {
         userId: current.user.id,
         actorName: current.user.name,
         type: "ITEM_RESTORED",
-        description: "Przywrócono przedmiot z archiwum",
+        description: itemHistoryDescriptions.restored,
       },
     });
 

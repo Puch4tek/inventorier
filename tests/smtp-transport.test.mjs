@@ -6,6 +6,7 @@ import {
   sendPasswordResetEmail,
   sendTestEmail,
 } from "../src/server/email/send-mail.ts";
+import { sendEmailVerificationMail } from "../src/server/email/email-verification-mail.ts";
 
 const config = {
   host: "smtp.example.test",
@@ -69,6 +70,27 @@ test("sends a Polish test message", async (t) => {
   assert.match(message.subject, /Test/);
   assert.match(message.text, /wiadomość testowa/);
   assert.match(message.html, /wiadomość testowa/);
+});
+
+test("renders reset, verification, and test email in the requested language", async (t) => {
+  const calls = stubTransport(t);
+  const resetUrl = "https://example.test/reset?token=sample";
+  await sendPasswordResetEmail(config, "recipient@example.test", resetUrl, "en");
+  await sendEmailVerificationMail(
+    config,
+    "recipient@example.test",
+    "https://example.test/verify?token=sample",
+    "en",
+  );
+  await sendTestEmail(config, "recipient@example.test", "en");
+
+  assert.match(calls[0].sent[0].subject, /Reset your password/);
+  assert.match(calls[0].sent[0].text, /We received a request/);
+  assert.match(calls[0].sent[0].html, /Set a new password/);
+  assert.match(calls[1].sent[0].subject, /Confirm your email address/);
+  assert.match(calls[1].sent[0].html, /Confirm email address/);
+  assert.match(calls[2].sent[0].subject, /Mail configuration test/);
+  assert.match(calls[2].sent[0].text, /This is a test message/);
 });
 
 test("escapes the reset link in HTML while keeping the plain text link intact", async (t) => {
