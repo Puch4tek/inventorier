@@ -35,6 +35,7 @@ const messages = {
       submitting: "Signing in…",
       passkey: "Sign in with a passkey",
       passkeyWaiting: "Waiting for passkey…",
+      oidc: "Sign in with OpenID Connect",
       twoFactorMethod: "Verification method",
       authenticatorApp: "Authenticator app",
       backupCode: "Backup code",
@@ -155,6 +156,8 @@ const messages = {
       },
       title: "Account settings",
       description: "Manage your account details and security.",
+      passwordUnavailable:
+        "This account has no local password to change. Profile, email, and security settings remain available where they do not require password verification.",
       profile: {
         heading: "Profile details",
         description: "Change how your account appears in the application.",
@@ -196,6 +199,8 @@ const messages = {
       },
     },
     security: {
+      passwordRequiredForManagement:
+        "You can review security status and existing passkeys here. Changing security settings requires a local password.",
       twoFactor: {
         heading: "Two-factor authentication",
         description: "Protect your account with an authenticator app and backup codes.",
@@ -739,6 +744,7 @@ const messages = {
     ariaLabel: "Administration",
     users: "Users",
     email: "Email",
+    oidc: "OIDC",
   },
   usersPage: {
     section: "Administration",
@@ -867,7 +873,7 @@ const messages = {
     username: "SMTP username",
     password: "New SMTP password",
     passwordUnreadable:
-      "The saved password cannot be decrypted (check SMTP_ENCRYPTION_KEY). Enter a new password to replace it. ",
+      "The saved password cannot be decrypted (check APP_ENCRYPTION_KEY). Enter a new password to replace it. ",
     passwordSaved: "A password is saved. ",
     passwordMissing: "No password is saved. ",
     passwordUnchanged: "Leave blank to keep the current password unchanged.",
@@ -893,7 +899,7 @@ const messages = {
       invalidForm:
         "Check the form, port (1–65535), and expiry time (15–1440 minutes).",
       saveFailed:
-        "Could not save email settings. Check the values, configuration completeness, and SMTP encryption key.",
+        "Could not save email settings. Check the values, configuration completeness, and APP_ENCRYPTION_KEY.",
       recipient: "Enter a valid recipient address.",
       testUnavailable:
         "Test sending is unavailable or the rate limit was exceeded. Try again later.",
@@ -902,10 +908,49 @@ const messages = {
       readFailed: "Could not read the email settings.",
       validation: "Invalid email settings.",
       configuration: "The SMTP configuration is incomplete.",
-      encryption: "The SMTP encryption key is missing or invalid.",
+      encryption: "APP_ENCRYPTION_KEY is missing or invalid.",
     },
     saved: "Email settings have been saved.",
     testSent: "The test email has been sent.",
+  },
+  oidcSettings: {
+    title: "OpenID Connect",
+    description:
+      "Configure the OpenID Connect provider used for single sign-on.",
+    configTitle: "Provider configuration",
+    enabled: "Enable OpenID Connect sign-in",
+    issuer: "Issuer URL",
+    issuerDescription:
+      "Use the exact issuer from the discovery document. HTTPS is required, including for private network providers.",
+    redirectUri: "Redirect URI (callback URL)",
+    redirectUriDescription:
+      "Register this URI with your identity provider. It changes after every settings save.",
+    redirectUriUnavailable:
+      "Configure a valid BETTER_AUTH_URL to display the callback URI.",
+    clientId: "Client ID",
+    clientSecret: "Client secret",
+    clientSecretUnreadable:
+      "The saved client secret cannot be decrypted. Enter a replacement secret before enabling this provider.",
+    clientSecretSaved: "A client secret is saved.",
+    clientSecretMissing: "No client secret is saved.",
+    clientSecretUnchanged:
+      "Leave blank to keep the current secret. The saved secret is never displayed.",
+    saving: "Saving…",
+    save: "Save settings",
+  },
+  oidcActions: {
+    errors: {
+      unauthorized: "You are not authorized to perform this action.",
+      invalidForm: "Check the form values and try again.",
+      saveFailed: "Could not save the OpenID Connect settings.",
+      readFailed: "Could not read the OpenID Connect settings.",
+      validation: "The OpenID Connect settings are invalid.",
+      configuration:
+        "The provider configuration is incomplete. Enter an issuer, client ID, and client secret.",
+      encryption:
+        "The client secret could not be encrypted or decrypted. Check APP_ENCRYPTION_KEY.",
+    },
+    saved: "OpenID Connect settings have been saved.",
   },
   actions: {
     errors: {

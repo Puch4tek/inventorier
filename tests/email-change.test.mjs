@@ -128,7 +128,7 @@ before(async () => {
   process.env.TEST_DATABASE_URL = databaseUrl.toString();
   process.env.BETTER_AUTH_SECRET = randomBytes(32).toString("base64url");
   process.env.BETTER_AUTH_URL = "http://localhost:3000";
-  process.env.SMTP_ENCRYPTION_KEY = randomBytes(32).toString("base64");
+  process.env.APP_ENCRYPTION_KEY = randomBytes(32).toString("base64");
 
   ({ prisma } = await import("../src/lib/db/prisma.ts"));
   ({ auth } = await import("../src/lib/auth.ts"));

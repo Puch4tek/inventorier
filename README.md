@@ -43,6 +43,7 @@ Prerequisites: Node.js, npm, and Docker with Compose.
 - [Architecture overview](docs/architecture.md) — application layers, domain concepts, and key data flows.
 - [Module reference](docs/module-reference.md) — responsibilities and entry points across maintained source modules.
 - [Localization guide](docs/localization.md) — translating messages and adding supported languages.
+- [OIDC login](docs/oidc.md) — OpenID Connect behavior, Authentik setup, and secret handling.
 - [Operations and security-sensitive procedures](docs/operations.md) — migrations, auth/MFA/passkeys, email/password reset, and warehouse permissions.
 
 ## Common commands

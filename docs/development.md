@@ -17,7 +17,7 @@ Create a root-level `.env` from [`.env.example`](../.env.example). Keep it out o
 | `BETTER_AUTH_URL` | `http://localhost:3000`. | Public application origin. Use HTTPS and the same origin as `PASSKEY_ORIGIN`. |
 | `PASSKEY_ORIGIN` | Defaults to `http://localhost:3000` if unset. | Required at runtime; exact HTTPS origin, including any non-default port. |
 | `PASSKEY_RP_ID` | Defaults to `localhost` if unset. | Required at runtime; a domain name without scheme or port, equal to or a parent domain of the origin host. |
-| `SMTP_ENCRYPTION_KEY` | Needed when configuring SMTP credentials in the application. Generate with `openssl rand -base64 32`. | A 32-byte key encoded as base64; keep identical across application processes and preserve separately from database backups. See [Operations](operations.md#email-and-password-reset). |
+| `APP_ENCRYPTION_KEY` | Needed when saving SMTP credentials or an OIDC client secret. Generate with `openssl rand -base64 32`. | Canonical Base64 encoding of exactly 32 random bytes. Keep identical across application processes and preserve separately from database backups. See [Operations](operations.md#keys). |
 | `TRUSTED_PROXY_IP_HEADER` | Not needed locally. | Set to exactly `x-real-ip` only when a trusted reverse proxy overwrites that header with the client's IP. Required for production password-reset requests. |
 | `NODE_ENV` | Set by the Next.js commands; do not normally set manually. | Next.js sets production mode for production builds and starts; this activates production URL, passkey, and proxy checks. |
 | `TEST_DATABASE_URL` | Do not configure for the normal development server. | The test script creates and exports this value for its disposable test database. |
@@ -69,7 +69,7 @@ npx prisma migrate deploy --config prisma7.config.ts
 npx prisma generate --config prisma7.config.ts
 ```
 
-Back up an existing database before migrations. Some upgrade paths require a one-time migration or carefully baselining a prior bootstrap snapshot; follow [Operations](operations.md#instance-and-database-lifecycle) rather than improvising with `migrate resolve`.
+Back up an existing database before migrations. Older development databases may have unsupported migration histories; see [Operations](operations.md#instance-and-database-lifecycle).
 
 ## Build and lint
 
@@ -88,7 +88,7 @@ Run the complete test suite with:
 npm test
 ```
 
-The test script requires a running Docker daemon and a locally available `postgres:18` image; it checks for the image but does not pull it. If needed, fetch it first with `docker pull postgres:18`. It starts a uniquely named container, binds its temporary database port to loopback, stores PostgreSQL data in a 1 GiB `tmpfs` (no bind mount or Docker volume), runs integration and localization tests with Node's built-in test runner, and removes the container on exit. Do not edit the script to use a persistent database or volume.
+The test script requires a running Docker daemon and a locally available `postgres:18` image; it checks for the image but does not pull it. If needed, fetch it first with `docker pull postgres:18`. It starts a uniquely named container, binds its temporary database port to loopback, stores PostgreSQL data in a 1 GiB `tmpfs` (no bind mount or Docker volume), runs integration and localization tests with Node's built-in test runner, and removes the container on exit. The runner includes OIDC and secret-encryption tests that use a synthetic local provider; this does not verify interoperability with a live Authentik server. Do not edit the script to use a persistent database or volume.
 
 ## Related source
 

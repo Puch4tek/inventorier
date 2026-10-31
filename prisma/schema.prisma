@@ -39,6 +39,11 @@ model AppSettings {
   smtpFromName        String  @default("")
   resetEnabled        Boolean @default(false)
   resetExpiryMinutes  Int     @default(60)
+  oidcEnabled         Boolean @default(false)
+  oidcIssuer          String  @default("")
+  oidcClientId        String  @default("")
+  oidcClientSecret    String?
+  oidcRevision        String  @default(uuid())
 }
 
 model User {

@@ -3,8 +3,10 @@ import { getTranslations } from "next-intl/server";
 
 export async function AccountTabs({
   active,
+  hasLocalPassword,
 }: {
   active: "profile" | "password" | "email" | "security";
+  hasLocalPassword: boolean;
 }) {
   const t = await getTranslations("auth.settings");
   const tabs = [
@@ -12,7 +14,7 @@ export async function AccountTabs({
     { id: "password", label: t("tabs.password") },
     { id: "email", label: t("tabs.email") },
     { id: "security", label: t("tabs.security") },
-  ] as const;
+  ].filter((tab) => hasLocalPassword || tab.id !== "password");
   return (
     <nav className="mt-8 flex gap-1 overflow-x-auto rounded-2xl border border-app-border bg-app-surface-muted p-1" aria-label={t("ariaLabel")}>
       {tabs.map((tab) => (

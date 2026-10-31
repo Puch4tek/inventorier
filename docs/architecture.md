@@ -29,6 +29,8 @@ flowchart LR
 
 [Better Auth configuration](../src/lib/auth.ts) integrates credential sign-in, email verification, TOTP, passkeys, and session persistence with Prisma. The catch-all auth route forwards HTTP requests to it. Login, registration, password-change/reset, and account-security screens use that API and app-specific server actions. Password-reset and email operations also use the server email/settings modules.
 
+[Optional OIDC sign-in](oidc.md) uses Better Auth's generic OAuth plugin with provider configuration loaded from administrator settings. The auth route creates the provider for the current settings revision, and account creation/linking still results in ordinary app roles and warehouse permissions; IdP groups are not synchronized.
+
 [Session helpers](../src/server/auth/get-current-user.ts) load the active account from the database, not just the session cookie. They reject inactive users and enforce required password changes. [Global role checks](../src/server/auth/permissions.ts) distinguish `ADMIN` from `USER`; warehouse access adds a separate membership role.
 
 ## Warehouse isolation and roles

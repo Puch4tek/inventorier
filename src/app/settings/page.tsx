@@ -7,6 +7,7 @@ import { AccountTabs } from "./account-tabs";
 import { getSecuritySettings } from "@/server/security/get-security-settings";
 import { SecuritySettings } from "./security-settings";
 import { EmailChangeForm } from "./email-change-form";
+import { prisma } from "@/lib/db/prisma";
 
 export const instant = false;
 
@@ -21,10 +22,22 @@ export default async function SettingsPage({
   if (!user) {
     redirect("/login");
   }
+  const credentialAccount = await prisma.account.findFirst({
+    where: {
+      userId: user.id,
+      providerId: "credential",
+      password: { not: null },
+    },
+    select: { id: true },
+  });
+  const hasLocalPassword = Boolean(credentialAccount);
+
   const params = await searchParams;
   const rawTab = Array.isArray(params.tab) ? params.tab[0] : params.tab;
   const tab =
-    rawTab === "password" || rawTab === "email" || rawTab === "security"
+    (rawTab === "password" && hasLocalPassword) ||
+    rawTab === "email" ||
+    rawTab === "security"
       ? rawTab
       : "profile";
   const securitySettings =
@@ -41,7 +54,15 @@ export default async function SettingsPage({
         <p className="page-description">
           {t("description")}
         </p>
-        <AccountTabs active={tab} />
+        {!hasLocalPassword ? (
+          <p
+            role="status"
+            className="mt-5 rounded-xl border border-app-border bg-app-surface-muted p-4 text-sm text-app-muted"
+          >
+            {t("passwordUnavailable")}
+          </p>
+        ) : null}
+        <AccountTabs active={tab} hasLocalPassword={hasLocalPassword} />
 
         <div className="mt-5">
           {tab === "profile" ? (
@@ -57,7 +78,7 @@ export default async function SettingsPage({
             <ProfileForm name={user.name} />
           </section>
           ) : null}
-          {tab === "password" ? (
+          {tab === "password" && hasLocalPassword ? (
           <section className="panel-card p-6 sm:p-8">
             <div className="mb-6">
               <h2 className="text-xl font-semibold tracking-[-0.03em]">
@@ -96,7 +117,10 @@ export default async function SettingsPage({
           </section>
           ) : null}
           {tab === "security" && securitySettings ? (
-            <SecuritySettings initialSettings={securitySettings} />
+            <SecuritySettings
+              initialSettings={securitySettings}
+              canManageWithPassword={hasLocalPassword}
+            />
           ) : null}
         </div>
       </section>

@@ -6,45 +6,13 @@ Each application instance is a separate organizational space and must use its ow
 
 For regular releases, stop the old application version while applying migrations, take a recoverable database backup, then use the normal `prisma migrate deploy` procedure in [Development: Migrations](development.md#migrations-and-generated-client) before starting the new version. Review each migration and verify backups can be restored before high-impact changes.
 
-Keep a database backup and its restore instructions, and periodically test a restore. Preserve `SMTP_ENCRYPTION_KEY` in a separate secure secret store: the SMTP password is encrypted in the database, and a database backup alone cannot recover it without the matching key.
+Older development databases may have migration histories that are no longer supported. Create a new, empty development database and initialize it using the bootstrap procedure rather than attempting to baseline the old history. Do not reset or delete an existing database or volume without verifying its contents and intended use.
 
-### Changing item barcode prefixes
-
-The migration `20261030181500_change_barcode_prefix` changes every item barcode beginning with `INV-` to `I-`, preserving the rest of the code. This includes archived items and is global across warehouses. Codes not beginning with `INV-` are unchanged. Existing `INV-` labels will no longer find their items after the migration; print replacement labels after deployment. The scanner does not provide a legacy-prefix fallback.
-
-Before deploying, stop all application instances and take a recoverable database backup. Check that the database is healthy, then apply the normal migrations using the procedure in [Development: Migrations](development.md#migrations-and-generated-client) before starting the new application version. The migration locks the item table while checking and updating codes. If a resulting `I-` code already exists, it aborts without applying any barcode changes. Inspect the conflicting items and resolve the data conflict deliberately before retrying. If Prisma records a failed migration, inspect `prisma migrate status` and the migration history first; follow Prisma's recovery procedure for the specific state rather than marking it applied or editing migration history blindly.
-
-### One-time legacy MFA migration
-
-Before deploying the version that enables the current two-factor authentication flow to an existing installation, apply migration `20261027160000_reset_legacy_two_factor` through the normal migration deployment. It clears old TOTP factors, related challenges and trusted-device records, and sessions for users whose legacy `twoFactorEnabled` flag is true. It preserves passkeys. Inform affected users that they must enroll in TOTP again.
-
-This is a one-time transition, not a maintenance reset. Do not manually rerun the migration after users have enrolled: it cannot distinguish new TOTP state from legacy state and would remove factors and sessions for enrolled users. Stop the old application, back up the database, and apply migrations before starting the new code.
-
-### Recovering a database from the earlier bootstrap snapshot
-
-Use this procedure **only** for a database created by the previous bootstrap that recorded exactly one migration, `20261028115504_initial_snapshot`. Stop the application, take and verify a backup, and confirm the live schema matches `prisma/bootstrap-migrations/20261028115504_initial_snapshot/migration.sql`. `prisma migrate resolve` changes migration history; it does not execute or validate schema changes.
-
-If a previous deployment attempt left `20261027115504_apply_the_schema` failed, inspect migration status and the database schema first. Only after confirming that this exact old snapshot is present, mark that failed attempt as rolled back:
-
-```bash
-npx prisma migrate status --config prisma7.config.ts
-npx prisma migrate resolve --config prisma7.config.ts --rolled-back 20261027115504_apply_the_schema
-```
-
-Then, for this verified snapshot only, baseline the three migrations already represented by it and deploy the remaining migration:
-
-```bash
-npx prisma migrate resolve --config prisma7.config.ts --applied 20261027115504_apply_the_schema
-npx prisma migrate resolve --config prisma7.config.ts --applied 20261027160000_reset_legacy_two_factor
-npx prisma migrate resolve --config prisma7.config.ts --applied 20261028180000_email_settings
-npx prisma migrate deploy --config prisma7.config.ts
-```
-
-The final migration removes the obsolete `user.passwordHash` column. Do not run these `resolve` commands for a different migration history or an unverified schema. In particular, never mark the MFA migration applied merely to silence an error unless you have verified that the snapshot is exactly the one described above.
+Keep a database backup and its restore instructions, and periodically test a restore. Preserve `APP_ENCRYPTION_KEY` in a separate secure secret store: SMTP passwords and OIDC client secrets are encrypted in the database, and a database backup alone cannot recover them without the matching key. See [key management](#keys).
 
 ## Email and password reset
 
-Configure SMTP under **Administration → Email** and send a test message before enabling password reset. The SMTP password is encrypted in the database with AES-256-GCM. Set `SMTP_ENCRYPTION_KEY` to a random 32-byte base64 value (for example, `openssl rand -base64 32`) before saving credentials. Keep the same key on every process for the instance, store it separately from the database backup, and never commit it. An empty password field preserves the saved password; entering a new one replaces it. If the key is lost, or changed without re-encrypting the saved value, enter and save the SMTP password again with the new key.
+Configure SMTP under **Administration → Email** and send a test message before enabling password reset. The SMTP password is encrypted in the database with AES-256-GCM. Set `APP_ENCRYPTION_KEY` to a canonical Base64 encoding of a random 32-byte key (for example, generate one with `openssl rand -base64 32`) before saving credentials. Keep the same key on every process for the instance, store it separately from the database backup, and never commit it. An empty password field preserves the saved password; entering a new one replaces it. If the key is lost, or changed without re-encrypting the saved value, enter and save the SMTP password again with the new key.
 
 Password reset requires complete, working SMTP configuration. Its link lifetime defaults to 60 minutes and can be set from 15 minutes to 24 hours. On first SMTP setup, reset is initially selected but is activated only after a complete configuration is saved. Reading or updating an existing configuration does not silently change its saved reset setting. Disabling reset stops new requests, but links already issued remain valid until they expire. A successful reset revokes the user's sessions but preserves TOTP and passkeys; inactive accounts cannot request or use a reset.
 
@@ -54,13 +22,19 @@ In production, use HTTPS and set `BETTER_AUTH_URL` to the trusted public origin.
 
 Changing an account email requires opening the verification link sent to the new address; the link expires after one hour. Reauthentication with a password or passkey is not required, and the old address is not notified.
 
+## Keys
+
+`APP_ENCRYPTION_KEY` protects application-managed ciphertexts in `AppSettings`: SMTP passwords and OIDC client secrets. It must be canonical Base64 for exactly 32 random bytes (44 characters, ending in `=`), be stable across all instances, and be backed up in a separate secret manager. A database backup without this key cannot restore these credentials. `BETTER_AUTH_SECRET` is a different Better Auth secret and also protects Better Auth-managed OAuth tokens; it is not interchangeable with the app encryption key. See [OIDC secret handling](oidc.md#ustawienia-i-ochrona-sekretów).
+
+Do not change `APP_ENCRYPTION_KEY` by simply replacing its environment value: existing SMTP passwords and OIDC client secrets would no longer decrypt. The repository has no general APP-key rotation tool. Before rotating it, plan a maintenance operation that can recover and re-save every encrypted secret under the new key. Loss of the key makes existing ciphertexts unrecoverable; restore the key from the secret backup, or enter and save replacement SMTP and OIDC credentials.
+
 ## MFA and passkeys
 
 Users can enable TOTP with an authenticator app, save one-time backup codes, and manage passkeys in account settings. Password sign-in for a TOTP-enabled account requires a TOTP or backup code. A passkey is a separate passwordless sign-in method and remains usable when TOTP is enabled. Trusting a device is optional and lasts up to 30 days, renewed on the next sign-in.
 
 Production WebAuthn requires HTTPS and a stable domain. Set `PASSKEY_RP_ID` to the domain only (no scheme or port), `PASSKEY_ORIGIN` to the exact application origin, and `BETTER_AUTH_URL` to that same origin. The RP ID must be the origin host or a parent domain. Changing the RP ID prevents existing passkeys from working; coordinate any domain change and user re-enrollment in advance. Local development defaults to `localhost` and `http://localhost:3000`.
 
-An administrator can reset a user's MFA factors and passkeys; this invalidates that user's sessions. The one-time legacy MFA migration above is different: it preserves passkeys but clears legacy TOTP state for enrolled accounts.
+An administrator can reset a user's MFA factors and passkeys; this invalidates that user's sessions.
 
 ## Accounts and warehouse permissions
 
@@ -76,7 +50,8 @@ Only an administrator can create or delete warehouses, and the last warehouse ca
 
 ## Operational references
 
-- [Prisma migrations](../prisma/migrations/), [bootstrap snapshot](../prisma/bootstrap-migrations/20261028115504_initial_snapshot/migration.sql)
+- [Prisma migrations](../prisma/migrations/)
 - [SMTP encryption and settings](../src/server/settings/email.ts), [reset flow and proxy checks](../src/server/auth/password-reset.ts)
+- [OIDC setup and account behavior](oidc.md)
 - [Passkey configuration](../src/lib/passkey-config.ts), [authentication configuration](../src/lib/auth.ts)
-- [Migration recovery and schema tests](../tests/warehouse-schema.test.mjs)
+- [Schema tests](../tests/warehouse-schema.test.mjs)

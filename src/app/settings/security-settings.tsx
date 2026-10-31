@@ -65,8 +65,10 @@ function isWebauthnAvailable() {
 
 export function SecuritySettings({
   initialSettings,
+  canManageWithPassword,
 }: {
   initialSettings: SecuritySettingsData;
+  canManageWithPassword: boolean;
 }) {
   const locale = useLocale();
   const t = useTranslations("auth.security");
@@ -360,6 +362,12 @@ export function SecuritySettings({
           </p>
         </div>
 
+        {!canManageWithPassword ? (
+          <p className="mb-5 rounded-xl border border-app-border bg-app-surface-muted p-4 text-sm text-app-muted">
+            {t("passwordRequiredForManagement")}
+          </p>
+        ) : null}
+
         <p className="mb-5 text-sm">
           {t("twoFactor.status")}{" "}
           <strong>
@@ -371,7 +379,10 @@ export function SecuritySettings({
           </strong>
         </p>
 
-        {!settings.twoFactorEnabled && !settings.totpSetupPending && !setup ? (
+        {canManageWithPassword &&
+        !settings.twoFactorEnabled &&
+        !settings.totpSetupPending &&
+        !setup ? (
           <form action={handleBeginSetup} className="space-y-4">
             <PasswordField
               id="mfa-enable-password"
@@ -388,7 +399,7 @@ export function SecuritySettings({
           </form>
         ) : null}
 
-        {setup ? (
+        {canManageWithPassword && setup ? (
           <div className="space-y-5">
             <div className="rounded-xl border border-app-border bg-app-surface-muted p-4">
               <p className="mb-3 text-sm font-semibold">
@@ -445,7 +456,7 @@ export function SecuritySettings({
           </div>
         ) : null}
 
-        {settings.totpSetupPending && !setup ? (
+        {canManageWithPassword && settings.totpSetupPending && !setup ? (
           <div className="space-y-4">
             <p className="text-sm text-app-muted">
               {t("twoFactor.pendingDescription")}
@@ -490,7 +501,7 @@ export function SecuritySettings({
           </div>
         ) : null}
 
-        {settings.twoFactorEnabled ? (
+        {canManageWithPassword && settings.twoFactorEnabled ? (
           <div className="space-y-5">
             <form action={handleRegenerateCodes} className="space-y-4">
               <p className="text-sm text-app-muted">
@@ -523,7 +534,7 @@ export function SecuritySettings({
           </div>
         ) : null}
 
-        {backupCodes ? (
+        {canManageWithPassword && backupCodes ? (
           <div className="mt-5 rounded-xl border border-app-warning/30 bg-app-warning-surface p-4">
             <p className="font-semibold">{t("twoFactor.newBackupCodes")}</p>
             <p className="mt-1 text-sm text-app-muted">
@@ -532,7 +543,6 @@ export function SecuritySettings({
             <BackupCodeList codes={backupCodes} />
           </div>
         ) : null}
-
         {error ? <p role="alert" className="status-error mt-4">{t(error)}</p> : null}
         {notice ? <p role="status" className="status-success mt-4">{t(notice)}</p> : null}
       </section>
@@ -567,60 +577,62 @@ export function SecuritySettings({
                       : ""}
                   </p>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <form
-                    action={(formData) =>
-                      handleRenamePasskey(passkey.id, formData)
-                    }
-                    className="space-y-3"
-                  >
-                    <label className="block">
-                      <span className="field-label">{t("passkeys.rename")}</span>
-                      <input
-                        name="name"
-                        defaultValue={passkey.name ?? ""}
-                        maxLength={64}
-                        required
-                        className="field-input"
+                {canManageWithPassword ? (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <form
+                      action={(formData) =>
+                        handleRenamePasskey(passkey.id, formData)
+                      }
+                      className="space-y-3"
+                    >
+                      <label className="block">
+                        <span className="field-label">{t("passkeys.rename")}</span>
+                        <input
+                          name="name"
+                          defaultValue={passkey.name ?? ""}
+                          maxLength={64}
+                          required
+                          className="field-input"
+                        />
+                      </label>
+                      <PasswordField
+                        id={`passkey-rename-password-${passkey.id}`}
+                        label={t("currentPassword")}
                       />
-                    </label>
-                    <PasswordField
-                      id={`passkey-rename-password-${passkey.id}`}
-                      label={t("currentPassword")}
-                    />
-                    <Button
-                      variant="secondary"
-                      type="submit"
-                      disabled={isPending}
-                      className="px-4 py-2.5 text-sm disabled:opacity-50"
+                      <Button
+                        variant="secondary"
+                        type="submit"
+                        disabled={isPending}
+                        className="px-4 py-2.5 text-sm disabled:opacity-50"
+                      >
+                        {t("passkeys.rename")}
+                      </Button>
+                    </form>
+                    <form
+                      action={(formData) =>
+                        handleDeletePasskey(passkey.id, formData)
+                      }
+                      className="space-y-3"
                     >
-                      {t("passkeys.rename")}
-                    </Button>
-                  </form>
-                  <form
-                    action={(formData) =>
-                      handleDeletePasskey(passkey.id, formData)
-                    }
-                    className="space-y-3"
-                  >
-                    <div className="field-label">{t("passkeys.delete")}</div>
-                    <p className="text-sm text-app-muted">
-                      {t("passkeys.deleteDescription")}
-                    </p>
-                    <PasswordField
-                      id={`passkey-delete-password-${passkey.id}`}
-                      label={t("currentPassword")}
-                    />
-                    <Button
-                      variant="danger"
-                      type="submit"
-                      disabled={isPending}
-                      className="px-4 py-2.5 text-sm disabled:opacity-50"
-                    >
-                      {t("passkeys.delete")}
-                    </Button>
-                  </form>
-                </div>
+                      <div className="field-label">{t("passkeys.delete")}</div>
+                      <p className="text-sm text-app-muted">
+                        {t("passkeys.deleteDescription")}
+                      </p>
+                      <PasswordField
+                        id={`passkey-delete-password-${passkey.id}`}
+                        label={t("currentPassword")}
+                      />
+                      <Button
+                        variant="danger"
+                        type="submit"
+                        disabled={isPending}
+                        className="px-4 py-2.5 text-sm disabled:opacity-50"
+                      >
+                        {t("passkeys.delete")}
+                      </Button>
+                    </form>
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -632,7 +644,7 @@ export function SecuritySettings({
             {t("passkeys.unsupported")}
           </p>
         ) : null}
-        {webauthnAvailable !== false ? (
+        {canManageWithPassword && webauthnAvailable !== false ? (
           <form action={handleAddPasskey} className="mt-6 space-y-4 border-t border-app-border pt-5">
             <h3 className="font-semibold">{t("passkeys.add")}</h3>
             <label className="block">

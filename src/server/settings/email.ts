@@ -1,9 +1,9 @@
 import "server-only";
 
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { isIP } from "node:net";
 import { prisma } from "@/lib/db/prisma";
 import type { Prisma } from "@/generated/prisma/client";
+import { decryptSecret, encryptSecret, SecretEncryptionError } from "@/server/security/secret-encryption";
 import { lockInstanceMutation } from "@/server/warehouses/transaction-lock";
 
 export type EmailSettings = {
@@ -50,44 +50,25 @@ const DEFAULTS: EmailSettings = {
   resetExpiryMinutes: 60,
 };
 
-function encryptionKey(): Buffer {
-  const value = process.env.SMTP_ENCRYPTION_KEY;
-  if (!value || !/^[A-Za-z0-9+/]{43}=$/.test(value)) {
-    throw new EmailSettingsError("ENCRYPTION", "Nieprawidłowy lub brakujący klucz SMTP_ENCRYPTION_KEY.");
-  }
-  const key = Buffer.from(value, "base64");
-  if (key.length !== 32 || key.toString("base64") !== value) {
-    throw new EmailSettingsError("ENCRYPTION", "Nieprawidłowy lub brakujący klucz SMTP_ENCRYPTION_KEY.");
-  }
-  return key;
-}
-
 function encryptPassword(password: string): string {
-  const nonce = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", encryptionKey(), nonce);
-  const ciphertext = Buffer.concat([cipher.update(password, "utf8"), cipher.final()]);
-  return ["v1", nonce.toString("base64"), cipher.getAuthTag().toString("base64"), ciphertext.toString("base64")].join(":");
+  try {
+    return encryptSecret(password);
+  } catch (error) {
+    if (error instanceof SecretEncryptionError) {
+      throw new EmailSettingsError("ENCRYPTION", "Nieprawidłowy lub brakujący klucz APP_ENCRYPTION_KEY.");
+    }
+    throw error;
+  }
 }
 
 function decryptPassword(value: string): string {
-  const key = encryptionKey();
   try {
-    const parts = value.split(":");
-    if (parts.length !== 4 || parts[0] !== "v1") throw new Error();
-    const decode = (part: string) => {
-      const buffer = Buffer.from(part, "base64");
-      if (buffer.toString("base64") !== part) throw new Error();
-      return buffer;
-    };
-    const nonce = decode(parts[1]);
-    const tag = decode(parts[2]);
-    const ciphertext = decode(parts[3]);
-    if (nonce.length !== 12 || tag.length !== 16 || ciphertext.length === 0) throw new Error();
-    const decipher = createDecipheriv("aes-256-gcm", key, nonce);
-    decipher.setAuthTag(tag);
-    return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
-  } catch {
-    throw new EmailSettingsError("ENCRYPTION", "Nie można odszyfrować hasła SMTP. Sprawdź klucz SMTP_ENCRYPTION_KEY.");
+    return decryptSecret(value);
+  } catch (error) {
+    if (error instanceof SecretEncryptionError) {
+      throw new EmailSettingsError("ENCRYPTION", "Nie można odszyfrować hasła SMTP. Sprawdź klucz APP_ENCRYPTION_KEY.");
+    }
+    throw error;
   }
 }
 

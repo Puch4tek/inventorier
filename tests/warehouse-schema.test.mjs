@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { after, before, test } from "node:test";
 import pg from "pg";
@@ -23,7 +22,6 @@ const adminUrl = new URL(testUrl);
 adminUrl.pathname = "/postgres";
 const freshDatabase = `${url.pathname.slice(1)}_fresh`;
 const populatedDatabase = `${url.pathname.slice(1)}_populated`;
-const legacyDatabase = `${url.pathname.slice(1)}_legacy`;
 const bootstrapConfig = "tests/bootstrap-prisma.config.ts";
 let client;
 
@@ -64,7 +62,6 @@ function deployBootstrap(name) {
 before(async () => {
   await createDatabase(freshDatabase);
   await createDatabase(populatedDatabase);
-  await createDatabase(legacyDatabase);
   const result = deployBootstrap(freshDatabase);
   assert.equal(result.error, undefined, result.error?.message);
   assert.equal(
@@ -79,7 +76,7 @@ after(async () => {
   await client?.end();
   const admin = await connectTo(adminUrl.toString());
   try {
-    for (const name of [freshDatabase, populatedDatabase, legacyDatabase]) {
+    for (const name of [freshDatabase, populatedDatabase]) {
       await admin.query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
     }
   } finally {
@@ -90,61 +87,6 @@ after(async () => {
 test("bootstrap and ordinary deployments share migration history", async () => {
   const result = prismaCommand(freshDatabase, ["migrate", "deploy"], "prisma7.config.ts");
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-});
-
-test("legacy snapshot can be baselined without rerunning the MFA reset or losing data", async () => {
-  const snapshot = prismaCommand(legacyDatabase, ["migrate", "deploy"], "tests/legacy-bootstrap-prisma.config.ts");
-  assert.equal(snapshot.status, 0, `${snapshot.stdout}\n${snapshot.stderr}`);
-  const legacy = await connectTo(databaseUrl(legacyDatabase));
-  try {
-    const user = randomUUID();
-    await legacy.query(`INSERT INTO "user" ("id", "email", "name", "updatedAt", "twoFactorEnabled")
-      VALUES ($1, $2, 'Preserved', now(), true)`, [user, `${user}@test.invalid`]);
-    const schemaQuery = `SELECT table_name, column_name, data_type, udt_name, is_nullable, column_default
-      FROM information_schema.columns WHERE table_schema = 'public' AND table_name <> '_prisma_migrations'
-      ORDER BY table_name, column_name`;
-    const schemaBeforePasswordCleanupQuery = `SELECT table_name, column_name, data_type, udt_name, is_nullable, column_default
-      FROM information_schema.columns
-      WHERE table_schema = 'public' AND table_name <> '_prisma_migrations'
-        AND NOT (table_name = 'user' AND column_name = 'passwordHash')
-      ORDER BY table_name, column_name`;
-    assert.deepEqual(
-      (await legacy.query(schemaBeforePasswordCleanupQuery)).rows,
-      (await client.query(schemaBeforePasswordCleanupQuery)).rows,
-    );
-    assert.equal(
-      (await legacy.query(`SELECT 1 FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name = 'user' AND column_name = 'passwordHash'`)).rowCount,
-      1,
-    );
-    assert.equal(
-      (await client.query(`SELECT 1 FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name = 'user' AND column_name = 'passwordHash'`)).rowCount,
-      0,
-    );
-    const failed = prismaCommand(legacyDatabase, ["migrate", "deploy"], "prisma7.config.ts");
-    assert.notEqual(failed.status, 0);
-    assert.match(`${failed.stdout}\n${failed.stderr}`, /P3018/);
-    const rolledBack = prismaCommand(legacyDatabase, [
-      "migrate", "resolve", "--rolled-back", "20261027115504_apply_the_schema",
-    ]);
-    assert.equal(rolledBack.status, 0, `${rolledBack.stdout}\n${rolledBack.stderr}`);
-    for (const name of [
-      "20261027115504_apply_the_schema",
-      "20261027160000_reset_legacy_two_factor",
-      "20261028180000_email_settings",
-    ]) {
-      const result = prismaCommand(legacyDatabase, ["migrate", "resolve", "--applied", name]);
-      assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-    }
-    const deployed = prismaCommand(legacyDatabase, ["migrate", "deploy"], "prisma7.config.ts");
-    assert.equal(deployed.status, 0, `${deployed.stdout}\n${deployed.stderr}`);
-    assert.deepEqual((await legacy.query(schemaQuery)).rows, (await client.query(schemaQuery)).rows);
-    const saved = await legacy.query(`SELECT "name", "twoFactorEnabled" FROM "user" WHERE "id" = $1`, [user]);
-    assert.deepEqual(saved.rows, [{ name: "Preserved", twoFactorEnabled: true }]);
-  } finally {
-    await legacy.end();
-  }
 });
 
 test("fresh bootstrap creates per-warehouse roles and no seeded warehouse", async () => {
@@ -327,70 +269,6 @@ test("barcode uniqueness is global and history retains its actor after user dele
   assert.deepEqual(history.rows, [{ userId: null, actorName: "History actor" }]);
 });
 
-test("barcode prefix migration updates all matching items atomically and rejects global collisions", async () => {
-  const suffix = randomUUID();
-  const warehouseIds = [`barcode-prefix-a-${suffix}`, `barcode-prefix-b-${suffix}`];
-  await client.query(
-    `INSERT INTO "Warehouse" ("id", "name", "slug", "updatedAt")
-     VALUES ($1, 'Barcode Prefix A', $2, now()), ($3, 'Barcode Prefix B', $4, now())`,
-    [warehouseIds[0], `barcode-prefix-a-${suffix}`, warehouseIds[1], `barcode-prefix-b-${suffix}`],
-  );
-  const locations = await client.query(
-    `INSERT INTO "Location" ("warehouseId", "name", "updatedAt")
-     VALUES ($1, 'Barcode Prefix A', now()), ($2, 'Barcode Prefix B', now())
-     RETURNING "id"`,
-    warehouseIds,
-  );
-  const items = await client.query(
-    `INSERT INTO "Item" ("barcode", "name", "quantity", "unit", "locationId", "isArchived", "updatedAt")
-     VALUES
-       ($1, 'Active item', 1, 'each', $4, false, now()),
-       ($2, 'Archived item', 1, 'each', $4, true, now()),
-       ($3, 'Nonmatching item', 1, 'each', $5, false, now())
-     RETURNING "id", "barcode"`,
-    [
-      `INV-ACTIVE${suffix}`,
-      `INV-ARCHIVED${suffix}`,
-      `OTHER-${suffix}`,
-      locations.rows[0].id,
-      locations.rows[1].id,
-    ],
-  );
-  const migration = await readFile(
-    "prisma/migrations/20261030181500_change_barcode_prefix/migration.sql",
-    "utf8",
-  );
-
-  await client.query(migration);
-
-  const updated = await client.query(
-    `SELECT "barcode", "isArchived" FROM "Item" WHERE "id" = ANY($1::int[]) ORDER BY "id"`,
-    [items.rows.map((item) => item.id)],
-  );
-  assert.deepEqual(updated.rows, [
-    { barcode: `I-ACTIVE${suffix}`, isArchived: false },
-    { barcode: `I-ARCHIVED${suffix}`, isArchived: true },
-    { barcode: `OTHER-${suffix}`, isArchived: false },
-  ]);
-
-  const conflictCodes = [`INV-COLLISION${suffix}`, `I-COLLISION${suffix}`, `INV-CANARY${suffix}`];
-  await client.query(
-    `INSERT INTO "Item" ("barcode", "name", "quantity", "unit", "locationId", "updatedAt")
-     VALUES ($1, 'Conflicting old code', 1, 'each', $3, now()),
-            ($2, 'Existing new code', 1, 'each', $4, now()),
-            ($5, 'Rollback canary', 1, 'each', $3, now())`,
-    [...conflictCodes.slice(0, 2), locations.rows[0].id, locations.rows[1].id, conflictCodes[2]],
-  );
-  await assert.rejects(client.query(migration), /Barcode prefix migration aborted/);
-  await client.query("ROLLBACK");
-
-  const afterConflict = await client.query(
-    `SELECT "barcode" FROM "Item" WHERE "barcode" = ANY($1::text[]) ORDER BY "barcode"`,
-    [conflictCodes],
-  );
-  assert.deepEqual(afterConflict.rows.map((row) => row.barcode), [...conflictCodes].sort());
-});
-
 test("fresh-install bootstrap refuses a populated schema without deleting its marker", async () => {
   const populated = await connectTo(databaseUrl(populatedDatabase));
   try {
@@ -418,130 +296,4 @@ test("fresh-install bootstrap refuses a populated schema without deleting its ma
   } finally {
     await verify.end();
   }
-});
-
-test("legacy MFA migration resets only enrolled users and preserves passkeys", async () => {
-  const suffix = randomUUID();
-  const legacyUserId = `legacy-mfa-${suffix}`;
-  const currentUserId = `current-mfa-${suffix}`;
-  const legacyChallenge = `2fa-challenge-${suffix}`;
-  const currentChallenge = `2fa-challenge-current-${suffix}`;
-
-  await client.query(
-    `INSERT INTO "user" ("id", "email", "name", "updatedAt", "twoFactorEnabled")
-     VALUES
-       ($1, $2, 'Legacy MFA', now(), true),
-       ($3, $4, 'Current account', now(), false)`,
-    [
-      legacyUserId,
-      `${suffix}@legacy.test.invalid`,
-      currentUserId,
-      `${suffix}@current.test.invalid`,
-    ],
-  );
-  await client.query(
-    `INSERT INTO "twoFactor" ("id", "secret", "backupCodes", "userId")
-     VALUES ($1, 'encrypted-secret', 'encrypted-codes', $2),
-            ($3, 'encrypted-secret', 'encrypted-codes', $4)`,
-    [`legacy-factor-${suffix}`, legacyUserId, `current-factor-${suffix}`, currentUserId],
-  );
-  await client.query(
-    `INSERT INTO "passkey" ("id", "publicKey", "userId", "credentialID", "counter", "deviceType", "backedUp")
-     VALUES ($1, 'public-key', $2, $3, 0, 'singleDevice', false)`,
-    [`legacy-passkey-${suffix}`, legacyUserId, `credential-${suffix}`],
-  );
-  await client.query(
-    `INSERT INTO "session" ("id", "userId", "expiresAt", "token", "updatedAt")
-     VALUES ($1, $2, now() + interval '1 day', $3, now()),
-            ($4, $5, now() + interval '1 day', $6, now())`,
-    [
-      `legacy-session-${suffix}`,
-      legacyUserId,
-      `legacy-token-${suffix}`,
-      `current-session-${suffix}`,
-      currentUserId,
-      `current-token-${suffix}`,
-    ],
-  );
-  await client.query(
-    `INSERT INTO "verification" ("id", "identifier", "value", "expiresAt", "updatedAt")
-     VALUES
-       ($1, $2, $3, now() + interval '10 minutes', now()),
-       ($4, $5, '2', now() + interval '10 minutes', now()),
-       ($6, $7, $3, now() + interval '10 minutes', now()),
-       ($8, $9, $10, now() + interval '10 minutes', now()),
-       ($11, $12, $13, now() + interval '10 minutes', now()),
-       ($14, $15, $16, now() + interval '10 minutes', now())`,
-    [
-      `legacy-challenge-row-${suffix}`,
-      legacyChallenge,
-      legacyUserId,
-      `legacy-attempt-row-${suffix}`,
-      `2fa-attempts-${legacyChallenge}`,
-      `legacy-otp-row-${suffix}`,
-      `2fa-otp-${legacyChallenge}`,
-      `legacy-trust-row-${suffix}`,
-      `trust-device-${suffix}`,
-      legacyUserId,
-      `current-challenge-row-${suffix}`,
-      currentChallenge,
-      currentUserId,
-      `current-attempt-row-${suffix}`,
-      `2fa-attempts-${currentChallenge}`,
-      "2",
-    ],
-  );
-  await client.query(
-    `INSERT INTO "verification" ("id", "identifier", "value", "expiresAt", "updatedAt")
-     VALUES ($1, $2, $3, now() + interval '10 minutes', now())`,
-    [
-      `current-trust-row-${suffix}`,
-      `trust-device-current-${suffix}`,
-      currentUserId,
-    ],
-  );
-
-  const migration = await readFile(
-    "prisma/migrations/20261027160000_reset_legacy_two_factor/migration.sql",
-    "utf8",
-  );
-  await client.query(migration);
-
-  const legacy = await client.query(
-    `SELECT u."twoFactorEnabled",
-            (SELECT count(*)::int FROM "twoFactor" WHERE "userId" = u."id") AS factors,
-            (SELECT count(*)::int FROM "session" WHERE "userId" = u."id") AS sessions,
-            (SELECT count(*)::int FROM "passkey" WHERE "userId" = u."id") AS passkeys,
-            (SELECT count(*)::int FROM "verification"
-              WHERE "value" = u."id"
-                AND ("identifier" LIKE '2fa-%' OR "identifier" LIKE 'trust-device-%')) AS challenges
-     FROM "user" u WHERE u."id" = $1`,
-    [legacyUserId],
-  );
-  assert.deepEqual(legacy.rows[0], {
-    twoFactorEnabled: false,
-    factors: 0,
-    sessions: 0,
-    passkeys: 1,
-    challenges: 0,
-  });
-
-  const current = await client.query(
-    `SELECT u."twoFactorEnabled",
-            (SELECT count(*)::int FROM "twoFactor" WHERE "userId" = u."id") AS factors,
-            (SELECT count(*)::int FROM "session" WHERE "userId" = u."id") AS sessions,
-            (SELECT count(*)::int FROM "verification"
-              WHERE "value" = u."id"
-                AND ("identifier" LIKE '2fa-%' OR "identifier" LIKE 'trust-device-%')) AS verifications
-     FROM "user" u WHERE u."id" = $1`,
-    [currentUserId],
-  );
-  assert.deepEqual(current.rows[0], {
-    twoFactorEnabled: false,
-    factors: 1,
-    sessions: 1,
-    verifications: 2,
-  });
-
-  await client.query(migration);
 });

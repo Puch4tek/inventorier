@@ -3,10 +3,13 @@ import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/a
 import { deleteSessionCookie, splitSetCookieHeader } from "better-auth/cookies";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { nextCookies } from "better-auth/next-js";
+import { genericOAuth } from "better-auth/plugins/generic-oauth";
 import { twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { prisma } from "@/lib/db/prisma";
 import { getPasskeyConfig } from "@/lib/passkey-config";
+import { createOidcProviderConfig } from "@/lib/oidc-provider-config";
+import type { OidcRuntimeConfig } from "@/server/settings/oidc";
 import {
   isRegistrationEnabled,
   REGISTRATION_DISABLED_MESSAGE,
@@ -19,6 +22,7 @@ import { createHash } from "node:crypto";
 
 const PASSKEY_REAUTH_COOKIE = "inventory-passkey-reauth";
 const PASSKEY_REAUTH_IDENTIFIER_PREFIX = "passkey-reauth:";
+const OIDC_PROVIDER_PREFIX = "oidc-";
 
 type AuthHookContext = Parameters<typeof getSessionFromCtx>[0];
 type AuthCookie = ReturnType<AuthHookContext["context"]["createAuthCookie"]>;
@@ -326,7 +330,22 @@ async function requireRegistrationEnabled() {
   }
 }
 
-export const auth = betterAuth({
+function isOidcCallback(context: AuthHookContext | null | undefined) {
+  const providerId =
+    typeof context?.params?.id === "string"
+      ? context.params.id
+      : context?.path?.match(/^\/callback\/(oidc-[A-Za-z0-9-]+)$/)?.[1];
+  return Boolean(
+    typeof providerId === "string" &&
+      providerId.startsWith(OIDC_PROVIDER_PREFIX) &&
+      context?.context.socialProviders.some(
+        (provider) => provider.id === providerId && provider.idToken,
+      ),
+  );
+}
+
+function buildAuth(runtime?: OidcRuntimeConfig) {
+  return betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
@@ -359,8 +378,25 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        async before() {
+        async before(_user, context) {
+          if (isOidcCallback(context)) return;
           await requireRegistrationEnabled();
+        },
+      },
+    },
+    account: {
+      create: {
+        async before(account) {
+          if (account.providerId.startsWith(OIDC_PROVIDER_PREFIX)) {
+            return { data: { ...account, idToken: null } };
+          }
+        },
+      },
+      update: {
+        async before(account) {
+          if (account.providerId?.startsWith(OIDC_PROVIDER_PREFIX)) {
+            return { data: { ...account, idToken: null } };
+          }
         },
       },
     },
@@ -509,13 +545,34 @@ export const auth = betterAuth({
       },
     },
   },
+  account: {
+    encryptOAuthTokens: true,
+    accountLinking: {
+      enabled: true,
+      disableImplicitLinking: false,
+      requireLocalEmailVerified: true,
+    },
+  },
   plugins: [
     twoFactor(),
     passkey({
       ...getPasskeyConfig(),
       registration: { requireSession: false },
     }),
+    ...(runtime
+      ? [genericOAuth({ config: [createOidcProviderConfig(runtime)] })]
+      : []),
     mfaRecoveryRaceGuard,
     nextCookies(),
   ],
 });
+}
+
+export function createOidcAuth(runtime: OidcRuntimeConfig) {
+  if (!runtime.enabled) {
+    throw new Error("OIDC authentication is disabled.");
+  }
+  return buildAuth(runtime);
+}
+
+export const auth = buildAuth();

@@ -46,12 +46,12 @@ function digest(token) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-async function createToken(ownerId, expiresAt = new Date(Date.now() + 60_000), legacy = false) {
+async function createToken(ownerId, expiresAt = new Date(Date.now() + 60_000)) {
   const token = randomBytes(32).toString("hex");
   await prisma.verification.create({
     data: {
       id: randomUUID(),
-      identifier: `${legacy ? "" : "password-reset:"}${digest(token)}`,
+      identifier: `password-reset:${digest(token)}`,
       value: ownerId,
       expiresAt,
     },
@@ -75,9 +75,15 @@ before(async () => {
   await db.query(
     await readFile("prisma/migrations/20261028210000_remove_user_password_hash/migration.sql", "utf8"),
   );
+  await db.query(
+    await readFile("prisma/migrations/20261030190000_oidc_settings/migration.sql", "utf8"),
+  );
+  await db.query(
+    await readFile("prisma/migrations/20261030192000_oidc_settings_revision/migration.sql", "utf8"),
+  );
 
   process.env.DATABASE_URL = url.toString();
-  process.env.SMTP_ENCRYPTION_KEY = encryptionKey;
+  process.env.APP_ENCRYPTION_KEY = encryptionKey;
   process.env.BETTER_AUTH_URL = "http://localhost:3000";
   const { PrismaPg } = await import("@prisma/adapter-pg");
   const { PrismaClient } = await import("../src/generated/prisma/client.ts");
@@ -337,9 +343,9 @@ test("concurrent use of one token can commit only once", async () => {
   assert.equal(outcomes.filter(({ status }) => status === "rejected").length, 1);
 });
 
-test("password changes revoke all current and legacy reset links but preserve other verification", async () => {
+test("password changes revoke reset links but preserve other verification", async () => {
   const first = await createToken(userId);
-  const second = await createToken(userId, undefined, true);
+  const second = await createToken(userId);
   const otherId = randomUUID();
   await prisma.verification.create({
     data: { id: otherId, identifier: `trust-device-${randomUUID()}`, value: userId, expiresAt: new Date(Date.now() + 60_000) },
@@ -349,7 +355,7 @@ test("password changes revoke all current and legacy reset links but preserve ot
   assert.ok(await prisma.verification.findUnique({ where: { id: otherId } }));
 
   const third = await createToken(userId);
-  const fourth = await createToken(userId, undefined, true);
+  const fourth = await createToken(userId);
   await adminReset(userId, "administrator password", actorId);
   const updatedAccount = await prisma.account.findFirst({
     where: { userId, providerId: "credential" },
@@ -363,6 +369,17 @@ test("password changes revoke all current and legacy reset links but preserve ot
   await assert.rejects(reset.resetPassword(third, "another password"), reset.PasswordResetError);
   await assert.rejects(reset.resetPassword(fourth, "another password"), reset.PasswordResetError);
   assert.ok(await prisma.verification.findUnique({ where: { id: otherId } }));
+});
+
+test("unprefixed verification identifiers cannot be used as password reset tokens", async () => {
+  const token = randomBytes(32).toString("hex");
+  const id = randomUUID();
+  await prisma.verification.create({
+    data: { id, identifier: digest(token), value: userId, expiresAt: new Date(Date.now() + 60_000) },
+  });
+  await assert.rejects(reset.resetPassword(token, "another password"), reset.PasswordResetError);
+  await adminReset(userId, "administrator password", actorId);
+  assert.ok(await prisma.verification.findUnique({ where: { id } }));
 });
 
 test("a token that expires while awaiting the mutation lock is rejected", async () => {

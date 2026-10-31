@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
-export function AdminTabs({ active }: { active: "users" | "email" }) {
+export function AdminTabs({ active }: { active: "users" | "email" | "oidc" }) {
   const t = useTranslations("admin.tabs");
   const tabs = [
     { id: "users", label: t("users"), href: "/admin" },
     { id: "email", label: t("email"), href: "/admin/email" },
+    { id: "oidc", label: t("oidc"), href: "/admin/oidc" },
   ] as const;
 
   return (

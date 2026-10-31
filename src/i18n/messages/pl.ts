@@ -38,6 +38,7 @@ const messages = {
       submitting: "Logowanie…",
       passkey: "Zaloguj się passkey",
       passkeyWaiting: "Oczekiwanie na passkey…",
+      oidc: "Zaloguj się przez OpenID Connect",
       twoFactorMethod: "Sposób weryfikacji",
       authenticatorApp: "Aplikacja uwierzytelniająca",
       backupCode: "Kod zapasowy",
@@ -158,6 +159,8 @@ const messages = {
       },
       title: "Ustawienia konta",
       description: "Zarządzaj swoimi danymi i bezpieczeństwem konta.",
+      passwordUnavailable:
+        "To konto nie ma lokalnego hasła do zmiany. Profil, adres e-mail i ustawienia bezpieczeństwa pozostają dostępne w zakresie, który nie wymaga potwierdzenia hasłem.",
       profile: {
         heading: "Dane profilu",
         description: "Zmień sposób, w jaki Twoje konto jest wyświetlane w aplikacji.",
@@ -199,6 +202,8 @@ const messages = {
       },
     },
     security: {
+      passwordRequiredForManagement:
+        "Możesz sprawdzić tutaj stan zabezpieczeń i zapisane klucze dostępu. Zmiana ustawień bezpieczeństwa wymaga lokalnego hasła.",
       twoFactor: {
         heading: "Uwierzytelnianie dwuskładnikowe",
         description: "Zabezpiecz konto kodem z aplikacji uwierzytelniającej i kodami zapasowymi.",
@@ -746,6 +751,7 @@ const messages = {
     ariaLabel: "Administracja",
     users: "Użytkownicy",
     email: "E-mail",
+    oidc: "OIDC",
   },
   usersPage: {
     section: "Administracja",
@@ -877,7 +883,7 @@ const messages = {
     username: "Nazwa użytkownika SMTP",
     password: "Nowe hasło SMTP",
     passwordUnreadable:
-      "Zapisanego hasła nie można odszyfrować (sprawdź SMTP_ENCRYPTION_KEY). Wpisz nowe hasło, aby je zastąpić. ",
+      "Zapisanego hasła nie można odszyfrować (sprawdź APP_ENCRYPTION_KEY). Wpisz nowe hasło, aby je zastąpić. ",
     passwordSaved: "Hasło jest zapisane. ",
     passwordMissing: "Hasło nie jest zapisane. ",
     passwordUnchanged: "Puste pole pozostawia obecne hasło bez zmian.",
@@ -912,10 +918,49 @@ const messages = {
       readFailed: "Nie udało się odczytać ustawień e-mail.",
       validation: "Nieprawidłowe ustawienia e-mail.",
       configuration: "Konfiguracja SMTP jest niekompletna.",
-      encryption: "Brak klucza SMTP_ENCRYPTION_KEY lub jest on nieprawidłowy.",
+      encryption: "Brak klucza APP_ENCRYPTION_KEY lub jest on nieprawidłowy.",
     },
     saved: "Ustawienia e-mail zostały zapisane.",
     testSent: "Wiadomość testowa została wysłana.",
+  },
+  oidcSettings: {
+    title: "OpenID Connect",
+    description:
+      "Skonfiguruj dostawcę OpenID Connect używanego do logowania jednokrotnego.",
+    configTitle: "Konfiguracja dostawcy",
+    enabled: "Włącz logowanie OpenID Connect",
+    issuer: "Adres URL wystawcy",
+    issuerDescription:
+      "Użyj dokładnego adresu issuer z dokumentu discovery. Wymagany jest HTTPS, także dla dostawców w sieci prywatnej.",
+    redirectUri: "Adres przekierowania (callback URL)",
+    redirectUriDescription:
+      "Zarejestruj ten adres w dostawcy tożsamości. Zmienia się po każdym zapisie ustawień.",
+    redirectUriUnavailable:
+      "Skonfiguruj prawidłowy BETTER_AUTH_URL, aby wyświetlić adres callbacku.",
+    clientId: "Identyfikator klienta",
+    clientSecret: "Sekret klienta",
+    clientSecretUnreadable:
+      "Nie można odszyfrować zapisanego sekretu klienta. Wpisz nowy sekret przed włączeniem dostawcy.",
+    clientSecretSaved: "Sekret klienta jest zapisany.",
+    clientSecretMissing: "Sekret klienta nie jest zapisany.",
+    clientSecretUnchanged:
+      "Pozostaw puste, aby zachować obecny sekret. Zapisany sekret nigdy nie jest wyświetlany.",
+    saving: "Zapisywanie…",
+    save: "Zapisz ustawienia",
+  },
+  oidcActions: {
+    errors: {
+      unauthorized: "Nie masz uprawnień do wykonania tej operacji.",
+      invalidForm: "Sprawdź dane formularza i spróbuj ponownie.",
+      saveFailed: "Nie udało się zapisać ustawień OpenID Connect.",
+      readFailed: "Nie udało się odczytać ustawień OpenID Connect.",
+      validation: "Ustawienia OpenID Connect są nieprawidłowe.",
+      configuration:
+        "Konfiguracja dostawcy jest niekompletna. Podaj adres wystawcy, identyfikator klienta i sekret.",
+      encryption:
+        "Nie udało się zaszyfrować lub odszyfrować sekretu klienta. Sprawdź APP_ENCRYPTION_KEY.",
+    },
+    saved: "Ustawienia OpenID Connect zostały zapisane.",
   },
   actions: {
     errors: {

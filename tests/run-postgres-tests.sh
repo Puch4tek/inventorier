@@ -65,6 +65,10 @@ node --conditions=react-server --experimental-strip-types \
   tests/warehouse-schema.test.mjs \
   tests/warehouse-locks.test.mjs \
   tests/passkey-config.test.mjs \
+  tests/secret-encryption.test.mjs \
+  tests/oidc-provider-config.test.mjs \
+  tests/oidc-settings.test.mjs \
+  tests/oidc-auth-route.test.mjs \
   tests/mfa-auth.test.mjs \
   tests/email-settings.test.mjs \
   tests/email-rate-limit.test.mjs \

@@ -14,7 +14,6 @@ export async function deleteUserPasswordResetTokens(
   await transaction.$executeRaw`
     DELETE FROM "verification"
     WHERE "value" = ${userId}
-      AND ("identifier" LIKE 'password-reset:%'
-        OR "identifier" ~ '^[0-9a-f]{64}$')
+      AND "identifier" LIKE 'password-reset:%'
   `;
 }

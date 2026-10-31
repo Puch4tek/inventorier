@@ -44,7 +44,7 @@ export function EmailSettingsForm({ settings }: { settings: EmailSettings }) {
       </div>
       <div>
         <label htmlFor="smtp-tls" className="field-label">{t("encryption")}</label>
-        <select id="smtp-tls" name="tls" className="field-input" value={values.tls} onChange={(event) => setValues({ ...values, tls: event.target.value as EmailSettings["tls"] })}>
+        <select id="smtp-tls" name="tls" className="field-input field-select" value={values.tls} onChange={(event) => setValues({ ...values, tls: event.target.value as EmailSettings["tls"] })}>
           <option value="implicit">TLS (implicit)</option>
           <option value="starttls">STARTTLS</option>
         </select>

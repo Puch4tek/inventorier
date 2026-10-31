@@ -212,12 +212,11 @@ export async function resetPassword(
   }
 
   const identifier = passwordResetIdentifier(token);
-  const legacyIdentifier = identifier.slice("password-reset:".length);
   const now = new Date();
 
   try {
     const candidate = await prisma.verification.findFirst({
-      where: { identifier: { in: [identifier, legacyIdentifier] }, expiresAt: { gt: now } },
+      where: { identifier, expiresAt: { gt: now } },
       select: { value: true },
     });
     if (!candidate) throw new PasswordResetError();
@@ -233,7 +232,7 @@ export async function resetPassword(
       const transactionTime = new Date();
 
       const verification = await transaction.verification.findFirst({
-        where: { identifier: { in: [identifier, legacyIdentifier] } },
+        where: { identifier },
         select: { id: true, identifier: true, value: true, expiresAt: true },
       });
       if (!verification || verification.expiresAt <= transactionTime) {

@@ -39,6 +39,8 @@ before(async () => {
   await db.query(`INSERT INTO "AppSettings" ("id", "registrationEnabled") VALUES (1, false)`);
   await db.query(await readFile("prisma/migrations/20261028180000_email_settings/migration.sql", "utf8"));
   await db.query(await readFile("prisma/migrations/20261028210000_remove_user_password_hash/migration.sql", "utf8"));
+  await db.query(await readFile("prisma/migrations/20261030190000_oidc_settings/migration.sql", "utf8"));
+  await db.query(await readFile("prisma/migrations/20261030192000_oidc_settings_revision/migration.sql", "utf8"));
   await db.query(`INSERT INTO "user" ("id", "email", "name", "role", "updatedAt")
     VALUES ($1, $2, 'Admin', 'ADMIN', now()), ($3, $4, 'User', 'USER', now())`,
   [actor, `${actor}@example.test`, user, `${user}@example.test`]);
@@ -47,7 +49,7 @@ before(async () => {
            ($4, $5, $6, now() + interval '1 hour', now())`,
   [actorSession, actor, randomUUID(), userSession, user, randomUUID()]);
   process.env.DATABASE_URL = url.toString();
-  process.env.SMTP_ENCRYPTION_KEY = key;
+  process.env.APP_ENCRYPTION_KEY = key;
   api = await import("../src/server/settings/email.ts");
   ({ prisma } = await import("../src/lib/db/prisma.ts"));
 });
@@ -154,7 +156,7 @@ test("bad key or modified ciphertext is recoverable by entering a replacement pa
   await api.saveEmailSettings({ ...valid, password: "secret" }, actor, actorSession);
   const stored = (await db.query(`SELECT "smtpPassword" FROM "AppSettings" WHERE id = 1`)).rows[0].smtpPassword;
   for (const badKey of ["", "invalid", randomBytes(32).toString("base64")]) {
-    process.env.SMTP_ENCRYPTION_KEY = badKey;
+    process.env.APP_ENCRYPTION_KEY = badKey;
     const view = await api.getEmailSettings(actor, actorSession);
     assert.equal(view.passwordUnreadable, true);
     await assert.rejects(api.getSmtpConfig(), { code: "ENCRYPTION" });
@@ -162,7 +164,7 @@ test("bad key or modified ciphertext is recoverable by entering a replacement pa
     await api.saveEmailSettings(valid, actor, actorSession);
     assert.equal((await db.query(`SELECT "smtpPassword" FROM "AppSettings" WHERE id = 1`)).rows[0].smtpPassword, stored);
   }
-  process.env.SMTP_ENCRYPTION_KEY = key;
+  process.env.APP_ENCRYPTION_KEY = key;
   await db.query(`UPDATE "AppSettings" SET "smtpPassword" = $1 WHERE id = 1`, [`${stored}x`]);
   assert.equal((await api.getEmailSettings(actor, actorSession)).passwordUnreadable, true);
   await api.saveEmailSettings({ ...valid, password: "recovered", resetEnabled: true }, actor, actorSession);

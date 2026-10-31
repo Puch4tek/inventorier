@@ -3,7 +3,7 @@
 import { useState, useActionState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/button";
+import { Button, getButtonClassName } from "@/components/button";
 import { authClient } from "@/lib/auth-client";
 import {
     finishPasskeyLogin,
@@ -90,6 +90,9 @@ function TwoFactorForm({ next, onBack }: { next?: string; onBack: () => void }) 
 
 export default function LoginForm({ next }: { next?: string }) {
     const t = useTranslations("auth.login");
+    const oidcSignInHref = next
+        ? `/api/auth/oidc/sign-in?${new URLSearchParams({ next }).toString()}`
+        : "/api/auth/oidc/sign-in";
     const [loginState, loginFormAction, isLoginPending] = useActionState(
         loginAction,
         initialState
@@ -204,6 +207,15 @@ export default function LoginForm({ next }: { next?: string }) {
                     <span>{t("or")}</span>
                     <span className="h-px flex-1 bg-app-border" />
                 </div>
+                <a
+                    href={oidcSignInHref}
+                    className={getButtonClassName(
+                        "secondary",
+                        "w-full px-5 py-3.5 text-sm",
+                    )}
+                >
+                    {t("oidc")}
+                </a>
                 <Button
                     variant="secondary"
                     type="button"
