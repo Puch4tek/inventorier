@@ -47,6 +47,8 @@
   "allowScripts": {
     "@prisma/engines@7.10.1": true,
     "unrs-resolver@1.12.2": true,
-    "prisma@7.10.1": true
+    "prisma@7.10.1": true,
+    "@parcel/watcher@2.6.0": true,
+    "@swc/core@1.16.20": true
   }
 }
