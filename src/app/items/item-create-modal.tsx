@@ -26,11 +26,9 @@ export function ItemCreateModal({
   const locale = useLocale();
   const t = useTranslations("items");
   const [isOpen, setIsOpen] = useState(false);
-  const [formKey, setFormKey] = useState(0);
 
   function closeModal() {
     setIsOpen(false);
-    setFormKey((key) => key + 1);
   }
 
   return (
@@ -46,7 +44,7 @@ export function ItemCreateModal({
 
       {isOpen ? (
         <ItemCreateDialog
-          key={`${formKey}-${locale}`}
+          key={locale}
           locations={locations}
           categories={categories}
           onClose={closeModal}

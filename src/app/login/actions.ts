@@ -32,6 +32,27 @@ export type LoginActionState = {
 
 type LoginErrorKey = NonNullable<LoginActionState["error"]>;
 
+const LOGIN_MESSAGES = {
+    invalidCredentials: "invalidCredentials",
+    twoFactorReset: "twoFactorReset",
+    passkeyReset: "passkeyReset",
+    accountDisabled: "accountDisabled",
+    passwordChangeRequired: "passwordChangeRequired",
+    invalidVerificationCode: "invalidVerificationCode",
+    challengeExpired: "challengeExpired",
+    tooManyAttempts: "tooManyAttempts",
+    accountLocked: "accountLocked",
+    requiredFields: "requiredFields",
+    codeRequired: "codeRequired",
+    methodInvalid: "methodInvalid",
+    passkeyConfirmationFailure: "passkeyConfirmationFailure",
+    passkeyNotFound: "passkeyNotFound",
+    passkeyCancelled: "passkeyCancelled",
+    passkeyUnsupported: "passkeyUnsupported",
+    passkeyFailure: "passkeyFailure",
+    generic: "generic",
+} as const satisfies Record<string, LoginErrorKey>;
+
 function messageForAuthError(
     error: unknown,
     messages: Record<string, LoginErrorKey>,
@@ -80,19 +101,7 @@ export async function loginAction(
     _previousState: LoginActionState,
     formData: FormData
 ): Promise<LoginActionState> {
-    const messages = {
-        invalidCredentials: "invalidCredentials",
-        twoFactorReset: "twoFactorReset",
-        passkeyReset: "passkeyReset",
-        accountDisabled: "accountDisabled",
-        passwordChangeRequired: "passwordChangeRequired",
-        invalidVerificationCode: "invalidVerificationCode",
-        challengeExpired: "challengeExpired",
-        tooManyAttempts: "tooManyAttempts",
-        accountLocked: "accountLocked",
-        requiredFields: "requiredFields",
-        generic: "generic",
-    } as const;
+    const messages = LOGIN_MESSAGES;
     let email = formData.get("email");
     const password = formData.get("password");
     if (typeof email !== "string" || typeof password !== "string" || !password) {
@@ -138,20 +147,7 @@ export async function verifyTwoFactorAction(
     _previousState: LoginActionState,
     formData: FormData
 ): Promise<LoginActionState> {
-    const messages = {
-        invalidVerificationCode: "invalidVerificationCode",
-        codeRequired: "codeRequired",
-        methodInvalid: "methodInvalid",
-        accountDisabled: "accountDisabled",
-        generic: "generic",
-        invalidCredentials: "invalidCredentials",
-        twoFactorReset: "twoFactorReset",
-        passkeyReset: "passkeyReset",
-        passwordChangeRequired: "passwordChangeRequired",
-        challengeExpired: "challengeExpired",
-        tooManyAttempts: "tooManyAttempts",
-        accountLocked: "accountLocked",
-    } as const;
+    const messages = LOGIN_MESSAGES;
     const code = formData.get("code");
     const method = formData.get("method");
     if (typeof code !== "string" || !code.trim()) {
@@ -198,19 +194,7 @@ export async function verifyTwoFactorAction(
 }
 
 export async function finishPasskeyLogin(nextPath: string): Promise<LoginActionState> {
-    const messages = {
-        invalidCredentials: "invalidCredentials",
-        twoFactorReset: "twoFactorReset",
-        passkeyReset: "passkeyReset",
-        accountDisabled: "accountDisabled",
-        passwordChangeRequired: "passwordChangeRequired",
-        invalidVerificationCode: "invalidVerificationCode",
-        challengeExpired: "challengeExpired",
-        tooManyAttempts: "tooManyAttempts",
-        accountLocked: "accountLocked",
-        generic: "generic",
-        passkeyConfirmationFailure: "passkeyConfirmationFailure",
-    } as const;
+    const messages = LOGIN_MESSAGES;
     let mustChangePassword = false;
     try {
         const requestHeaders = await headers();

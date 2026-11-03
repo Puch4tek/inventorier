@@ -12,7 +12,7 @@ RUN npm ci
 COPY . .
 
 RUN DATABASE_USER=build DATABASE_PASSWORD=build npx prisma generate
-RUN npm run build
+RUN APP_ENCRYPTION_KEY="$(openssl rand -base64 32)" npm run build
 
 FROM base AS production-deps
 

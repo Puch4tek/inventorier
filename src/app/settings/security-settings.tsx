@@ -190,10 +190,6 @@ export function SecuritySettings({
     });
   }
 
-  function authorizePasskey(password: string) {
-    return authorizePasskeyManagement(password);
-  }
-
   function handleAddPasskey(formData: FormData) {
     const currentPassword = String(formData.get("password") ?? "");
     const name = String(formData.get("name") ?? "").trim();
@@ -209,7 +205,7 @@ export function SecuritySettings({
         return;
       }
 
-      const authorization = await authorizePasskey(currentPassword);
+      const authorization = await authorizePasskeyManagement(currentPassword);
       if (!authorization.success) {
         setPasskeyError(authorization.error);
         return;
@@ -260,7 +256,7 @@ export function SecuritySettings({
         return;
       }
 
-      const authorization = await authorizePasskey(currentPassword);
+      const authorization = await authorizePasskeyManagement(currentPassword);
       if (!authorization.success) {
         setPasskeyError(authorization.error);
         return;
@@ -310,7 +306,7 @@ export function SecuritySettings({
     setPasskeyError(undefined);
     setPasskeyNotice(undefined);
     run(async () => {
-      const authorization = await authorizePasskey(currentPassword);
+      const authorization = await authorizePasskeyManagement(currentPassword);
       if (!authorization.success) {
         setPasskeyError(authorization.error);
         return;

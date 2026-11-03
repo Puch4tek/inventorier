@@ -13,11 +13,9 @@ export function CategoryCreateModal() {
   const locale = useLocale();
   const t = useTranslations("organization.categories");
   const [open, setOpen] = useState(false);
-  const [key, setKey] = useState(0);
 
   function close() {
     setOpen(false);
-    setKey((value) => value + 1);
   }
 
   return (
@@ -30,7 +28,7 @@ export function CategoryCreateModal() {
       >
         {t("create")}
       </Button>
-      {open ? <CategoryDialog key={`${key}-${locale}`} onClose={close} /> : null}
+      {open ? <CategoryDialog key={locale} onClose={close} /> : null}
     </>
   );
 }

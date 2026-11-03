@@ -3,7 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/db/prisma";
 import { lockInstanceMutation, requireAdminInTransaction } from "@/server/warehouses/transaction-lock";
 
-export async function deleteUser(userId: string, currentUserId: string) {
+export async function deleteUser(userId: string, currentUserId: string, sessionId: string) {
   if (!userId) {
     throw new Error("Nieprawidłowy użytkownik.");
   }
@@ -13,7 +13,7 @@ export async function deleteUser(userId: string, currentUserId: string) {
 
   await prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
-    await requireAdminInTransaction(transaction, currentUserId);
+    await requireAdminInTransaction(transaction, currentUserId, sessionId);
     const user = await transaction.user.findUnique({
       where: { id: userId },
       select: { id: true, role: true, isActive: true },

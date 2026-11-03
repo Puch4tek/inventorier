@@ -37,7 +37,7 @@ Administrator z aktywną sesją zapisuje issuer, client ID, client secret i stan
 
 Client secret OIDC oraz hasło SMTP są szyfrowane po stronie aplikacji przez AES-256-GCM i przechowywane jako szyfrogram w bazie. Do tego służy `APP_ENCRYPTION_KEY`: kanoniczny Base64 dokładnie 32 bajtów. W produkcji klucz musi być identyczny na wszystkich instancjach i przechowywany poza bazą oraz jej kopiami zapasowymi.
 
-`BETTER_AUTH_SECRET` to odrębny, stabilny sekret Better Auth, używany przez tę bibliotekę do jej mechanizmów kryptograficznych, w tym szyfrowania przechowywanych tokenów OAuth (`encryptOAuthTokens: true`). Nie zastępuje `APP_ENCRYPTION_KEY`. Hook aplikacji celowo zapisuje `idToken` kont OIDC jako `null`; token ID służy do weryfikacji logowania i nie jest zachowywany. Pozostałe tokeny dostarczone przez IdP są przechowywane jako zaszyfrowane tokeny OAuth Better Auth. Aplikacja nie używa ich do pobierania profilu ani synchronizacji uprawnień.
+`APP_ENCRYPTION_KEY` jest również sekretem Better Auth, używanym przez tę bibliotekę do jej mechanizmów kryptograficznych, w tym szyfrowania przechowywanych tokenów OAuth (`encryptOAuthTokens: true`). Hook aplikacji celowo zapisuje `idToken` kont OIDC jako `null`; token ID służy do weryfikacji logowania i nie jest zachowywany. Pozostałe tokeny dostarczone przez IdP są przechowywane jako zaszyfrowane tokeny OAuth Better Auth. Aplikacja nie używa ich do pobierania profilu ani synchronizacji uprawnień.
 
 Utratę, zmianę i migrację `APP_ENCRYPTION_KEY` należy traktować jako operację odzyskiwania sekretów — patrz [procedury operacyjne](operations.md#klucze-szyfrujące-i-migracja-starego-klucza-smtp). Nie przechowuj wartości kluczy ani client secret w dokumentacji, logach, zgłoszeniach lub repozytorium.
 
@@ -70,16 +70,15 @@ Utratę, zmianę i migrację `APP_ENCRYPTION_KEY` należy traktować jako operac
 
 `BETTER_AUTH_URL` musi wskazywać zewnętrzny adres HTTPS widziany przez przeglądarkę; proxy powinno zachować host, schemat i ścieżki `/api/auth/*`, w tym callback. Discovery, endpoint tokenów i JWKS muszą być osiągalne z serwera aplikacji. Adres issuer musi działać także w przeglądarce (dla przekierowania do autoryzacji). Wewnętrzny/prywatny IdP jest obsługiwany pod warunkiem, że używa HTTPS, a jego certyfikat i łańcuch CA są zaufane zarówno przez przeglądarkę, jak i środowisko Node aplikacji. Nie wyłączaj weryfikacji TLS. Równoważenie ruchu powinno kierować callback do tej samej wersji konfiguracji na wszystkich instancjach.
 
-## Mapa kodu i testy lokalne
+## Mapa kodu
 
 - Konfiguracja biblioteki i hooki kont/sesji: [`src/lib/auth.ts`](../src/lib/auth.ts).
 - Dynamiczny provider, issuer, zakresy, PKCE i mapowanie profilu: [`src/lib/oidc-provider-config.ts`](../src/lib/oidc-provider-config.ts).
 - Konfiguracja admina, szyfrowanie sekretu i rewizja: [`src/server/settings/oidc.ts`](../src/server/settings/oidc.ts).
 - Początek logowania, callback i fail-closed: [`src/app/api/auth/[...all]/route.ts`](../src/app/api/auth/%5B...all%5D/route.ts).
 - Formularz admina: [`src/app/admin/oidc/`](../src/app/admin/oidc/).
-- Kontrakty: [`tests/oidc-provider-config.test.mjs`](../tests/oidc-provider-config.test.mjs), [`tests/oidc-settings.test.mjs`](../tests/oidc-settings.test.mjs), [`tests/oidc-auth-route.test.mjs`](../tests/oidc-auth-route.test.mjs).
 
-Uruchom `npm test`, aby wykonać zestaw testów skonfigurowany przez repozytorium; wymaga on Docker i lokalnego obrazu `postgres:18` (zob. [Development — Testy](development.md#tests)). `tests/run-postgres-tests.sh` wymienia testy szyfrowania i wszystkie trzy pliki testów OIDC powyżej. Test callbacku OIDC uruchamia lokalny, syntetyczny dostawca i sprawdza m.in. `state`, nonce, PKCE, zapis użytkownika i szyfrowanie tokenu. Nie jest to test kompatybilności z Authentik; rzeczywista integracja z działającym dostawcą nie została zweryfikowana.
+Uruchom `npm test`, aby wykonać ograniczony zestaw smoke testów opisany w [Development — Testy](development.md#tests). Nie obejmuje on integracji z OIDC ani kompatybilności z działającym dostawcą Authentik.
 
 ## Ograniczenia i diagnostyka
 

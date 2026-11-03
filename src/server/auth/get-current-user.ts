@@ -40,16 +40,24 @@ export async function getActiveSessionUser() {
 }
 
 export async function getCurrentUser() {
-  const user = await getActiveSessionUser();
-  if (user?.mustChangePassword) redirect("/change-password");
-  return user;
+  return (await getCurrentSession())?.user ?? null;
+}
+
+export async function getCurrentSession() {
+  const active = await getActiveSession();
+  if (active?.user.mustChangePassword) redirect("/change-password");
+  return active;
+}
+
+export async function requireCurrentSession() {
+  const active = await getActiveSession();
+  if (!active) throw new Error("Musisz być zalogowany.");
+  if (active.user.mustChangePassword) {
+    throw new Error("Zmień hasło, aby kontynuować.");
+  }
+  return active;
 }
 
 export async function requireCurrentUser() {
-  const user = await getActiveSessionUser();
-  if (!user) throw new Error("Musisz być zalogowany.");
-  if (user.mustChangePassword) {
-    throw new Error("Zmień hasło, aby kontynuować.");
-  }
-  return user;
+  return (await requireCurrentSession()).user;
 }

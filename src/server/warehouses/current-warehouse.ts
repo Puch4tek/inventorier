@@ -2,7 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db/prisma";
-import { getCurrentUser } from "@/server/auth/get-current-user";
+import { getCurrentSession } from "@/server/auth/get-current-user";
 import type { WarehouseRole } from "@/generated/prisma/client";
 import {
   lockInstanceShared,
@@ -13,18 +13,19 @@ export const ACTIVE_WAREHOUSE_COOKIE = "active-warehouse-id";
 
 export type WarehouseSummary = { id: string; name: string; slug: string };
 export type WarehouseContext = {
+  sessionId: string;
   user: { id: string; name: string; email: string; role: "USER" | "ADMIN" };
   warehouse: WarehouseSummary;
   access: "ADMIN" | WarehouseRole;
 };
 
 export async function listAccessibleWarehouses(): Promise<WarehouseSummary[]> {
-  const user = await getCurrentUser();
-  if (!user) return [];
+  const active = await getCurrentSession();
+  if (!active) return [];
 
   return prisma.$transaction(async (transaction) => {
     await lockInstanceShared(transaction);
-    const activeUser = await requireActiveUserInTransaction(transaction, user.id);
+    const activeUser = await requireActiveUserInTransaction(transaction, active.user.id, active.session.id);
     if (activeUser.role === "ADMIN") {
       return transaction.warehouse.findMany({
         orderBy: { createdAt: "asc" },
@@ -42,13 +43,13 @@ export async function listAccessibleWarehouses(): Promise<WarehouseSummary[]> {
 }
 
 export async function getCurrentWarehouse(): Promise<WarehouseContext | null> {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const active = await getCurrentSession();
+  if (!active) return null;
 
   const selectedId = (await cookies()).get(ACTIVE_WAREHOUSE_COOKIE)?.value;
   return prisma.$transaction(async (transaction) => {
     await lockInstanceShared(transaction);
-    const activeUser = await requireActiveUserInTransaction(transaction, user.id);
+    const activeUser = await requireActiveUserInTransaction(transaction, active.user.id, active.session.id);
     if (activeUser.role === "ADMIN") {
       const warehouses = await transaction.warehouse.findMany({
         orderBy: { createdAt: "asc" },
@@ -57,6 +58,7 @@ export async function getCurrentWarehouse(): Promise<WarehouseContext | null> {
       const warehouse = warehouses.find(({ id }) => id === selectedId) ?? warehouses[0];
       if (!warehouse) return null;
       return {
+        sessionId: active.session.id,
         user: {
           id: activeUser.id,
           name: activeUser.name,
@@ -80,6 +82,7 @@ export async function getCurrentWarehouse(): Promise<WarehouseContext | null> {
     if (!membership) return null;
 
     return {
+      sessionId: active.session.id,
       user: {
         id: activeUser.id,
         name: activeUser.name,

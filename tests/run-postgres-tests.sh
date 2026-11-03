@@ -56,32 +56,21 @@ if [[ -z "$host_port" || "$database_ready" != 1 ]]; then
 fi
 
 suffix="${$}_${RANDOM}"
-export TEST_DATABASE_URL="postgresql://inventory_test:inventory_test_only@127.0.0.1:${host_port}/inventory_contract_test_${suffix}?schema=public"
+export TEST_DATABASE_URL="postgresql://inventory_test:inventory_test_only@127.0.0.1:${host_port}/inventory_smoke_${suffix}?schema=public"
 export DATABASE_HOST=127.0.0.1
 export DATABASE_PORT="$host_port"
-export DATABASE_NAME="inventory_contract_test_${suffix}"
+export DATABASE_NAME="inventory_smoke_${suffix}"
 export DATABASE_USER=inventory_test
 export DATABASE_PASSWORD=inventory_test_only
+export BETTER_AUTH_URL="http://127.0.0.1:${host_port}"
+export PASSKEY_ORIGIN="$BETTER_AUTH_URL"
+export PASSKEY_RP_ID=127.0.0.1
+export APP_ENCRYPTION_KEY="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("base64"))')"
+
+docker exec "$container_name" createdb -U inventory_test "$DATABASE_NAME"
+echo "Applying fresh Prisma migrations to disposable database: $DATABASE_NAME"
+node_modules/.bin/prisma migrate deploy --config tests/bootstrap-prisma.config.ts
+
 node --conditions=react-server --experimental-strip-types \
   --import ./tests/register-ts-runtime-loader.mjs \
-  --test --test-concurrency=4 \
-  tests/warehouse-schema.test.mjs \
-  tests/warehouse-locks.test.mjs \
-  tests/passkey-config.test.mjs \
-  tests/secret-encryption.test.mjs \
-  tests/oidc-provider-config.test.mjs \
-  tests/oidc-settings.test.mjs \
-  tests/oidc-auth-route.test.mjs \
-  tests/mfa-auth.test.mjs \
-  tests/email-settings.test.mjs \
-  tests/email-rate-limit.test.mjs \
-  tests/smtp-transport.test.mjs \
-  tests/admin-email-actions.test.mjs \
-  tests/email-change.test.mjs \
-  tests/forgot-password-action.test.mjs \
-  tests/password-reset.test.mjs \
-  tests/admin-error-localization.test.mjs \
-  tests/barcode-generation.test.mjs \
-  tests/i18n-foundation.test.mjs \
-  tests/i18n-organization.test.mjs \
-  tests/items-i18n.test.mjs
+  --test tests/smoke.integration.test.mjs

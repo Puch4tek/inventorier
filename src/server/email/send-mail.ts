@@ -44,7 +44,7 @@ export async function sendMail(config: SmtpConfig, message: MailMessage): Promis
   });
 }
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => {
     switch (character) {
       case "&": return "&amp;";

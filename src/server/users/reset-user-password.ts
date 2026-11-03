@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { lockInstanceMutation, requireAdminInTransaction } from "@/server/warehouses/transaction-lock";
 import { deleteUserPasswordResetTokens } from "@/server/auth/password-reset-tokens";
 
-export async function resetUserPassword(userId: string, password: string, actorId: string) {
+export async function resetUserPassword(userId: string, password: string, actorId: string, sessionId: string) {
   if (!userId) {
     throw new Error("Nieprawidłowy użytkownik.");
   }
@@ -16,7 +16,7 @@ export async function resetUserPassword(userId: string, password: string, actorI
   const passwordHash = await bcrypt.hash(password, 12);
   await prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
-    await requireAdminInTransaction(transaction, actorId);
+    await requireAdminInTransaction(transaction, actorId, sessionId);
     const updated = await transaction.user.updateMany({
       where: { id: userId },
       data: { mustChangePassword: true },

@@ -8,8 +8,8 @@ import { updateItem } from "@/server/items/update-item";
 import { restoreItem } from "@/server/items/restore-item";
 import { localizeItemActionError } from "@/lib/items/action-errors";
 
-export type CreateItemState = { error?: string; success?: string };
 export type ItemActionState = { error?: string; success?: string };
+export type CreateItemState = ItemActionState;
 
 export async function createItemAction(
   _previousState: CreateItemState,
@@ -78,8 +78,8 @@ export async function updateItemAction(_previousState: ItemActionState, formData
 
 export async function deleteItemAction(_previousState: ItemActionState, formData: FormData): Promise<ItemActionState> {
   const t = await getTranslations("items");
-  const id = typeof formData.get("id") === "string" ? Number(formData.get("id")) : NaN;
-  if (!Number.isInteger(id) || id <= 0) return { error: t("errors.invalidId") };
+  const id = parsePositiveItemId(formData.get("id"));
+  if (id === null) return { error: t("errors.invalidId") };
   try {
     await deleteItem(id);
     return { success: t("actions.archiveSuccess") };
@@ -99,11 +99,8 @@ export async function restoreItemAction(
   formData: FormData,
 ): Promise<ItemActionState> {
   const t = await getTranslations("items");
-  const id =
-    typeof formData.get("id") === "string"
-      ? Number(formData.get("id"))
-      : NaN;
-  if (!Number.isInteger(id) || id <= 0) {
+  const id = parsePositiveItemId(formData.get("id"));
+  if (id === null) {
     return { error: t("errors.invalidId") };
   }
 
@@ -123,8 +120,8 @@ export async function restoreItemAction(
 
 export async function changeItemQuantityDirectAction(formData: FormData): Promise<ItemActionState> {
   const t = await getTranslations("items");
-  const id = typeof formData.get("id") === "string" ? Number(formData.get("id")) : NaN;
-  if (!Number.isInteger(id) || id <= 0) return { error: t("errors.invalidId") };
+  const id = parsePositiveItemId(formData.get("id"));
+  if (id === null) return { error: t("errors.invalidId") };
   try {
     const deltaValue = formData.get("delta");
     if (typeof deltaValue === "string" && deltaValue.trim() !== "") {
@@ -150,4 +147,9 @@ export async function changeItemQuantityDirectAction(formData: FormData): Promis
 
 function parseOptionalId(value: FormDataEntryValue | null): number | null {
   return value === null || value === "" ? null : Number(value);
+}
+
+function parsePositiveItemId(value: FormDataEntryValue | null): number | null {
+  const id = typeof value === "string" ? Number(value) : NaN;
+  return Number.isInteger(id) && id > 0 ? id : null;
 }

@@ -28,7 +28,7 @@ export function LocationCreateModal({
   const locale = useLocale();
   const t = useTranslations("organization.locations");
   const [isOpen, setIsOpen] = useState(false);
-  const [formKey, setFormKey] = useState(0);
+  const [resetKey, setResetKey] = useState(0);
   const router = useRouter();
 
   const refreshLocations = useCallback(() => {
@@ -37,19 +37,13 @@ export function LocationCreateModal({
 
   function closeModal() {
     setIsOpen(false);
-    setFormKey((key) => key + 1);
-  }
-
-  function openModal() {
-    setFormKey((key) => key + 1);
-    setIsOpen(true);
   }
 
   return (
     <>
       <Button variant="primary"
         type="button"
-        onClick={openModal}
+        onClick={() => setIsOpen(true)}
         className="px-5 py-3 text-sm font-semibold transition"
       >
         {t("create")}
@@ -57,11 +51,11 @@ export function LocationCreateModal({
 
       {isOpen ? (
         <LocationCreateDialog
-          key={`${formKey}-${locale}`}
+          key={`${resetKey}-${locale}`}
           locations={locations}
           onClose={closeModal}
           onCreated={refreshLocations}
-          onReset={() => setFormKey((key) => key + 1)}
+          onReset={() => setResetKey((key) => key + 1)}
         />
       ) : null}
     </>

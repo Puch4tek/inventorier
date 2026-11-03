@@ -4,8 +4,10 @@ import { changeCurrentUserPassword } from "@/server/users/change-password";
 import { updateCurrentUserProfile } from "@/server/users/update-profile";
 import { UserOperationError } from "@/server/users/public-errors";
 
+type PasswordError = "requiredFields" | "passwordMismatch" | "passwordTooShort" | "passwordSame" | "notAuthenticated" | "invalidPassword" | "alreadyChanged" | "passwordGeneric";
+
 export type SettingsActionState = {
-  error?: "nameRequired" | "nameTooShort" | "nameTooLong" | "profileGeneric" | "requiredFields" | "passwordMismatch" | "passwordTooShort" | "passwordSame" | "notAuthenticated" | "invalidPassword" | "alreadyChanged" | "passwordGeneric";
+  error?: "nameRequired" | "nameTooShort" | "nameTooLong" | "profileGeneric" | PasswordError;
   success?: "profileSaved" | "passwordChanged";
 };
 
@@ -40,7 +42,7 @@ export async function updateProfileAction(
 export async function updatePasswordAction(
   _previousState: SettingsActionState,
   formData: FormData,
-): Promise<SettingsActionState> {
+): Promise<{ error: PasswordError } | { success: "passwordChanged" }> {
   const currentPassword = formData.get("currentPassword");
   const newPassword = formData.get("newPassword");
   const confirmation = formData.get("confirmation");

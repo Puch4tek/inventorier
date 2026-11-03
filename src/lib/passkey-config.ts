@@ -38,22 +38,31 @@ export function getPasskeyConfig(env: NodeJS.ProcessEnv = process.env) {
     return { rpID: rpIdValue || DEV_RP_ID, rpName, origin: originValue || DEV_ORIGIN };
   }
 
-  if (!rpIdValue || !originValue) {
-    throw new Error("W produkcji wymagane są PASSKEY_RP_ID i PASSKEY_ORIGIN.");
+  const resolvedOrigin = originValue || env.BETTER_AUTH_URL?.trim();
+  if (!resolvedOrigin) {
+    throw new Error("W produkcji wymagany jest BETTER_AUTH_URL.");
   }
-  const origin = parseOrigin("PASSKEY_ORIGIN", originValue);
-  if (origin.protocol !== "https:") {
-    throw new Error("PASSKEY_ORIGIN musi używać HTTPS.");
+  const origin = parseOrigin(
+    originValue ? "PASSKEY_ORIGIN" : "BETTER_AUTH_URL",
+    resolvedOrigin,
+  );
+  if (origin.protocol !== "https:" && origin.protocol !== "http:") {
+    throw new Error("PASSKEY_ORIGIN musi używać HTTP lub HTTPS.");
   }
-  const rpID = rpIdValue.toLowerCase();
+  const hostname = origin.hostname.replace(/^\[|\]$/g, "");
+  const rpID = (rpIdValue || hostname).toLowerCase();
   const validRpId =
+    isIP(rpID) !== 0 ||
     /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/.test(
       rpID,
     );
-  if (!validRpId || rpID === "localhost" || isIP(rpID)) {
-    throw new Error("PASSKEY_RP_ID musi być nazwą domeny bez schematu i portu.");
+  if (!validRpId) {
+    throw new Error("PASSKEY_RP_ID musi być nazwą domeny lub adresem IP bez schematu i portu.");
   }
-  if (origin.hostname !== rpID && !origin.hostname.endsWith(`.${rpID}`)) {
+  if (
+    hostname !== rpID &&
+    (isIP(hostname) !== 0 || isIP(rpID) !== 0 || !hostname.endsWith(`.${rpID}`))
+  ) {
     throw new Error("PASSKEY_RP_ID musi być hostem PASSKEY_ORIGIN lub jego nadrzędną domeną.");
   }
 

@@ -196,13 +196,8 @@ export default async function ItemPage({
           ) : (
             <div className="mt-4 divide-y divide-app-border">
               {item.itemHistories.map((entry) => {
-                const messageKey = getItemHistoryMessageKey(
-                  entry.description,
-                  entry.type,
-                );
-                const description = messageKey
-                  ? t(messageKey)
-                  : (entry.description ?? entry.type);
+                const messageKey = getItemHistoryMessageKey(entry.description);
+                const description = t(messageKey);
 
                 return (
                   <div key={entry.id} className="py-4 first:pt-0 last:pb-0">

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/server/auth/get-current-user";
+import { shouldUseSecureCookies } from "@/lib/cookie-security";
 import {
   ACTIVE_WAREHOUSE_COOKIE,
   listAccessibleWarehouses,
@@ -25,7 +26,7 @@ export async function switchWarehouseAction(
   (await cookies()).set(ACTIVE_WAREHOUSE_COOKIE, warehouseId, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookies(),
     maxAge: 60 * 60 * 24 * 365,
     path: "/",
   });

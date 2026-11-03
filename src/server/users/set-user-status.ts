@@ -7,6 +7,7 @@ export async function setUserStatus(
   userId: string,
   active: boolean,
   currentUserId: string,
+  sessionId: string,
 ) {
   if (!userId || (userId === currentUserId && !active)) {
     throw new Error(
@@ -18,7 +19,7 @@ export async function setUserStatus(
 
   await prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
-    await requireAdminInTransaction(transaction, currentUserId);
+    await requireAdminInTransaction(transaction, currentUserId, sessionId);
     const user = await transaction.user.findUnique({
       where: { id: userId },
       select: { id: true, role: true, isActive: true },

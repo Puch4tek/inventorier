@@ -39,19 +39,8 @@ const descriptionMessageKeys: Record<string, ItemHistoryMessageKey> = {
   [itemHistoryDescriptions.restored]: "history.restored",
 };
 
-const typeMessageKeys: Record<string, ItemHistoryMessageKey> = {
-  ITEM_CREATED: "history.types.itemCreated",
-  ITEM_UPDATED: "history.types.itemUpdated",
-  QUANTITY_CHANGED: "history.types.quantityChanged",
-  LOCATION_CHANGED: "history.types.locationChanged",
-  ITEM_ARCHIVED: "history.types.itemArchived",
-  ITEM_RESTORED: "history.types.itemRestored",
-};
-
 export function getItemHistoryMessageKey(
   description: string | null,
-  type: string,
-): ItemHistoryMessageKey | undefined {
-  if (description !== null) return descriptionMessageKeys[description];
-  return typeMessageKeys[type];
+): ItemHistoryMessageKey {
+  return descriptionMessageKeys[description ?? ""] ?? "history.types.itemUpdated";
 }

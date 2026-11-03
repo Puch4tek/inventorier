@@ -8,6 +8,7 @@ export async function updateUserRole(
   userId: string,
   role: Role,
   currentUserId: string,
+  sessionId: string,
 ) {
   if (!userId) {
     throw new Error("Nieprawidłowy użytkownik.");
@@ -17,7 +18,7 @@ export async function updateUserRole(
   }
   return prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
-    await requireAdminInTransaction(transaction, currentUserId);
+    await requireAdminInTransaction(transaction, currentUserId, sessionId);
     const target = await transaction.user.findUnique({
       where: { id: userId },
       select: { id: true, role: true, isActive: true },

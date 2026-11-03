@@ -75,7 +75,7 @@ export function ProfileForm({ name }: { name: string }) {
 export function PasswordForm() {
   const t = useTranslations("auth.settings.password");
   const errorT = useTranslations("auth.changePassword");
-  const [state, formAction, isPending] = useActionState(
+  const [state, formAction, isPending] = useActionState<SettingsActionState, FormData>(
     updatePasswordAction,
     initialState,
   );

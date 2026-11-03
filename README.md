@@ -10,32 +10,28 @@ Inventory management for organizations with warehouse-scoped access, item histor
 
 ## Quick start
 
-Prerequisites: Node.js, npm, and Docker with Compose.
+Prerequisites: Docker with Compose, a domain, and an HTTPS reverse proxy.
 
-1. Install dependencies and start the local PostgreSQL service:
-
-   ```sh
-   npm ci
-   docker compose up -d
-   ```
-
-2. Copy `.env.example` to `.env` and set the database connection fields, an auth secret, and the local app URL. See [development setup](docs/development.md) for all settings.
-3. Initialize a **new, empty local database** and generate the Prisma client:
+1. Prepare the configuration:
 
    ```sh
-   npx prisma migrate deploy --config prisma-bootstrap.config.ts
-   npx prisma generate --config prisma-bootstrap.config.ts
+   cp .env.example .env
    ```
 
-4. Start the app:
+2. Set `DATABASE_USER`, `DATABASE_PASSWORD`, `APP_ENCRYPTION_KEY`, and `BETTER_AUTH_URL` in `.env`. Use unique database credentials and a random encryption key; set the URL to the public HTTPS origin. See [development setup](docs/development.md#environment) for all settings. Configure the reverse proxy to forward requests to the app on port 3000.
+
+3. Start the application and its new database:
 
    ```sh
-   npm run dev
+   docker compose up -d --build
    ```
 
-   Open <http://localhost:3000>. On a fresh database, the first registered user becomes the administrator and must create the first warehouse.
+   The application applies migrations before starting. Use a new, empty database for a new instance.
+4. Open the public HTTPS URL and register the first account. **The first registered user becomes the administrator** and must create the first warehouse. Until this account exists, restrict access to the installer so nobody else can claim it. Afterward, the administrator can disable self-registration.
 
-> **Important:** Bootstrap is only for a new, empty database. Never point it at an existing installation. Follow the [database and deployment guide](docs/operations.md) before applying migrations to existing data.
+> **Updating an existing installation:** Stop the old application and make a recoverable database backup before starting the new version, which automatically applies pending migrations. See the [database and deployment guide](docs/operations.md).
+
+For local development with Node.js and a local PostgreSQL container, follow [development setup](docs/development.md#local-startup).
 
 ## Developer documentation
 
@@ -50,7 +46,7 @@ Prerequisites: Node.js, npm, and Docker with Compose.
 
 ```sh
 npm run dev       # Start the development server
-npm test          # Run all tests (requires Docker and postgres:18)
+npm test          # Run smoke tests (requires Docker and postgres:18)
 npm run lint      # Run ESLint
 npm run build     # Build for production
 ```

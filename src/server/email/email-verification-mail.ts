@@ -2,19 +2,7 @@ import "server-only";
 
 import type { Locale } from "@/i18n/locale";
 import { messages } from "@/i18n/messages";
-import { sendMail, type SmtpConfig } from "@/server/email/send-mail";
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => {
-    switch (character) {
-      case "&": return "&amp;";
-      case "<": return "&lt;";
-      case ">": return "&gt;";
-      case '"': return "&quot;";
-      default: return "&#39;";
-    }
-  });
-}
+import { escapeHtml, sendMail, type SmtpConfig } from "@/server/email/send-mail";
 
 export async function sendEmailVerificationMail(
   config: SmtpConfig,

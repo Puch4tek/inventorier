@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
 
@@ -5,12 +8,26 @@ CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
 CREATE TYPE "WarehouseRole" AS ENUM ('USER', 'MANAGER');
 
 -- CreateEnum
-CREATE TYPE "ItemHistoryType" AS ENUM ('ITEM_CREATED', 'ITEM_UPDATED', 'QUANTITY_CHANGED', 'LOCATION_CHANGED', 'ITEM_ARCHIVED', 'ITEM_RESTORED', 'ITEM_DELETED');
+CREATE TYPE "ItemHistoryType" AS ENUM ('ITEM_CREATED', 'ITEM_UPDATED', 'QUANTITY_CHANGED', 'LOCATION_CHANGED', 'ITEM_ARCHIVED', 'ITEM_RESTORED');
 
 -- CreateTable
 CREATE TABLE "AppSettings" (
     "id" INTEGER NOT NULL DEFAULT 1,
     "registrationEnabled" BOOLEAN NOT NULL DEFAULT true,
+    "smtpHost" TEXT NOT NULL DEFAULT '',
+    "smtpPort" INTEGER NOT NULL DEFAULT 587,
+    "smtpTls" TEXT NOT NULL DEFAULT 'starttls',
+    "smtpUsername" TEXT NOT NULL DEFAULT '',
+    "smtpPassword" TEXT,
+    "smtpFromEmail" TEXT NOT NULL DEFAULT '',
+    "smtpFromName" TEXT NOT NULL DEFAULT '',
+    "resetEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "resetExpiryMinutes" INTEGER NOT NULL DEFAULT 60,
+    "oidcEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "oidcIssuer" TEXT NOT NULL DEFAULT '',
+    "oidcClientId" TEXT NOT NULL DEFAULT '',
+    "oidcClientSecret" TEXT,
+    "oidcRevision" TEXT NOT NULL,
 
     CONSTRAINT "AppSettings_pkey" PRIMARY KEY ("id")
 );
@@ -20,7 +37,6 @@ CREATE TABLE "user" (
     "email" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "id" TEXT NOT NULL,
-    "passwordHash" TEXT,
     "role" "Role" NOT NULL DEFAULT 'USER',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "mustChangePassword" BOOLEAN NOT NULL DEFAULT false,
@@ -68,7 +84,6 @@ CREATE TABLE "Item" (
     "categoryId" INTEGER,
     "imageUrl" TEXT,
     "isArchived" BOOLEAN NOT NULL DEFAULT false,
-    "saleEnabled" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -109,7 +124,7 @@ CREATE TABLE "ItemHistory" (
     "type" "ItemHistoryType" NOT NULL,
     "oldValue" TEXT,
     "newValue" TEXT,
-    "description" TEXT,
+    "description" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ItemHistory_pkey" PRIMARY KEY ("id")
@@ -118,7 +133,6 @@ CREATE TABLE "ItemHistory" (
 -- CreateTable
 CREATE TABLE "session" (
     "id" TEXT NOT NULL,
-    "sessionToken" TEXT,
     "userId" TEXT NOT NULL,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -213,9 +227,6 @@ CREATE INDEX "Location_warehouseId_idx" ON "Location"("warehouseId");
 CREATE INDEX "Category_warehouseId_idx" ON "Category"("warehouseId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "session_sessionToken_key" ON "session"("sessionToken");
-
--- CreateIndex
 CREATE UNIQUE INDEX "session_token_key" ON "session"("token");
 
 -- CreateIndex
@@ -277,3 +288,4 @@ ALTER TABLE "twoFactor" ADD CONSTRAINT "twoFactor_userId_fkey" FOREIGN KEY ("use
 
 -- AddForeignKey
 ALTER TABLE "passkey" ADD CONSTRAINT "passkey_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

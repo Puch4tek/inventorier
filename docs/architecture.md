@@ -45,7 +45,7 @@ Warehouse `MANAGER`s (and global admins) manage warehouse data such as items, ca
 
 An `Item` has a unique barcode, integer quantity and unit, a required location, optional category, and an `isArchived` flag. Locations can form a parent/child hierarchy. Archive is a reversible state: the item actions call archive/restore domain functions rather than treating ordinary item deletion as a hard delete.
 
-Item history is an append-only event record associated with an item and (when available) the acting user, with an actor name, event type, timestamp, and optional old/new values or description. Item creation, metadata/location changes, quantity changes, archiving, and restoration create history entries in the same transaction as the corresponding mutation. [History reads](../src/server/items/list-item-history.ts) are scoped to the current warehouse. Quantity changes lock the item row and write the new quantity and event atomically in [the quantity domain operation](../src/server/items/change-item-quantity.ts).
+Item history is an append-only event record associated with an item and (when available) the acting user, with an actor name, event type, timestamp, and optional old/new values or description. Item creation, metadata/location changes, quantity changes, archiving, and restoration create history entries in the same transaction as the corresponding mutation. [Item reads](../src/server/items/get-item.ts) include history and are scoped to the current warehouse. Quantity changes lock the item row and write the new quantity and event atomically in [the quantity domain operation](../src/server/items/change-item-quantity.ts).
 
 ## Where to start
 

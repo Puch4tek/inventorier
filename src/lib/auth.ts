@@ -16,6 +16,7 @@ import {
 } from "@/server/settings/registration";
 import { getSmtpConfig } from "@/server/settings/email";
 import { sendEmailVerificationMail } from "@/server/email/email-verification-mail";
+import { getAppEncryptionKey } from "@/server/security/secret-encryption";
 import { localeCookieName, resolveLocale } from "@/i18n/locale";
 import bcrypt from "bcryptjs";
 import { createHash } from "node:crypto";
@@ -85,12 +86,42 @@ function rejectStaleAuthSession(
   ctx: AuthHookContext,
   message: string,
   code = "TWO_FACTOR_RESET",
-) {
+): never {
   deleteSessionCookie(ctx);
   throw APIError.from("UNAUTHORIZED", {
     code,
     message,
   });
+}
+
+async function checkAuthState<T>(
+  ctx: AuthHookContext,
+  operation: () => Promise<T>,
+  token?: string | null,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    console.error("Nie udało się zweryfikować stanu uwierzytelniania:", error instanceof Error ? error.name : "UnknownError");
+    deleteSessionCookie(ctx);
+    for (const name of ["two_factor", "trust_device"]) {
+      const cookie = ctx.context.createAuthCookie(name);
+      removeSetCookie(ctx, cookie.name);
+      expireAuthCookie(ctx, cookie);
+    }
+    if (token) {
+      try {
+        deleteSessionCookie(ctx);
+        await checkAuthState(ctx, () => ctx.context.internalAdapter.deleteSession(token), token);
+      } catch (deleteError) {
+        console.error("Nie udało się unieważnić nieweryfikowanej sesji:", deleteError instanceof Error ? deleteError.name : "UnknownError");
+      }
+    }
+    throw APIError.from("SERVICE_UNAVAILABLE", {
+      code: "AUTH_STATE_UNAVAILABLE",
+      message: "Nie można teraz zweryfikować stanu uwierzytelniania. Spróbuj ponownie później.",
+    });
+  }
 }
 
 async function consumePasskeyReauthentication(
@@ -157,14 +188,14 @@ const mfaVerificationRecoveryGuard = createAuthMiddleware(async (ctx) => {
     return;
   }
 
-  const incomingSession = await getSessionFromCtx(ctx, {
-    disableCookieCache: true,
-  });
-  if (incomingSession?.session) return;
-
   const returned = await getReturnedBody(ctx.context.returned);
   const user = returned?.user;
   const token = typeof returned?.token === "string" ? returned.token : null;
+  const incomingSession = await checkAuthState(ctx, () => getSessionFromCtx(ctx, {
+    disableCookieCache: true,
+  }), token);
+  if (incomingSession?.session) return;
+
   const userId =
     user && typeof user === "object" && "id" in user &&
     typeof user.id === "string"
@@ -172,12 +203,10 @@ const mfaVerificationRecoveryGuard = createAuthMiddleware(async (ctx) => {
       : null;
   if (!token || !userId) return;
 
-  const currentUser = await prisma.user
-    .findUnique({
+  const currentUser = await checkAuthState(ctx, () => prisma.user.findUnique({
       where: { id: userId },
       select: { twoFactorEnabled: true },
-    })
-    .catch(() => null);
+    }), token);
   if (currentUser?.twoFactorEnabled === true) return;
 
   await ctx.context.internalAdapter.deleteSession(token);
@@ -212,20 +241,20 @@ const mfaRecoveryRaceGuard = {
               typeof credentialID === "string" &&
               credentialID.length > 0 &&
               credentialID.length <= 1024
-                ? await prisma.passkey
-                    .findFirst({
+                ? await checkAuthState(ctx, () => prisma.passkey.findFirst({
                       where: {
                         userId: newSession.user.id,
                         credentialID,
                       },
                       select: { id: true },
-                    })
-                    .catch(() => null)
+                    }), newSession.session.token)
                 : null;
 
             if (passkey) return;
 
-            await ctx.context.internalAdapter.deleteSession(
+            deleteSessionCookie(ctx);
+            await checkAuthState(ctx, () =>
+              ctx.context.internalAdapter.deleteSession(newSession.session.token),
               newSession.session.token,
             );
             rejectStaleAuthSession(
@@ -239,26 +268,24 @@ const mfaRecoveryRaceGuard = {
           const returned = await getReturnedBody(ctx.context.returned);
           const newSession = ctx.context.newSession;
           if (newSession?.user.twoFactorEnabled === true) {
-            const currentUser = await prisma.user
-              .findUnique({
+            const currentUser = await checkAuthState(ctx, () => prisma.user.findUnique({
                 where: { id: newSession.user.id },
                 select: { twoFactorEnabled: true },
-              })
-              .catch(() => null);
+              }), newSession.session.token);
             if (currentUser?.twoFactorEnabled !== true) {
-              await ctx.context.internalAdapter.deleteSession(
-                newSession.session.token,
-              );
-              await prisma.verification.deleteMany({
-                where: {
-                  value: newSession.user.id,
-                  identifier: { startsWith: "trust-device-" },
-                },
-              });
               deleteSessionCookie(ctx);
               const trustCookie = ctx.context.createAuthCookie("trust_device");
               removeSetCookie(ctx, trustCookie.name);
               expireAuthCookie(ctx, trustCookie);
+              await checkAuthState(ctx, () => ctx.context.internalAdapter.deleteSession(
+                newSession.session.token,
+              ), newSession.session.token);
+              await checkAuthState(ctx, () => prisma.verification.deleteMany({
+                where: {
+                  value: newSession.user.id,
+                  identifier: { startsWith: "trust-device-" },
+                },
+              }));
               throw APIError.from("UNAUTHORIZED", {
                 code: "TWO_FACTOR_RESET",
                 message:
@@ -275,41 +302,45 @@ const mfaRecoveryRaceGuard = {
               : null;
           if (typeof email !== "string" || !email.trim()) return;
 
-          const user = await prisma.user
-            .findUnique({
+          const user = await checkAuthState(ctx, () => prisma.user.findUnique({
               where: { email: email.trim().toLowerCase() },
               select: { id: true, twoFactorEnabled: true },
-            })
-            .catch(() => null);
-          if (!user || user.twoFactorEnabled === true) return;
+            }), newSession?.session.token);
+          if (user?.twoFactorEnabled === true) return;
 
-          const challenges = await prisma.verification.findMany({
+          const twoFactorCookie = ctx.context.createAuthCookie("two_factor");
+          removeSetCookie(ctx, twoFactorCookie.name);
+          expireAuthCookie(ctx, twoFactorCookie);
+          if (!user) {
+            rejectStaleAuthSession(
+              ctx,
+              "Konto nie jest już dostępne. Zaloguj się ponownie.",
+            );
+          }
+          const challenges = await checkAuthState(ctx, () => prisma.verification.findMany({
             where: {
               value: user.id,
               identifier: { startsWith: "2fa-" },
             },
             select: { identifier: true },
-          });
+          }));
           const attemptIdentifiers = challenges.map(({ identifier }) =>
             `2fa-attempts-${identifier}`,
           );
-          await prisma.verification.deleteMany({
+          await checkAuthState(ctx, () => prisma.verification.deleteMany({
             where: {
               value: user.id,
               identifier: { startsWith: "2fa-" },
             },
-          });
+          }));
           if (attemptIdentifiers.length) {
-            await prisma.verification.deleteMany({
+            await checkAuthState(ctx, () => prisma.verification.deleteMany({
               where: {
                 identifier: { in: attemptIdentifiers },
               },
-            });
+            }));
           }
 
-          const twoFactorCookie = ctx.context.createAuthCookie("two_factor");
-          removeSetCookie(ctx, twoFactorCookie.name);
-          expireAuthCookie(ctx, twoFactorCookie);
           throw APIError.from("UNAUTHORIZED", {
             code: "TWO_FACTOR_RESET",
             message:
@@ -350,7 +381,7 @@ function buildAuth(runtime?: OidcRuntimeConfig) {
     provider: "postgresql",
   }),
   appName: "Inventorier",
-  secret: process.env.BETTER_AUTH_SECRET,
+  secret: getAppEncryptionKey().toString("base64"),
   baseURL: process.env.BETTER_AUTH_URL,
   emailAndPassword: {
     enabled: true,

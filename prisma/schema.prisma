@@ -24,7 +24,6 @@ enum ItemHistoryType {
   LOCATION_CHANGED
   ITEM_ARCHIVED
   ITEM_RESTORED
-  ITEM_DELETED
 }
 
 model AppSettings {
@@ -106,7 +105,6 @@ model Item {
   category      Category?     @relation(fields: [categoryId], references: [id])
   imageUrl      String?
   isArchived    Boolean       @default(false)
-  saleEnabled   Boolean       @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   itemHistories ItemHistory[]
@@ -151,13 +149,12 @@ model ItemHistory {
   type        ItemHistoryType
   oldValue    String?
   newValue    String?
-  description String?
+  description String
   createdAt   DateTime        @default(now())
 }
 
 model Session {
   id           String   @id
-  sessionToken String?  @unique
   userId       String
   user         User     @relation(fields: [userId], references: [id])
   expiresAt    DateTime

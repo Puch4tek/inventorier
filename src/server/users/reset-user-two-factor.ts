@@ -3,10 +3,10 @@ import "server-only";
 import { prisma } from "@/lib/db/prisma";
 import { lockInstanceMutation, requireAdminInTransaction } from "@/server/warehouses/transaction-lock";
 
-export async function resetUserTwoFactor(userId: string, actorId: string) {
+export async function resetUserTwoFactor(userId: string, actorId: string, sessionId: string) {
   await prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
-    await requireAdminInTransaction(transaction, actorId);
+    await requireAdminInTransaction(transaction, actorId, sessionId);
     const user = await transaction.user.update({
       where: { id: userId },
       data: { twoFactorEnabled: false },

@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db/prisma";
 import type { WarehouseRole } from "@/generated/prisma/client";
-import { requireCurrentUser } from "@/server/auth/get-current-user";
+import { requireCurrentSession } from "@/server/auth/get-current-user";
 import { ACTIVE_WAREHOUSE_COOKIE } from "./current-warehouse";
 import { assertWarehouseDeletionIsIsolated } from "./check-isolation";
 import {
@@ -27,11 +27,11 @@ function normalizeWarehouseName(name: string) {
 }
 
 export async function createWarehouse(name: string) {
-  const actor = await requireCurrentUser();
+  const actor = await requireCurrentSession();
   const normalizedName = normalizeWarehouseName(name);
   return prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
-    await requireAdminInTransaction(transaction, actor.id);
+    await requireAdminInTransaction(transaction, actor.user.id, actor.session.id);
     return transaction.warehouse.create({
       data: {
         id: randomUUID(),
@@ -47,12 +47,12 @@ export async function deleteWarehouse(
   warehouseId: string,
   confirmationName: string,
 ) {
-  const actor = await requireCurrentUser();
+  const actor = await requireCurrentSession();
   if (!warehouseId) throw new Error("Nieprawidłowy magazyn.");
 
   await prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
-    await requireAdminInTransaction(transaction, actor.id);
+    await requireAdminInTransaction(transaction, actor.user.id, actor.session.id);
 
     const warehouse = await transaction.warehouse.findUnique({
       where: { id: warehouseId },
@@ -102,14 +102,15 @@ export async function deleteWarehouse(
 }
 
 export async function getWarehouseAccessManagement(warehouseId: string) {
-  const actor = await requireCurrentUser();
+  const actor = await requireCurrentSession();
   if (!warehouseId) throw new Error("Nieprawidłowy magazyn.");
 
   return prisma.$transaction(async (transaction) => {
     await lockInstanceShared(transaction);
     const current = await requireWarehouseAccessInTransaction(
       transaction,
-      actor.id,
+      actor.user.id,
+      actor.session.id,
       warehouseId,
       true,
     );
@@ -145,17 +146,18 @@ export async function setWarehouseMemberRole(
   role: WarehouseRole,
 ) {
   if (!["USER", "MANAGER"].includes(role)) throw new Error("Nieprawidłowa rola magazynowa.");
-  const actor = await requireCurrentUser();
+  const actor = await requireCurrentSession();
 
   await prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
     const access = await requireWarehouseAccessInTransaction(
       transaction,
-      actor.id,
+      actor.user.id,
+      actor.session.id,
       warehouseId,
       true,
     );
-    if (access.access !== "ADMIN" && userId === actor.id) {
+    if (access.access !== "ADMIN" && userId === actor.user.id) {
       throw new Error("Menedżer nie może zmienić własnego przypisania.");
     }
 
@@ -177,16 +179,17 @@ export async function setWarehouseMemberRole(
 }
 
 export async function removeWarehouseMember(warehouseId: string, userId: string) {
-  const actor = await requireCurrentUser();
+  const actor = await requireCurrentSession();
   await prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
     const access = await requireWarehouseAccessInTransaction(
       transaction,
-      actor.id,
+      actor.user.id,
+      actor.session.id,
       warehouseId,
       true,
     );
-    if (access.access !== "ADMIN" && userId === actor.id) {
+    if (access.access !== "ADMIN" && userId === actor.user.id) {
       throw new Error("Menedżer nie może odebrać sobie własnego przypisania.");
     }
 

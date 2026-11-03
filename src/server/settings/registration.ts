@@ -17,10 +17,10 @@ export async function isRegistrationEnabled() {
   return settings?.registrationEnabled ?? true;
 }
 
-export async function setRegistrationEnabled(enabled: boolean, actorId: string) {
+export async function setRegistrationEnabled(enabled: boolean, actorId: string, sessionId: string) {
   await prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
-    await requireAdminInTransaction(transaction, actorId);
+    await requireAdminInTransaction(transaction, actorId, sessionId);
     await transaction.appSettings.upsert({
       where: { id: SETTINGS_ID },
       update: { registrationEnabled: enabled },

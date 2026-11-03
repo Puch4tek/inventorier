@@ -2,9 +2,8 @@ import "server-only";
 
 import { isIP } from "node:net";
 import { prisma } from "@/lib/db/prisma";
-import type { Prisma } from "@/generated/prisma/client";
 import { decryptSecret, encryptSecret, SecretEncryptionError } from "@/server/security/secret-encryption";
-import { lockInstanceMutation } from "@/server/warehouses/transaction-lock";
+import { lockInstanceMutation, requireAdminSessionInTransaction } from "@/server/warehouses/transaction-lock";
 
 export type EmailSettings = {
   host: string;
@@ -131,27 +130,10 @@ function toSettings(row: {
   return settings as Omit<EmailSettings, "passwordUnreadable">;
 }
 
-async function requireEmailAdmin(
-  transaction: Prisma.TransactionClient,
-  actorId: string,
-  sessionId: string,
-) {
-  const session = await transaction.session.findFirst({
-    where: {
-      id: sessionId,
-      userId: actorId,
-      expiresAt: { gt: new Date() },
-      user: { isActive: true, mustChangePassword: false, role: "ADMIN" },
-    },
-    select: { id: true },
-  });
-  if (!session) throw new Error("Nie masz uprawnień do wykonania tej operacji.");
-}
-
 export async function getEmailSettings(actorId: string, sessionId: string): Promise<EmailSettings> {
   return prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
-    await requireEmailAdmin(transaction, actorId, sessionId);
+    await requireAdminSessionInTransaction(transaction, actorId, sessionId);
     const row = await transaction.appSettings.findUnique({ where: { id: ID } });
     if (!row) return { ...DEFAULTS };
     let passwordUnreadable = false;
@@ -171,7 +153,7 @@ export async function getEmailSettings(actorId: string, sessionId: string): Prom
 export async function saveEmailSettings(input: SaveEmailSettingsInput, actorId: string, sessionId: string): Promise<void> {
   await prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
-    await requireEmailAdmin(transaction, actorId, sessionId);
+    await requireAdminSessionInTransaction(transaction, actorId, sessionId);
     validate(input);
     const current = await transaction.appSettings.findUnique({ where: { id: ID } });
     let encrypted = current?.smtpPassword ?? null;
@@ -223,7 +205,7 @@ export async function getSmtpConfig(): Promise<SmtpConfig> {
 export async function getAdminSmtpConfig(actorId: string, sessionId: string): Promise<SmtpConfig> {
   return prisma.$transaction(async (transaction) => {
     await lockInstanceMutation(transaction);
-    await requireEmailAdmin(transaction, actorId, sessionId);
+    await requireAdminSessionInTransaction(transaction, actorId, sessionId);
     return smtpConfigFromRow(await transaction.appSettings.findUnique({ where: { id: ID } }));
   });
 }

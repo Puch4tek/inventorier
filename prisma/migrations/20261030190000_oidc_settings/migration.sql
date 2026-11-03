@@ -1,5 +1,0 @@
-ALTER TABLE "AppSettings"
-  ADD COLUMN "oidcEnabled" BOOLEAN NOT NULL DEFAULT false,
-  ADD COLUMN "oidcIssuer" TEXT NOT NULL DEFAULT '',
-  ADD COLUMN "oidcClientId" TEXT NOT NULL DEFAULT '',
-  ADD COLUMN "oidcClientSecret" TEXT;

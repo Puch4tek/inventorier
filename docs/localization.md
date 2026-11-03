@@ -44,12 +44,9 @@ Use the existing domain namespace for new keys. For translated dates and numbers
 1. Add its locale code and native-language label to `localeNames` in `src/i18n/locale.ts`. This list also supplies the options in the language switcher. Keep `defaultLocale` unchanged unless the application's default should change.
 2. Add `src/i18n/messages/<locale>.ts`, using `en.ts` as the structural reference and translating every namespace, including `auth.email`.
 3. Register the imported dictionary in `src/i18n/messages/index.ts`. The type check will flag missing or extra keys.
-4. Add or update tests for locale negotiation and dictionary coverage, then run:
+4. Run the application checks:
 
    ```sh
-   node --conditions=react-server --experimental-strip-types \
-     --import ./tests/register-ts-runtime-loader.mjs --test \
-     tests/*i18n*.test.mjs tests/admin-error-localization.test.mjs
    npm run lint
    npm run build
    ```

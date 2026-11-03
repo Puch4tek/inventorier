@@ -13,6 +13,7 @@ type CreateUserInput = {
     role?: Role;
     mustChangePassword?: boolean;
     actorId?: string;
+    sessionId?: string;
 };
 
 export async function createUser(input: CreateUserInput) {
@@ -33,8 +34,8 @@ export async function createUser(input: CreateUserInput) {
     return prisma.$transaction(async (transaction) => {
         await lockInstanceMutation(transaction);
         if (input.role !== undefined) {
-            if (!input.actorId) throw new Error("Nie masz uprawnień do tworzenia kont o wybranej roli.");
-            await requireAdminInTransaction(transaction, input.actorId);
+            if (!input.actorId || !input.sessionId) throw new Error("Nie masz uprawnień do tworzenia kont o wybranej roli.");
+            await requireAdminInTransaction(transaction, input.actorId, input.sessionId);
         } else {
             const settings = await transaction.appSettings.findUnique({
                 where: { id: 1 },

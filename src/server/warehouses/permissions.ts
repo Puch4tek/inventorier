@@ -35,6 +35,7 @@ export async function withWarehouseMutation<T>(
     const current = await requireWarehouseAccessInTransaction(
       transaction,
       context.user.id,
+      context.sessionId,
       context.warehouse.id,
       managerOnly,
     );
@@ -54,6 +55,7 @@ export async function withWarehouseRead<T>(
     const current = await requireWarehouseAccessInTransaction(
       transaction,
       context.user.id,
+      context.sessionId,
       context.warehouse.id,
     );
     return operation(transaction, current);
@@ -62,11 +64,12 @@ export async function withWarehouseRead<T>(
 
 export async function withAdminRead<T>(
   userId: string,
+  sessionId: string,
   operation: (transaction: Prisma.TransactionClient) => Promise<T>,
 ) {
   return prisma.$transaction(async (transaction) => {
     await lockInstanceShared(transaction);
-    await requireAdminInTransaction(transaction, userId);
+    await requireAdminInTransaction(transaction, userId, sessionId);
     return operation(transaction);
   });
 }

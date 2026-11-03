@@ -1,6 +1,6 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import { requireCurrentWarehouse } from "@/server/warehouses/current-warehouse";
 import { withWarehouseMutation } from "@/server/warehouses/permissions";
 import { itemHistoryDescriptions } from "@/lib/items/history";
@@ -25,7 +25,7 @@ export async function changeItemQuantity(
   const current = await requireCurrentWarehouse();
 
   return withWarehouseMutation(current, false, async (transaction) => {
-    const item = await getLockedItem(transaction, itemId, current.warehouse.id);
+    const item = await getWarehouseItem(transaction, itemId, current.warehouse.id);
     if (item.quantity === quantity) return item;
 
     return updateQuantityInTransaction(
@@ -51,7 +51,7 @@ export async function changeItemQuantityByDelta(
   const current = await requireCurrentWarehouse();
 
   return withWarehouseMutation(current, false, async (transaction) => {
-    const item = await getLockedItem(transaction, itemId, current.warehouse.id);
+    const item = await getWarehouseItem(transaction, itemId, current.warehouse.id);
 
     const nextQuantity = item.quantity + delta;
     if (nextQuantity < 0) {
@@ -71,25 +71,22 @@ export async function changeItemQuantityByDelta(
   });
 }
 
-async function getLockedItem(
-  transaction: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+async function getWarehouseItem(
+  transaction: Prisma.TransactionClient,
   itemId: number,
   warehouseId: string,
 ) {
-  const [item] = await transaction.$queryRaw<{ id: number; quantity: number; isArchived: boolean }[]>`
-    SELECT item."id", item."quantity", item."isArchived"
-    FROM "Item" AS item
-    JOIN "Location" AS location ON location."id" = item."locationId"
-    WHERE item."id" = ${itemId} AND location."warehouseId" = ${warehouseId}
-    FOR UPDATE OF item
-  `;
+  const item = await transaction.item.findFirst({
+    where: { id: itemId, location: { warehouseId } },
+    select: { id: true, quantity: true, isArchived: true },
+  });
   if (!item) throw new Error("Przedmiot nie istnieje");
   if (item.isArchived) throw new Error("Nie można zmienić ilości zarchiwizowanego przedmiotu");
   return item;
 }
 
 async function updateQuantityInTransaction(
-  transaction: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  transaction: Prisma.TransactionClient,
   itemId: number,
   userId: string,
   actorName: string,
