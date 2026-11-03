@@ -15,12 +15,15 @@ jobs:
       DATABASE_PASSWORD: ci-only
     steps:
       - uses: actions/checkout@v4
+      - name: Generate temporary encryption key
+        run: echo "APP_ENCRYPTION_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: npm
       - run: npm ci
-      - run: npx prisma generate --config prisma7.config.ts
+      - run: npx prisma generate
       - run: npm run lint
       - run: npm run build
       - run: docker pull postgres:18
