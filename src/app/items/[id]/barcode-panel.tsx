@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
 export function BarcodePanel({ itemId }: { itemId: number }) {
   const t = useTranslations("items");
@@ -10,9 +11,12 @@ export function BarcodePanel({ itemId }: { itemId: number }) {
   return (
     <div className="mt-2">
       <div className="rounded-2xl bg-app-surface-muted p-3 hidden sm:block">
-        <img
+        <Image
           src={svgUrl}
           alt={t("barcode.imageAlt")}
+          width={320}
+          height={160}
+          unoptimized
           className="mx-auto h-auto max-h-40 max-w-full object-contain"
         />
       </div>
