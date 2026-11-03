@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { after, before, test } from "node:test";
 import pg from "pg";
 import { splitSetCookieHeader } from "better-auth/cookies";
+import { databaseEnvironment, setDatabaseEnvironment } from "./database-env.mjs";
 
 const { Client } = pg;
 const testUrl = process.env.TEST_DATABASE_URL;
@@ -37,7 +38,7 @@ function deployBootstrap() {
   const env = {
     ...process.env,
     TEST_DATABASE_URL: databaseUrl.toString(),
-    DATABASE_URL: databaseUrl.toString(),
+    ...databaseEnvironment(databaseUrl.toString()),
   };
   return spawnSync(
     "node_modules/.bin/prisma",
@@ -58,7 +59,7 @@ before(async () => {
   assert.equal(migration.error, undefined, migration.error?.message);
   assert.equal(migration.status, 0, `${migration.stdout}\n${migration.stderr}`);
 
-  process.env.DATABASE_URL = databaseUrl.toString();
+  setDatabaseEnvironment(databaseUrl.toString());
   process.env.TEST_DATABASE_URL = databaseUrl.toString();
   process.env.BETTER_AUTH_SECRET = randomBytes(32).toString("base64url");
   process.env.BETTER_AUTH_URL = "http://localhost:3000";

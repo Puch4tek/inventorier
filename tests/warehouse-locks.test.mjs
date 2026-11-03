@@ -28,7 +28,7 @@ const prisma = new PrismaClient({
 });
 
 function deployBootstrap() {
-  const env = { ...process.env, TEST_DATABASE_URL: testUrl, DATABASE_URL: testUrl };
+  const env = { ...process.env, TEST_DATABASE_URL: testUrl };
   return spawnSync(
     "node_modules/.bin/prisma",
     ["migrate", "deploy", "--config", "tests/bootstrap-prisma.config.ts"],

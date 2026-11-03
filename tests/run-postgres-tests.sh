@@ -57,8 +57,11 @@ fi
 
 suffix="${$}_${RANDOM}"
 export TEST_DATABASE_URL="postgresql://inventory_test:inventory_test_only@127.0.0.1:${host_port}/inventory_contract_test_${suffix}?schema=public"
-unset DATABASE_URL
-export DATABASE_URL="$TEST_DATABASE_URL"
+export DATABASE_HOST=127.0.0.1
+export DATABASE_PORT="$host_port"
+export DATABASE_NAME="inventory_contract_test_${suffix}"
+export DATABASE_USER=inventory_test
+export DATABASE_PASSWORD=inventory_test_only
 node --conditions=react-server --experimental-strip-types \
   --import ./tests/register-ts-runtime-loader.mjs \
   --test --test-concurrency=4 \

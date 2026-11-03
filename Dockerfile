@@ -11,7 +11,7 @@ RUN npm ci
 
 COPY . .
 
-RUN npx prisma generate
+RUN DATABASE_USER=build DATABASE_PASSWORD=build npx prisma generate
 RUN npm run build
 
 FROM base AS production-deps
@@ -29,8 +29,10 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma7.config.ts ./prisma7.config.ts
+COPY --from=builder /app/src/lib/db/database-config.ts ./src/lib/db/database-config.ts
 
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && exec node server.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --config prisma7.config.ts && exec node server.js"]

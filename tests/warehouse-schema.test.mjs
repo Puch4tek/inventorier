@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { after, before, test } from "node:test";
 import pg from "pg";
+import { databaseEnvironment } from "./database-env.mjs";
 
 const { Client } = pg;
 const testUrl = process.env.TEST_DATABASE_URL;
@@ -47,7 +48,11 @@ async function createDatabase(name) {
 }
 
 function prismaCommand(name, args, config = bootstrapConfig) {
-  const env = { ...process.env, TEST_DATABASE_URL: databaseUrl(name), DATABASE_URL: databaseUrl(name) };
+  const env = {
+    ...process.env,
+    TEST_DATABASE_URL: databaseUrl(name),
+    ...databaseEnvironment(databaseUrl(name)),
+  };
   return spawnSync(
     "node_modules/.bin/prisma",
     [...args, "--config", config],

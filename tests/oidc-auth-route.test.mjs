@@ -7,6 +7,7 @@ import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import pg from "pg";
 import { splitSetCookieHeader } from "better-auth/cookies";
 import bcrypt from "bcryptjs";
+import { setDatabaseEnvironment } from "./database-env.mjs";
 
 const testUrl = process.env.TEST_DATABASE_URL;
 if (!testUrl) throw new Error("TEST_DATABASE_URL is required.");
@@ -60,7 +61,7 @@ before(async () => {
     `INSERT INTO "AppSettings" ("id", "registrationEnabled") VALUES (1, false)`,
   );
 
-  process.env.DATABASE_URL = databaseUrl.toString();
+  setDatabaseEnvironment(databaseUrl.toString());
   process.env.TEST_DATABASE_URL = databaseUrl.toString();
   process.env.BETTER_AUTH_SECRET = randomBytes(32).toString("base64url");
   process.env.BETTER_AUTH_URL = "http://localhost:3000";

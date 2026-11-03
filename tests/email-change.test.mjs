@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import pg from "pg";
 import { splitSetCookieHeader } from "better-auth/cookies";
+import { databaseEnvironment, setDatabaseEnvironment } from "./database-env.mjs";
 
 const testUrl = process.env.TEST_DATABASE_URL;
 if (!testUrl) throw new Error("Run this suite with tests/run-postgres-tests.sh.");
@@ -38,7 +39,7 @@ function deployBootstrap() {
   const env = {
     ...process.env,
     TEST_DATABASE_URL: databaseUrl.toString(),
-    DATABASE_URL: databaseUrl.toString(),
+    ...databaseEnvironment(databaseUrl.toString()),
   };
   return spawnSync(
     "node_modules/.bin/prisma",
@@ -124,7 +125,7 @@ before(async () => {
   assert.equal(migration.error, undefined, migration.error?.message);
   assert.equal(migration.status, 0, `${migration.stdout}\n${migration.stderr}`);
 
-  process.env.DATABASE_URL = databaseUrl.toString();
+  setDatabaseEnvironment(databaseUrl.toString());
   process.env.TEST_DATABASE_URL = databaseUrl.toString();
   process.env.BETTER_AUTH_SECRET = randomBytes(32).toString("base64url");
   process.env.BETTER_AUTH_URL = "http://localhost:3000";

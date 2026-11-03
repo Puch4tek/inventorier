@@ -3,6 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import pg from "pg";
+import { setDatabaseEnvironment } from "./database-env.mjs";
 
 const testUrl = process.env.TEST_DATABASE_URL;
 if (!testUrl) throw new Error("TEST_DATABASE_URL is required.");
@@ -48,7 +49,7 @@ before(async () => {
     VALUES ($1, $2, $3, now() + interval '1 hour', now()),
            ($4, $5, $6, now() + interval '1 hour', now())`,
   [actorSession, actor, randomUUID(), userSession, user, randomUUID()]);
-  process.env.DATABASE_URL = url.toString();
+  setDatabaseEnvironment(url.toString());
   process.env.APP_ENCRYPTION_KEY = key;
   api = await import("../src/server/settings/email.ts");
   ({ prisma } = await import("../src/lib/db/prisma.ts"));

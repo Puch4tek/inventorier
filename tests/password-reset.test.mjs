@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import bcrypt from "bcryptjs";
 import pg from "pg";
+import { setDatabaseEnvironment } from "./database-env.mjs";
 
 const testUrl = process.env.TEST_DATABASE_URL;
 if (!testUrl) throw new Error("Run this suite with tests/run-postgres-tests.sh.");
@@ -82,7 +83,7 @@ before(async () => {
     await readFile("prisma/migrations/20261030192000_oidc_settings_revision/migration.sql", "utf8"),
   );
 
-  process.env.DATABASE_URL = url.toString();
+  setDatabaseEnvironment(url.toString());
   process.env.APP_ENCRYPTION_KEY = encryptionKey;
   process.env.BETTER_AUTH_URL = "http://localhost:3000";
   const { PrismaPg } = await import("@prisma/adapter-pg");

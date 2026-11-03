@@ -12,7 +12,11 @@ Create a root-level `.env` from [`.env.example`](../.env.example). Keep it out o
 
 | Variable | Development | Production / purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | PostgreSQL connection string for the local Compose service; use the local credentials from `compose.yaml`. | Required by Prisma and the application. Point each instance to its own database. |
+| `DATABASE_HOST` | `127.0.0.1` | PostgreSQL host. Compose overrides this with `postgres` for the app container. |
+| `DATABASE_NAME` | `inventorier` | PostgreSQL database name. |
+| `DATABASE_PORT` | `5432` | PostgreSQL port. Compose uses it for the database listener and published port. |
+| `DATABASE_USER` | `inventory` | PostgreSQL username. |
+| `DATABASE_PASSWORD` | `inventory_dev_password` | PostgreSQL password. The example credentials are for local development only. |
 | `BETTER_AUTH_SECRET` | Set a private random secret; for example, generate one with `openssl rand -base64 32`. | Required by Better Auth. Keep stable and private across all application processes for the instance. |
 | `BETTER_AUTH_URL` | `http://localhost:3000`. | Public application origin. Use HTTPS and the same origin as `PASSKEY_ORIGIN`. |
 | `PASSKEY_ORIGIN` | Defaults to `http://localhost:3000` if unset. | Required at runtime; exact HTTPS origin, including any non-default port. |
@@ -28,7 +32,9 @@ The application reads configuration in server code; there are no `NEXT_PUBLIC_*`
 
 The Dockerfile builds a Next.js standalone server in a separate build stage and installs only production dependencies in the final image. It retains Prisma CLI and migration files so the container applies pending migrations before starting the server; a migration failure prevents startup. Compose waits for PostgreSQL to become healthy before starting the app.
 
-The app container connects to the Compose database using `postgres` as the `DATABASE_URL` host, not `localhost`. Production mode requires a valid HTTPS origin and passkey domain, even when testing the image locally. The included database credentials are for development only. Back up existing databases before updating the image; automatic migrations can change existing data.
+Prisma loads the datasource config during client generation, so the build command supplies temporary placeholder credentials. They are not used to connect to a database or passed to the runtime image; configure the real database fields in `.env` for Compose.
+
+The app container connects to the Compose database using `postgres` as `DATABASE_HOST`, not `localhost`. Production mode requires a valid HTTPS origin and passkey domain, even when testing the image locally. The included database credentials are for development only. Back up existing databases before updating the image; automatic migrations can change existing data.
 
 ## Local startup
 
@@ -49,7 +55,7 @@ The app container connects to the Compose database using `postgres` as the `DATA
 
    The Compose service is PostgreSQL 18 and uses a persistent development volume. Its credentials are for local development only; do not reuse them in production.
 
-3. Create a **new, empty** database for this instance, then set `DATABASE_URL` to it. Apply the first-install migration and generate the Prisma client:
+3. Create a **new, empty** database for this instance, then set `DATABASE_HOST`, `DATABASE_NAME`, `DATABASE_PORT`, `DATABASE_USER`, and `DATABASE_PASSWORD` for it. Apply the first-install migration and generate the Prisma client:
 
    ```bash
    npx prisma migrate deploy --config prisma-bootstrap.config.ts

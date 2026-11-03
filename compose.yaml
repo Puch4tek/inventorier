@@ -2,6 +2,12 @@ services:
   app:
     build: .
     env_file: .env
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_NAME: ${DATABASE_NAME:-inventorier}
+      DATABASE_PORT: ${DATABASE_PORT:-5432}
+      DATABASE_USER: ${DATABASE_USER:-inventory}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-inventory_dev_password}
     ports:
       - "3000:3000"
     depends_on:
@@ -10,19 +16,21 @@ services:
     restart: unless-stopped
   postgres:
     image: postgres:18
-    container_name: inventory-postgres
+    container_name: postgres
     restart: unless-stopped
+    command: ["postgres", "-p", "${DATABASE_PORT:-5432}"]
     environment:
-      POSTGRES_USER: inventory
-      POSTGRES_PASSWORD: inventory_dev_password
-      POSTGRES_DB: inventory
+      POSTGRES_USER: ${DATABASE_USER:-inventory}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-inventory_dev_password}
+      POSTGRES_DB: ${DATABASE_NAME:-inventorier}
+      DATABASE_PORT: ${DATABASE_PORT:-5432}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -p $${DATABASE_PORT}"]
       interval: 5s
       timeout: 5s
       retries: 12
     ports:
-      - "5432:5432"
+      - "${DATABASE_PORT:-5432}:${DATABASE_PORT:-5432}"
     volumes:
       - postgres_data:/var/lib/postgresql
 

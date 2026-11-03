@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import pg from "pg";
+import { setDatabaseEnvironment } from "./database-env.mjs";
 
 const testUrl = process.env.TEST_DATABASE_URL;
 if (!testUrl) {
@@ -42,7 +43,7 @@ before(async () => {
   await db.query(
     await readFile("prisma/migrations/20261028210000_remove_user_password_hash/migration.sql", "utf8"),
   );
-  process.env.DATABASE_URL = url.toString();
+  setDatabaseEnvironment(url.toString());
   const { PrismaPg } = await import("@prisma/adapter-pg");
   const { PrismaClient } = await import("../src/generated/prisma/client.ts");
   ({ consumeEmailRateLimit } = await import("../src/server/settings/email-rate-limit.ts"));

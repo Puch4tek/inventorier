@@ -19,7 +19,7 @@ Prerequisites: Node.js, npm, and Docker with Compose.
    docker compose up -d
    ```
 
-2. Copy `.env.example` to `.env` and set the database URL for the local database, an auth secret, and the local app URL. See [development setup](docs/development.md) for all settings.
+2. Copy `.env.example` to `.env` and set the database connection fields, an auth secret, and the local app URL. See [development setup](docs/development.md) for all settings.
 3. Initialize a **new, empty local database** and generate the Prisma client:
 
    ```sh
