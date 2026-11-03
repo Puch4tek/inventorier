@@ -18,7 +18,7 @@ export default async function NewUserPage() {
   return (
     <main className="app-shell px-5 py-8 sm:px-8 sm:py-12">
       <div className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-6xl items-center justify-center">
-        <section className="panel-card grid w-full overflow-hidden rounded-[2rem] shadow-modal lg:grid-cols-[0.9fr_1.1fr]">
+        <section className="panel-card grid w-full overflow-hidden rounded-4xl shadow-modal lg:grid-cols-[0.9fr_1.1fr]">
           <div className="hidden bg-app-accent p-12 text-app-inverse lg:flex lg:flex-col lg:justify-between">
             <div>
               <p className="text-sm font-semibold tracking-[0.22em] text-app-inverse-muted">

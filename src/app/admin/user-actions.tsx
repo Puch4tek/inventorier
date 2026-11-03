@@ -55,13 +55,13 @@ export function UserActions({
         <form action={statusAction}>
           <input type="hidden" name="userId" value={userId} />
           <input type="hidden" name="active" value={String(!isActive)} />
-          <Button variant="secondary" type="submit" disabled={isChangingStatus} className="text-sm font-semibold transition px-3 py-2 text-xs disabled:opacity-50">
+          <Button variant="secondary" type="submit" disabled={isChangingStatus} className="text-sm font-semibold transition px-3 py-2 disabled:opacity-50">
             {isChangingStatus ? t("saving") : isActive ? t("block") : t("unblock")}
           </Button>
         </form>
         <form action={passwordAction}>
           <input type="hidden" name="userId" value={userId} />
-          <Button variant="secondary" type="submit" disabled={isRequiringPasswordChange || mustChangePassword} className="text-sm font-semibold transition px-3 py-2 text-xs disabled:opacity-50">
+          <Button variant="secondary" type="submit" disabled={isRequiringPasswordChange || mustChangePassword} className="text-sm font-semibold transition px-3 py-2 disabled:opacity-50">
             {mustChangePassword ? t("passwordChangeRequired") : isRequiringPasswordChange ? t("saving") : t("requirePasswordChange")}
           </Button>
         </form>
@@ -108,7 +108,7 @@ export function UserActions({
         <button
           type="submit"
           disabled={isDeleting}
-          className="inline-flex items-center justify-center rounded-xl border border-app-danger/[0.32] bg-app-surface text-sm font-semibold text-app-danger transition hover:bg-app-danger-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-danger px-3 py-2 text-xs disabled:opacity-50"
+          className="inline-flex items-center justify-center rounded-xl border border-app-danger/32 bg-app-surface text-sm font-semibold text-app-danger transition hover:bg-app-danger-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-danger px-3 py-2 text-xs disabled:opacity-50"
         >
           {isDeleting ? t("deleting") : t("deleteUser")}
         </button>

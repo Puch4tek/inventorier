@@ -83,7 +83,7 @@ function ItemCreateDialog({
   return (
     <Modal labelledBy="item-create-modal-title" onClose={onClose} disabled={isPending}>
       <section
-        className="panel-card w-full max-w-lg rounded-[2rem] p-7 sm:p-10"
+        className="panel-card w-full max-w-lg rounded-4xl p-7 sm:p-10"
       >
         <div className="flex items-start justify-between gap-6">
           <div>

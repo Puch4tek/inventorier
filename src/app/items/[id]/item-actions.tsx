@@ -373,7 +373,7 @@ function Dialog({
   return (
     <Modal labelledBy="item-dialog-title" onClose={onClose} disabled={disabled}>
       <section
-        className="max-h-[calc(100vh-4rem)] w-full max-w-lg overflow-y-auto rounded-[2rem] border border-app-border bg-app-surface p-7 text-app-foreground shadow-modal sm:p-10"
+        className="max-h-[calc(100vh-4rem)] w-full max-w-lg overflow-y-auto rounded-4xl border border-app-border bg-app-surface p-7 text-app-foreground shadow-modal sm:p-10"
       >
         <div className="flex items-start justify-between gap-6">
           <h2

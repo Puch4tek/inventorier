@@ -44,7 +44,7 @@ export async function LocationTree({ locations }: LocationTreeProps) {
             >
               <div className="min-w-0">
                 {parentName ? (
-                  <p className={level > 3 ? "mb-1 break-words text-xs text-app-muted" : "sr-only"}>
+                  <p className={level > 3 ? "mb-1 wrap-break-word text-xs text-app-muted" : "sr-only"}>
                     {t("parent", { name: parentName })}
                   </p>
                 ) : null}

@@ -75,8 +75,8 @@ export default async function Home() {
 
         <div className="relative">
           <div className="absolute -inset-8 rounded-full bg-app-info-surface/60 blur-3xl" />
-          <div className="relative rounded-[2rem] border border-app-border bg-app-surface p-3 shadow-modal sm:p-5">
-            <div className="rounded-[1.5rem] border border-app-border bg-app-surface-muted p-4 sm:p-6">
+          <div className="relative rounded-4xl border border-app-border bg-app-surface p-3 shadow-modal sm:p-5">
+            <div className="rounded-3xl border border-app-border bg-app-surface-muted p-4 sm:p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-medium text-app-muted">
@@ -120,7 +120,7 @@ export default async function Home() {
         <div className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-8 sm:py-24">
           <div className="max-w-2xl">
             <p className="page-kicker">{t("highlightKicker")}</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] sm:text-5xl">
+            <h2 className="mt-3 text-3xl font-semibold tracking-tighter sm:text-5xl">
               {t("highlightTitle")}
             </h2>
           </div>

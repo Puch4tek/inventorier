@@ -35,7 +35,7 @@ export function UserRoleForm({
       <Button variant="primary"
         type="submit"
         disabled={isPending}
-        className="text-sm font-semibold transition px-3 py-2 text-xs disabled:opacity-50"
+        className="text-sm font-semibold transition px-3 py-2 disabled:opacity-50"
       >
         {isPending ? t("saving") : t("save")}
       </Button>

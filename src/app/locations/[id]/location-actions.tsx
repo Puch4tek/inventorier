@@ -258,7 +258,7 @@ function Dialog({
   return (
     <Modal labelledBy="location-dialog-title" onClose={onClose} disabled={disabled}>
       <section
-        className="w-full max-w-lg rounded-[2rem] border border-app-border bg-app-surface p-7 text-app-foreground shadow-modal sm:p-10"
+        className="w-full max-w-lg rounded-4xl border border-app-border bg-app-surface p-7 text-app-foreground shadow-modal sm:p-10"
       >
         <div className="flex items-start justify-between gap-6">
           <h2 id="location-dialog-title" className="text-2xl font-semibold tracking-[-0.03em]">
