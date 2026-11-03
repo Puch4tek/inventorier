@@ -24,6 +24,12 @@ Create a root-level `.env` from [`.env.example`](../.env.example). Keep it out o
 
 The application reads configuration in server code; there are no `NEXT_PUBLIC_*` environment variables in the current source. Next.js loads `.env` files from the repository root, not `src/`. `NEXT_PHASE` is managed by Next.js during builds and is only checked internally; do not set it as an application setting.
 
+## Container image
+
+The Dockerfile builds a Next.js standalone server in a separate build stage and installs only production dependencies in the final image. It retains Prisma CLI and migration files so the container applies pending migrations before starting the server; a migration failure prevents startup. Compose waits for PostgreSQL to become healthy before starting the app.
+
+The app container connects to the Compose database using `postgres` as the `DATABASE_URL` host, not `localhost`. Production mode requires a valid HTTPS origin and passkey domain, even when testing the image locally. The included database credentials are for development only. Back up existing databases before updating the image; automatic migrations can change existing data.
+
 ## Local startup
 
 1. Install dependencies and prepare the environment:

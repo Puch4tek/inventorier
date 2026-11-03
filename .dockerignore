@@ -1,0 +1,9 @@
+.next/
+.idea/
+node_modules/
+.git/
+.env*
+AGENTS.md
+*.tsbuildinfo
+tests/
+docs/

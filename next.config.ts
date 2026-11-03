@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,
+  output: "standalone",
   async headers() {
     const sensitiveLinkHeaders = [
       { key: "Referrer-Policy", value: "no-referrer" },
