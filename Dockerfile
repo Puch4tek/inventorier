@@ -1,10 +1,8 @@
-FROM node:24-bookworm-slim AS base
+FROM node:24-alpine AS base
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends openssl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache openssl
 
 FROM base AS builder
 
@@ -13,7 +11,7 @@ RUN npm ci
 
 COPY . .
 
-RUN npx prisma generate --config prisma-bootstrap.config.ts
+RUN npx prisma generate
 RUN npm run build
 
 FROM base AS production-deps
@@ -31,8 +29,8 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma-bootstrap.config.ts ./
+
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --config prisma-bootstrap.config.ts && exec node server.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && exec node server.js"]
