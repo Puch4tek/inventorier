@@ -333,7 +333,7 @@ test("an unreadable OIDC secret is reported when reading or enabling settings", 
   }
 });
 
-test("migration preserves current linked accounts and leaves older identities untouched", async () => {
+test("migrations preserve current linked accounts and remove only legacy OIDC identities", async () => {
   const databaseUrl = new URL(process.env.TEST_DATABASE_URL);
   databaseUrl.searchParams.delete("schema");
   const client = new pg.Client({ connectionString: databaseUrl.toString() });
@@ -343,18 +343,21 @@ test("migration preserves current linked accounts and leaves older identities un
     await client.query(`CREATE TEMP TABLE "AppSettings" ("id" integer, "oidcRevision" text) ON COMMIT DROP;
       CREATE TEMP TABLE "account" ("id" text, "providerId" text, "accountId" text, "userId" text,
         UNIQUE ("providerId", "accountId")) ON COMMIT DROP;
-      INSERT INTO "AppSettings" VALUES (1, 'current');
+      INSERT INTO "AppSettings" VALUES (1, '11111111-1111-4111-8111-111111111111');
       INSERT INTO "account" VALUES
-        ('active', 'oidc-current', 'subject', 'owner'),
-        ('old', 'oidc-old', 'old-subject', 'old-owner'),
+        ('active', 'oidc-11111111-1111-4111-8111-111111111111', 'subject', 'owner'),
+        ('old', 'oidc-22222222-2222-4222-8222-222222222222', 'old-subject', 'old-owner'),
+        ('other', 'oidc-other', 'other-subject', 'other-owner'),
         ('local', 'credential', 'owner', 'owner');`);
     const migration = await readFile(new URL("../prisma/migrations/20261105000000_static_oidc_provider/migration.sql", import.meta.url), "utf8");
     await client.query(migration);
+    const cleanup = await readFile(new URL("../prisma/migrations/20261106000000_remove_legacy_oidc_accounts/migration.sql", import.meta.url), "utf8");
+    await client.query(cleanup);
     const { rows } = await client.query(`SELECT "id", "providerId", "userId" FROM "account" ORDER BY "id"`);
     assert.deepEqual(rows, [
       { id: "active", providerId: "oidc", userId: "owner" },
       { id: "local", providerId: "credential", userId: "owner" },
-      { id: "old", providerId: "oidc-old", userId: "old-owner" },
+      { id: "other", providerId: "oidc-other", userId: "other-owner" },
     ]);
   } finally {
     await client.query("ROLLBACK");

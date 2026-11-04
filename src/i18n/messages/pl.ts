@@ -209,7 +209,6 @@ const messages = {
         connected: "Połączono z aktualnym dostawcą tożsamości.",
         notConnected: "Nie połączono z aktualnym dostawcą tożsamości.",
         disabled: "OpenID Connect jest wyłączony.",
-        stale: "Istnieje nieaktywne połączenie z poprzedniej konfiguracji.",
         linked: "Połączono OpenID Connect.",
         linkError: "Nie udało się połączyć OpenID Connect. Konto może być już połączone z innym użytkownikiem.",
         link: "Połącz",
@@ -794,7 +793,6 @@ const messages = {
       local: "Local (hasło)",
       unavailable: "Brak aktywnego konta OIDC i lokalnego hasła",
     },
-    staleOidc: "Nieaktywne połączenie OIDC",
     oidcDisabled: "OIDC wyłączony",
   },
   createUser: {

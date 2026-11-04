@@ -122,7 +122,6 @@ export default async function SettingsPage({
               <OidcSettings
                 enabled={securitySettings.oidcEnabled}
                 connected={securitySettings.oidcConnected}
-                stale={securitySettings.oidcStale}
                 hasPassword={hasLocalPassword}
                 callbackStatus={params.error ? "error" : typeof params.oidc === "string" ? params.oidc : undefined}
               />

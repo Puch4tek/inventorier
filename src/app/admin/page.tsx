@@ -89,7 +89,6 @@ export default async function AdminPage() {
                       <span className="text-app-muted">{t("usersPage.totpEnabled")}</span>
                     ) : null}
                     <span className="text-app-muted">{t(`usersPage.authStatus.${listedUser.authStatus}`)}</span>
-                    {listedUser.staleOidc ? <span className="text-app-warning">{t("usersPage.staleOidc")}</span> : null}
                     {listedUser.hasOidc && !listedUser.oidcEnabled ? <span className="text-app-warning">{t("usersPage.oidcDisabled")}</span> : null}
                     {listedUser._count.passkeys > 0 ? (
                       <span className="text-app-warning">{t("usersPage.passkeys", { count: String(listedUser._count.passkeys) })}</span>
@@ -105,7 +104,7 @@ export default async function AdminPage() {
                     mustChangePassword={listedUser.mustChangePassword}
                     twoFactorEnabled={Boolean(listedUser.twoFactorEnabled)}
                     passkeyCount={listedUser._count.passkeys}
-                    hasOidc={listedUser.hasAnyOidc}
+                    hasOidc={listedUser.hasOidc}
                     hasPassword={listedUser.hasPassword}
                   />
                 </div>

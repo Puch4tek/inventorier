@@ -8,7 +8,6 @@ export type SecuritySettingsData = {
   totpSetupPending: boolean;
   oidcEnabled: boolean;
   oidcConnected: boolean;
-  oidcStale: boolean;
   passkeys: Array<{
     id: string;
     name: string | null;
@@ -27,7 +26,7 @@ export async function getSecuritySettings(
       twoFactorEnabled: true,
       twofactors: { select: { verified: true }, take: 1 },
       accounts: {
-        where: { OR: [{ providerId: OIDC_PROVIDER_ID }, { providerId: { startsWith: "oidc-" } }] },
+        where: { providerId: OIDC_PROVIDER_ID },
         select: { providerId: true },
       },
       passkeys: {
@@ -56,8 +55,7 @@ export async function getSecuritySettings(
     totpSetupPending:
       user.twofactors[0]?.verified === false && user.twoFactorEnabled !== true,
     oidcEnabled: oidc?.oidcEnabled === true,
-    oidcConnected: user.accounts.some((account) => account.providerId === OIDC_PROVIDER_ID),
-    oidcStale: user.accounts.some((account) => account.providerId !== OIDC_PROVIDER_ID),
+    oidcConnected: user.accounts.length > 0,
     passkeys: user.passkeys.map((passkey) => ({
       id: passkey.id,
       name: passkey.name,

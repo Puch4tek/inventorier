@@ -23,7 +23,7 @@ export async function unlinkOidcAccounts(userId: string, actorId: string, sessio
     });
     if (!password) throw new Error("A local password is required to unlink OIDC.");
     const result = await transaction.account.deleteMany({
-      where: { userId, OR: [{ providerId: OIDC_PROVIDER_ID }, { providerId: { startsWith: "oidc-" } }] },
+      where: { userId, providerId: OIDC_PROVIDER_ID },
     });
     if (!result.count) throw new Error("No OIDC account to unlink.");
   });

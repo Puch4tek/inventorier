@@ -22,7 +22,7 @@ export async function listUsers() {
         twoFactorEnabled: true,
         createdAt: true,
         accounts: {
-          where: { OR: [{ providerId: "credential" }, { providerId: OIDC_PROVIDER_ID }, { providerId: { startsWith: "oidc-" } }] },
+          where: { providerId: { in: ["credential", OIDC_PROVIDER_ID] } },
           select: { providerId: true, password: true },
         },
         _count: {
@@ -33,16 +33,13 @@ export async function listUsers() {
     return users.map(({ accounts, ...user }) => {
       const hasPassword = accounts.some((account) => account.providerId === "credential" && !!account.password);
       const hasOidc = accounts.some((account) => account.providerId === OIDC_PROVIDER_ID);
-      const staleOidc = accounts.some((account) => account.providerId.startsWith("oidc-"));
       const authStatus: "connected" | "provisioned" | "local" | "unavailable" =
         hasOidc ? (hasPassword ? "connected" : "provisioned") : hasPassword ? "local" : "unavailable";
       return {
         ...user,
         hasPassword,
         hasOidc,
-        staleOidc,
         oidcEnabled: settings?.oidcEnabled === true,
-        hasAnyOidc: hasOidc || staleOidc,
         authStatus,
       };
     });

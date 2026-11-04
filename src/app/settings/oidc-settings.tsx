@@ -10,13 +10,11 @@ const initialState: OidcLinkActionState = {};
 export function OidcSettings({
   enabled,
   connected,
-  stale,
   hasPassword,
   callbackStatus,
 }: {
   enabled: boolean;
   connected: boolean;
-  stale: boolean;
   hasPassword: boolean;
   callbackStatus?: string;
 }) {
@@ -27,7 +25,6 @@ export function OidcSettings({
       <h2 className="text-xl font-semibold">{t("heading")}</h2>
       <p className="mt-2 text-sm text-app-muted">{connected ? t("connected") : t("notConnected")}</p>
       {!enabled ? <p className="mt-2 text-sm text-app-muted">{t("disabled")}</p> : null}
-      {stale ? <p className="mt-2 text-sm text-app-warning">{t("stale")}</p> : null}
       {callbackStatus === "connected" ? <p role="status" className="status-success mt-3">{t("linked")}</p> : null}
       {callbackStatus === "error" ? <p role="alert" className="status-error mt-3">{t("linkError")}</p> : null}
       {state.error ? <p role="alert" className="status-error mt-3">{state.error}</p> : null}
@@ -38,7 +35,7 @@ export function OidcSettings({
             <Button type="submit" className="px-4 py-2 text-sm">{t("link")}</Button>
           </form>
         ) : null}
-        {connected || stale ? (
+        {connected ? (
           <form action={action} onSubmit={(event) => {
             if (!window.confirm(t("confirmUnlink"))) event.preventDefault();
           }}>
@@ -48,7 +45,7 @@ export function OidcSettings({
           </form>
         ) : null}
       </div>
-      {(connected || stale) && !hasPassword ? <p className="mt-2 text-sm text-app-muted">{t("passwordRequired")}</p> : null}
+      {connected && !hasPassword ? <p className="mt-2 text-sm text-app-muted">{t("passwordRequired")}</p> : null}
     </section>
   );
 }

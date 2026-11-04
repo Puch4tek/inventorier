@@ -206,7 +206,6 @@ const messages = {
         connected: "Connected to the current identity provider.",
         notConnected: "Not connected to the current identity provider.",
         disabled: "OpenID Connect is disabled.",
-        stale: "An inactive connection from an earlier configuration exists.",
         linked: "OpenID Connect connected.",
         linkError: "Could not connect OpenID Connect. The account may already be linked elsewhere.",
         link: "Connect",
@@ -787,7 +786,6 @@ const messages = {
       local: "Local (password)",
       unavailable: "No active OIDC account or local password",
     },
-    staleOidc: "Inactive OIDC connection",
     oidcDisabled: "OIDC disabled",
   },
   createUser: {
