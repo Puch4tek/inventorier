@@ -6,6 +6,14 @@ Each application instance is a separate organizational space and must use its ow
 
 For regular releases, stop the old application version and take a recoverable database backup before starting the new version. The Compose app container runs `prisma migrate deploy` automatically before the server starts; a migration failure prevents startup and requires investigation. Review each migration and verify backups can be restored before high-impact changes. For deployments without Compose, see [Development: Migrations](development.md#migrations-and-generated-client).
 
+The default image is the public `ghcr.io/puch4tek/inventorier:dev` image. Its mutable `dev` tag follows successful CI builds from the development branch and does not guarantee a stable release. To update an existing Compose installation:
+
+1. Stop the application with `docker compose stop app` and make a recoverable backup of its database.
+2. Pull the current image with `docker compose pull app`.
+3. Start the new version with `docker compose up -d`. The application applies pending migrations before starting.
+
+Rolling back the image does not undo database migrations; restoring a backup may be necessary.
+
 Older development databases may have migration histories that are no longer supported. Create a new, empty development database and initialize it using the bootstrap procedure rather than attempting to baseline the old history. Do not reset or delete an existing database or volume without verifying its contents and intended use.
 
 Keep a database backup and its restore instructions, and periodically test a restore. Preserve `APP_ENCRYPTION_KEY` in a separate secure secret store: SMTP passwords and OIDC client secrets are encrypted in the database, and a database backup alone cannot recover them without the matching key. See [key management](#keys).

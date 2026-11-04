@@ -12,7 +12,9 @@ Inventory management for organizations with warehouse-scoped access, item histor
 
 Prerequisites: Docker with Compose, a domain, and an HTTPS reverse proxy.
 
-1. Prepare the configuration:
+The Compose file uses the public `ghcr.io/puch4tek/inventorier:dev` image, so Docker does not need to build the application locally. The `dev` tag tracks the latest successful CI build from the `dev` branch; it is not a stable release.
+
+1. Clone the repository, or download `compose.yaml` and `.env.example` into the same directory. Prepare the configuration:
 
    ```sh
    cp .env.example .env
@@ -23,13 +25,14 @@ Prerequisites: Docker with Compose, a domain, and an HTTPS reverse proxy.
 3. Start the application and its new database:
 
    ```sh
-   docker compose up -d --build
+   docker compose pull
+   docker compose up -d
    ```
 
    The application applies migrations before starting. Use a new, empty database for a new instance.
 4. Open the public HTTPS URL and register the first account. **The first registered user becomes the administrator** and must create the first warehouse. Until this account exists, restrict access to the installer so nobody else can claim it. Afterward, the administrator can disable self-registration.
 
-> **Updating an existing installation:** Stop the old application and make a recoverable database backup before starting the new version, which automatically applies pending migrations. See the [database and deployment guide](docs/operations.md).
+> **Updating an existing installation:** Stop the old application and make a recoverable database backup before pulling and starting the new image, which automatically applies pending migrations. See the [database and deployment guide](docs/operations.md#instance-and-database-lifecycle) for commands.
 
 For local development with Node.js and a local PostgreSQL container, follow [development setup](docs/development.md#local-startup).
 

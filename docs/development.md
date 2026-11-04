@@ -29,7 +29,16 @@ The application reads configuration in server code; there are no `NEXT_PUBLIC_*`
 
 ## Container image
 
-The Dockerfile builds a Next.js standalone server in a separate build stage and installs only production dependencies in the final image. It retains Prisma CLI and migration files so the container applies pending migrations before starting the server; a migration failure prevents startup. Compose waits for PostgreSQL to become healthy before starting the app.
+Compose pulls `ghcr.io/puch4tek/inventorier:dev` by default. This public image follows the latest successful CI build on the `dev` branch, not a stable release, and runs in production mode. The Dockerfile builds a Next.js standalone server in a separate build stage and installs only production dependencies in the final image. It retains Prisma CLI and migration files so the container applies pending migrations before starting the server; a migration failure prevents startup. Compose waits for PostgreSQL to become healthy before starting the app.
+
+To try local source changes in a container, build a separate image and select it for Compose:
+
+```bash
+docker build -t inventorier-local:dev .
+APP_IMAGE=inventorier-local:dev docker compose up -d
+```
+
+Set `APP_IMAGE` on subsequent Compose commands that manage this local image as well. Without it, Compose uses the public image. This is a production-mode build, not a hot-reloading development server; use `npm run dev` for local development.
 
 Prisma loads the datasource config during client generation, so the build command supplies temporary placeholder credentials. The build also generates a temporary encryption key; configure the stable runtime key in `.env`. The temporary values are not passed to the runtime image.
 

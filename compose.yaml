@@ -1,6 +1,6 @@
 services:
   app:
-    build: .
+    image: ${APP_IMAGE:-ghcr.io/puch4tek/inventorier:dev}
     env_file: .env
     environment:
       DATABASE_HOST: postgres
