@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
+import { APIError, createAuthMiddleware, getOAuthState, getSessionFromCtx } from "better-auth/api";
 import { deleteSessionCookie, splitSetCookieHeader } from "better-auth/cookies";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { nextCookies } from "better-auth/next-js";
@@ -8,7 +8,7 @@ import { twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { prisma } from "@/lib/db/prisma";
 import { getPasskeyConfig } from "@/lib/passkey-config";
-import { createOidcProviderConfig } from "@/lib/oidc-provider-config";
+import { createOidcProviderConfig, OIDC_PROVIDER_ID } from "@/lib/oidc-provider-config";
 import type { OidcRuntimeConfig } from "@/server/settings/oidc";
 import {
   isRegistrationEnabled,
@@ -23,7 +23,6 @@ import { createHash } from "node:crypto";
 
 const PASSKEY_REAUTH_COOKIE = "inventory-passkey-reauth";
 const PASSKEY_REAUTH_IDENTIFIER_PREFIX = "passkey-reauth:";
-const OIDC_PROVIDER_PREFIX = "oidc-";
 
 type AuthHookContext = Parameters<typeof getSessionFromCtx>[0];
 type AuthCookie = ReturnType<AuthHookContext["context"]["createAuthCookie"]>;
@@ -365,10 +364,9 @@ function isOidcCallback(context: AuthHookContext | null | undefined) {
   const providerId =
     typeof context?.params?.id === "string"
       ? context.params.id
-      : context?.path?.match(/^\/callback\/(oidc-[A-Za-z0-9-]+)$/)?.[1];
+      : context?.path?.match(/^\/callback\/(oidc)$/)?.[1];
   return Boolean(
-    typeof providerId === "string" &&
-      providerId.startsWith(OIDC_PROVIDER_PREFIX) &&
+    providerId === OIDC_PROVIDER_ID &&
       context?.context.socialProviders.some(
         (provider) => provider.id === providerId && provider.idToken,
       ),
@@ -417,15 +415,25 @@ function buildAuth(runtime?: OidcRuntimeConfig) {
     },
     account: {
       create: {
-        async before(account) {
-          if (account.providerId.startsWith(OIDC_PROVIDER_PREFIX)) {
+        async before(account, context) {
+          if (account.providerId === OIDC_PROVIDER_ID) {
+            const state = await getOAuthState();
+            if (state?.link) {
+              const session = context ? await getSessionFromCtx(context, { disableCookieCache: true }) : null;
+              if (!session || session.user.id !== account.userId || state.link.userId !== account.userId) {
+                throw APIError.from("UNAUTHORIZED", {
+                  code: "OIDC_LINK_SESSION_REQUIRED",
+                  message: "Sign in again before linking an OIDC account.",
+                });
+              }
+            }
             return { data: { ...account, idToken: null } };
           }
         },
       },
       update: {
         async before(account) {
-          if (account.providerId?.startsWith(OIDC_PROVIDER_PREFIX)) {
+          if (account.providerId === OIDC_PROVIDER_ID) {
             return { data: { ...account, idToken: null } };
           }
         },
@@ -451,6 +459,12 @@ function buildAuth(runtime?: OidcRuntimeConfig) {
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path === "/sign-out") return;
+      if (ctx.path === "/unlink-account") {
+        throw APIError.from("FORBIDDEN", {
+          code: "USE_ACCOUNT_SETTINGS",
+          message: "Use account settings to unlink OIDC accounts.",
+        });
+      }
       if (
         ctx.path === "/change-password" ||
         ctx.path === "/request-password-reset" ||
@@ -580,8 +594,9 @@ function buildAuth(runtime?: OidcRuntimeConfig) {
     encryptOAuthTokens: true,
     accountLinking: {
       enabled: true,
-      disableImplicitLinking: false,
-      requireLocalEmailVerified: true,
+      disableImplicitLinking: true,
+      allowDifferentEmails: true,
+      trustedProviders: runtime ? [OIDC_PROVIDER_ID] : [],
     },
   },
   plugins: [

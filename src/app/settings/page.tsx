@@ -8,6 +8,7 @@ import { getSecuritySettings } from "@/server/security/get-security-settings";
 import { SecuritySettings } from "./security-settings";
 import { EmailChangeForm } from "./email-change-form";
 import { prisma } from "@/lib/db/prisma";
+import { OidcSettings } from "./oidc-settings";
 
 export const instant = false;
 
@@ -117,10 +118,21 @@ export default async function SettingsPage({
           </section>
           ) : null}
           {tab === "security" && securitySettings ? (
-            <SecuritySettings
-              initialSettings={securitySettings}
-              canManageWithPassword={hasLocalPassword}
-            />
+            <>
+              <OidcSettings
+                enabled={securitySettings.oidcEnabled}
+                connected={securitySettings.oidcConnected}
+                stale={securitySettings.oidcStale}
+                hasPassword={hasLocalPassword}
+                callbackStatus={params.error ? "error" : typeof params.oidc === "string" ? params.oidc : undefined}
+              />
+              <div className="mt-6">
+                <SecuritySettings
+                  initialSettings={securitySettings}
+                  canManageWithPassword={hasLocalPassword}
+                />
+              </div>
+            </>
           ) : null}
         </div>
       </section>

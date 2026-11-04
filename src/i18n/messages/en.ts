@@ -36,6 +36,8 @@ const messages = {
       passkey: "Sign in with a passkey",
       passkeyWaiting: "Waiting for passkey…",
       oidc: "Sign in with OpenID Connect",
+      oidcAccountNotLinked: "This email already belongs to an account. Sign in locally and connect OpenID Connect in security settings.",
+      oidcError: "OpenID Connect sign-in could not be completed.",
       twoFactorMethod: "Verification method",
       authenticatorApp: "Authenticator app",
       backupCode: "Backup code",
@@ -199,6 +201,21 @@ const messages = {
       },
     },
     security: {
+      oidc: {
+        heading: "OpenID Connect",
+        connected: "Connected to the current identity provider.",
+        notConnected: "Not connected to the current identity provider.",
+        disabled: "OpenID Connect is disabled.",
+        stale: "An inactive connection from an earlier configuration exists.",
+        linked: "OpenID Connect connected.",
+        linkError: "Could not connect OpenID Connect. The account may already be linked elsewhere.",
+        link: "Connect",
+        unlink: "Disconnect",
+        confirmUnlink: "Disconnect all OpenID Connect accounts from your user?",
+        passwordRequired: "A local password is required before disconnecting.",
+        unlinked: "OpenID Connect disconnected.",
+        unlinkError: "Could not disconnect OpenID Connect. Ensure you have a local password and try again.",
+      },
       passwordRequiredForManagement:
         "You can review security status and existing passkeys here. Changing security settings requires a local password.",
       twoFactor: {
@@ -764,6 +781,14 @@ const messages = {
     passwordChangeRequired: "Password change required",
     totpEnabled: "TOTP enabled",
     passkeys: "Passkeys: {count}",
+    authStatus: {
+      provisioned: "Provisioned (OIDC only)",
+      connected: "Connected (OIDC and password)",
+      local: "Local (password)",
+      unavailable: "No active OIDC account or local password",
+    },
+    staleOidc: "Inactive OIDC connection",
+    oidcDisabled: "OIDC disabled",
   },
   createUser: {
     name: "Full name",
@@ -783,6 +808,11 @@ const messages = {
     save: "Save",
   },
   userActions: {
+    oidcUnlink: "Disconnect OIDC",
+    oidcUnlinkConfirmation: "Disconnect all OIDC accounts from this user?",
+    oidcPasswordRequired: "A local password is required before disconnecting.",
+    oidcUnlinked: "OIDC disconnected.",
+    oidcUnlinkError: "Could not disconnect OIDC. Check the user's local password and try again.",
     saving: "Saving…",
     block: "Block account",
     unblock: "Unblock account",
@@ -918,13 +948,14 @@ const messages = {
     description:
       "Configure the OpenID Connect provider used for single sign-on.",
     configTitle: "Provider configuration",
+    identityChangeWarning: "Changing the provider keeps existing connections. A matching subject from the new provider can access the same account.",
     enabled: "Enable OpenID Connect sign-in",
     issuer: "Issuer URL",
     issuerDescription:
       "Use the exact issuer from the discovery document. HTTPS is required, including for private network providers.",
     redirectUri: "Redirect URI (callback URL)",
     redirectUriDescription:
-      "Register this URI with your identity provider. It changes after every settings save.",
+      "Register this fixed URI with your identity provider.",
     redirectUriUnavailable:
       "Configure a valid BETTER_AUTH_URL to display the callback URI.",
     clientId: "Client ID",

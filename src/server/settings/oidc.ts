@@ -1,7 +1,7 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db/prisma";
+import { OIDC_PROVIDER_ID } from "@/lib/oidc-provider-config";
 import { decryptSecret, encryptSecret, SecretEncryptionError } from "@/server/security/secret-encryption";
 import { lockInstanceMutation, requireAdminSessionInTransaction } from "@/server/warehouses/transaction-lock";
 
@@ -26,7 +26,6 @@ export type OidcRuntimeConfig = {
   issuer: string;
   clientId: string;
   clientSecret: string;
-  revision: string;
 };
 
 export class OidcSettingsError extends Error {
@@ -40,14 +39,6 @@ export class OidcSettingsError extends Error {
 }
 
 const ID = 1;
-const DEFAULTS: OidcSettings = {
-  enabled: false,
-  issuer: "",
-  clientId: "",
-  hasClientSecret: false,
-  clientSecretUnreadable: false,
-  redirectUri: null,
-};
 
 function validIssuer(issuer: string): boolean {
   if (!issuer) return true;
@@ -74,13 +65,24 @@ function validate(input: SaveOidcSettingsInput): void {
   }
 }
 
-function getRedirectUri(revision: string): string | null {
+function getRedirectUri(): string | null {
   const baseUrl = process.env.BETTER_AUTH_URL;
   if (!baseUrl) return null;
   try {
-    return new URL(`/api/auth/callback/oidc-${revision}`, baseUrl).toString();
+    return new URL(`/api/auth/callback/${OIDC_PROVIDER_ID}`, baseUrl).toString();
   } catch {
     return null;
+  }
+}
+
+function decryptClientSecret(encrypted: string): string {
+  try {
+    return decryptSecret(encrypted);
+  } catch (error) {
+    if (error instanceof SecretEncryptionError) {
+      throw new OidcSettingsError("ENCRYPTION", "Nie można odszyfrować client secret. Sprawdź klucz APP_ENCRYPTION_KEY.");
+    }
+    throw error;
   }
 }
 
@@ -89,9 +91,8 @@ export async function getOidcSettings(actorId: string, sessionId: string): Promi
     await lockInstanceMutation(transaction);
     await requireAdminSessionInTransaction(transaction, actorId, sessionId);
     const row = await transaction.appSettings.findUnique({ where: { id: ID } });
-    if (!row) return { ...DEFAULTS };
     let clientSecretUnreadable = false;
-    if (row.oidcClientSecret) {
+    if (row?.oidcClientSecret) {
       try {
         decryptSecret(row.oidcClientSecret);
       } catch (error) {
@@ -100,12 +101,12 @@ export async function getOidcSettings(actorId: string, sessionId: string): Promi
       }
     }
     return {
-      enabled: row.oidcEnabled,
-      issuer: row.oidcIssuer,
-      clientId: row.oidcClientId,
-      hasClientSecret: !!row.oidcClientSecret,
+      enabled: row?.oidcEnabled ?? false,
+      issuer: row?.oidcIssuer ?? "",
+      clientId: row?.oidcClientId ?? "",
+      hasClientSecret: !!row?.oidcClientSecret,
       clientSecretUnreadable,
-      redirectUri: getRedirectUri(row.oidcRevision),
+      redirectUri: getRedirectUri(),
     };
   });
 }
@@ -118,24 +119,13 @@ export async function getOidcRuntimeConfig(): Promise<OidcRuntimeConfig> {
       oidcIssuer: true,
       oidcClientId: true,
       oidcClientSecret: true,
-      oidcRevision: true,
     },
   });
   if (!row) {
-    return { enabled: false, issuer: "", clientId: "", clientSecret: "", revision: randomUUID() };
+    return { enabled: false, issuer: "", clientId: "", clientSecret: "" };
   }
-  let clientSecret = "";
-  if (row.oidcClientSecret) {
-    try {
-      clientSecret = decryptSecret(row.oidcClientSecret);
-    } catch (error) {
-      if (error instanceof SecretEncryptionError) {
-        throw new OidcSettingsError("ENCRYPTION", "Nie można odszyfrować client secret. Sprawdź klucz APP_ENCRYPTION_KEY.");
-      }
-      throw error;
-    }
-  }
-  if (!row.oidcRevision || (row.oidcEnabled && (!row.oidcIssuer || !row.oidcClientId || !clientSecret))) {
+  const clientSecret = row.oidcClientSecret ? decryptClientSecret(row.oidcClientSecret) : "";
+  if (row.oidcEnabled && (!row.oidcIssuer || !row.oidcClientId || !clientSecret)) {
     throw new OidcSettingsError("CONFIGURATION", "Konfiguracja OIDC jest niekompletna.");
   }
   return {
@@ -143,7 +133,6 @@ export async function getOidcRuntimeConfig(): Promise<OidcRuntimeConfig> {
     issuer: row.oidcIssuer,
     clientId: row.oidcClientId,
     clientSecret,
-    revision: row.oidcRevision,
   };
 }
 
@@ -168,37 +157,21 @@ export async function saveOidcSettings(
         throw error;
       }
     } else if (input.enabled && encrypted) {
-      try {
-        decryptSecret(encrypted);
-      } catch (error) {
-        if (error instanceof SecretEncryptionError) {
-          throw new OidcSettingsError("ENCRYPTION", "Nie można odszyfrować client secret. Sprawdź klucz APP_ENCRYPTION_KEY.");
-        }
-        throw error;
-      }
+      decryptClientSecret(encrypted);
     }
     if (input.enabled && (!input.issuer || !input.clientId || !encrypted)) {
       throw new OidcSettingsError("CONFIGURATION", "Konfiguracja OIDC jest niekompletna.");
     }
-    let revision = randomUUID();
-    while (revision === current?.oidcRevision) revision = randomUUID();
+    const settings = {
+      oidcEnabled: input.enabled,
+      oidcIssuer: input.issuer,
+      oidcClientId: input.clientId,
+      oidcClientSecret: encrypted,
+    };
     await transaction.appSettings.upsert({
       where: { id: ID },
-      create: {
-        id: ID,
-        oidcEnabled: input.enabled,
-        oidcIssuer: input.issuer,
-        oidcClientId: input.clientId,
-        oidcClientSecret: encrypted,
-        oidcRevision: revision,
-      },
-      update: {
-        oidcEnabled: input.enabled,
-        oidcIssuer: input.issuer,
-        oidcClientId: input.clientId,
-        oidcClientSecret: encrypted,
-        oidcRevision: revision,
-      },
+      create: { id: ID, ...settings },
+      update: settings,
     });
   });
 }

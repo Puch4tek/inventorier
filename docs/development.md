@@ -101,7 +101,7 @@ npm test
 
 The smoke suite checks a fresh migration, first-account administrator creation and sign-in, warehouse/item use, and rejection of a user without warehouse access. It intentionally does not retain broad unit/integration suites or test migration-history continuity.
 
-The test script requires a running Docker daemon and a locally available `postgres:18` image; it checks for the image but does not pull it. If needed, fetch it first with `docker pull postgres:18`. It creates a uniquely named database in a disposable container, publishes PostgreSQL only on loopback, stores data in a 1 GiB `tmpfs` (no bind mount or Docker volume), applies migrations to the empty database, runs the smoke test with Node's built-in test runner, and removes the container on exit. It never uses the development Compose database volume. Do not edit the script to use a persistent database or volume.
+The test script requires a running Docker daemon and a locally available `postgres:18` image; it checks for the image but does not pull it. If needed, fetch it first with `docker pull postgres:18`. It creates a uniquely named database in a disposable container, publishes PostgreSQL only on loopback, stores data in a 1 GiB `tmpfs` (no bind mount or Docker volume), applies migrations to the empty database, runs the smoke test and OIDC integration tests with a simulated provider using Node's built-in test runner, and removes the container on exit. It never uses the development Compose database volume. Do not edit the script to use a persistent database or volume.
 
 GitHub Actions runs client generation, lint, build and the same test suite on pushes and pull requests.
 

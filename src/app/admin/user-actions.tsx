@@ -9,6 +9,7 @@ import {
   setUserStatusAction,
   resetUserPasswordAction,
   resetUserTwoFactorAction,
+  unlinkUserOidcAction,
   type AdminActionState,
 } from "./actions";
 
@@ -20,12 +21,16 @@ export function UserActions({
   mustChangePassword,
   twoFactorEnabled,
   passkeyCount,
+  hasOidc,
+  hasPassword,
 }: {
   userId: string;
   isActive: boolean;
   mustChangePassword: boolean;
   twoFactorEnabled: boolean;
   passkeyCount: number;
+  hasOidc: boolean;
+  hasPassword: boolean;
 }) {
   const t = useTranslations("admin.userActions");
   const [resetState, resetAction, isResetting] = useActionState(
@@ -48,6 +53,7 @@ export function UserActions({
     resetUserTwoFactorAction,
     initialState,
   );
+  const [oidcState, oidcAction, isUnlinkingOidc] = useActionState(unlinkUserOidcAction, initialState);
 
   return (
     <div className="mt-4 space-y-3 border-t border-app-border pt-4">
@@ -82,6 +88,19 @@ export function UserActions({
       ) : null}
       {twoFactorState.error ? <p role="alert" className="text-xs text-app-danger">{twoFactorState.error}</p> : null}
       {twoFactorState.success ? <p role="status" className="text-xs text-app-success">{twoFactorState.success}</p> : null}
+      {hasOidc ? (
+        <form action={oidcAction} onSubmit={(event) => {
+          if (!window.confirm(t("oidcUnlinkConfirmation"))) event.preventDefault();
+        }}>
+          <input type="hidden" name="userId" value={userId} />
+          <Button variant="secondary" type="submit" disabled={!hasPassword || isUnlinkingOidc} className="px-3 py-2 text-xs">
+            {t("oidcUnlink")}
+          </Button>
+          {!hasPassword ? <p className="mt-2 text-xs text-app-muted">{t("oidcPasswordRequired")}</p> : null}
+        </form>
+      ) : null}
+      {oidcState.error ? <p role="alert" className="text-xs text-app-danger">{oidcState.error}</p> : null}
+      {oidcState.success ? <p role="status" className="text-xs text-app-success">{oidcState.success}</p> : null}
       <form action={resetAction} className="flex flex-wrap gap-2">
         <input type="hidden" name="userId" value={userId} />
         <input

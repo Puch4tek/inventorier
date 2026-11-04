@@ -74,3 +74,7 @@ node_modules/.bin/prisma migrate deploy --config tests/bootstrap-prisma.config.t
 node --conditions=react-server --experimental-strip-types \
   --import ./tests/register-ts-runtime-loader.mjs \
   --test tests/smoke.integration.test.mjs
+
+node --conditions=react-server --experimental-strip-types \
+  --import ./tests/register-ts-runtime-loader.mjs \
+  --test tests/oidc.integration.test.mjs

@@ -13,9 +13,27 @@ import { resetUserTwoFactor } from "@/server/users/reset-user-two-factor";
 import { revalidatePath } from "next/cache";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getAdminActionError } from "@/i18n/admin-errors";
+import { unlinkOidcAccounts } from "@/server/security/oidc-accounts";
 
 export type AdminActionState = { error?: string; success?: string };
 
+export async function unlinkUserOidcAction(
+  _previousState: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const t = await getTranslations("admin.userActions");
+  try {
+    const actor = await requireRoleSession("ADMIN");
+    const userId = formData.get("userId");
+    if (typeof userId !== "string" || !userId) return { error: t("oidcUnlinkError") };
+    await unlinkOidcAccounts(userId, actor.user.id, actor.session.id, true);
+    revalidatePath("/admin");
+    return { success: t("oidcUnlinked") };
+  } catch (error) {
+    console.error("Could not unlink OIDC account:", error);
+    return { error: t("oidcUnlinkError") };
+  }
+}
 export async function resetUserTwoFactorAction(
   _previousState: AdminActionState,
   formData: FormData,

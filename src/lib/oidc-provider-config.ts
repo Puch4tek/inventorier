@@ -1,24 +1,20 @@
 import type { GenericOAuthConfig, GenericOAuthUserInfo } from "better-auth/plugins/generic-oauth";
 import type { OidcRuntimeConfig } from "@/server/settings/oidc";
 
-const OIDC_PROVIDER_PREFIX = "oidc-";
+export const OIDC_PROVIDER_ID = "oidc";
 
 export function createOidcProviderConfig(
   runtime: OidcRuntimeConfig,
 ): GenericOAuthConfig {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(runtime.revision)) {
-    throw new Error("The OIDC configuration revision is invalid.");
-  }
   if (!runtime.enabled || !runtime.issuer || !runtime.clientId || !runtime.clientSecret) {
     throw new Error("The OIDC runtime configuration is incomplete.");
   }
 
-  const providerId = `${OIDC_PROVIDER_PREFIX}${runtime.revision}`;
   const issuerBase = runtime.issuer.endsWith("/") ? runtime.issuer : `${runtime.issuer}/`;
   const discoveryUrl = new URL(".well-known/openid-configuration", issuerBase).toString();
 
   return {
-    providerId,
+    providerId: OIDC_PROVIDER_ID,
     name: "OpenID Connect",
     discoveryUrl,
     requireIdTokenVerification: true,
@@ -27,10 +23,7 @@ export function createOidcProviderConfig(
     scopes: ["openid", "email", "profile"],
     pkce: true,
     userInfoUrl: "",
-    disableImplicitSignUp: false,
-    disableSignUp: false,
     disableProviderLogout: true,
-    requireEmailVerification: true,
     accountSubject: ({ tokens, profile }) => {
       if (
         !tokens.idToken ||
@@ -38,10 +31,9 @@ export function createOidcProviderConfig(
         !profile.sub.trim() ||
         profile.iss !== runtime.issuer ||
         typeof profile.email !== "string" ||
-        !profile.email.trim() ||
-        profile.email_verified !== true
+        !profile.email.trim()
       ) {
-        throw new Error("The ID token does not contain a verified OIDC identity.");
+        throw new Error("The ID token does not contain a valid OIDC identity.");
       }
       return profile.sub;
     },

@@ -9,7 +9,7 @@ export const instant = false;
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string | string[] }>;
+  searchParams: Promise<{ next?: string | string[]; error?: string | string[] }>;
 }) {
   await connection();
   const [registrationEnabled, t, registrationT] = await Promise.all([
@@ -17,7 +17,7 @@ export default async function LoginPage({
     getTranslations("auth.login"),
     getTranslations("auth.registration"),
   ]);
-  const { next } = await searchParams;
+  const { next, error } = await searchParams;
 
   return (
     <main className="app-shell px-5 py-8 sm:px-8 sm:py-12">
@@ -48,6 +48,11 @@ export default async function LoginPage({
               </p>
             </div>
 
+            {error ? (
+              <p role="alert" className="status-error mb-5">
+                {error === "account_not_linked" ? t("oidcAccountNotLinked") : t("oidcError")}
+              </p>
+            ) : null}
             <LoginForm next={typeof next === "string" ? next : undefined} />
 
             <p className="mt-8 text-center text-sm text-app-muted">

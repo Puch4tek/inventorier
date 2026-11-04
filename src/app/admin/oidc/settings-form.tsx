@@ -27,6 +27,7 @@ export function OidcSettingsForm({ settings }: { settings: OidcSettings }) {
 
   return (
     <form action={action} className="mt-5 space-y-5">
+      <p className="text-sm text-app-warning">{t("identityChangeWarning")}</p>
       <label className="flex items-start gap-3 text-sm">
         <input
           type="checkbox"

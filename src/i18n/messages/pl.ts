@@ -39,6 +39,8 @@ const messages = {
       passkey: "Zaloguj się passkey",
       passkeyWaiting: "Oczekiwanie na passkey…",
       oidc: "Zaloguj się przez OpenID Connect",
+      oidcAccountNotLinked: "Ten adres e-mail należy już do konta. Zaloguj się lokalnie i połącz OpenID Connect w ustawieniach bezpieczeństwa.",
+      oidcError: "Nie udało się zalogować przez OpenID Connect.",
       twoFactorMethod: "Sposób weryfikacji",
       authenticatorApp: "Aplikacja uwierzytelniająca",
       backupCode: "Kod zapasowy",
@@ -202,6 +204,21 @@ const messages = {
       },
     },
     security: {
+      oidc: {
+        heading: "OpenID Connect",
+        connected: "Połączono z aktualnym dostawcą tożsamości.",
+        notConnected: "Nie połączono z aktualnym dostawcą tożsamości.",
+        disabled: "OpenID Connect jest wyłączony.",
+        stale: "Istnieje nieaktywne połączenie z poprzedniej konfiguracji.",
+        linked: "Połączono OpenID Connect.",
+        linkError: "Nie udało się połączyć OpenID Connect. Konto może być już połączone z innym użytkownikiem.",
+        link: "Połącz",
+        unlink: "Rozłącz",
+        confirmUnlink: "Rozłączyć wszystkie konta OpenID Connect tego użytkownika?",
+        passwordRequired: "Przed rozłączeniem wymagane jest lokalne hasło.",
+        unlinked: "Rozłączono OpenID Connect.",
+        unlinkError: "Nie udało się rozłączyć OpenID Connect. Sprawdź lokalne hasło i spróbuj ponownie.",
+      },
       passwordRequiredForManagement:
         "Możesz sprawdzić tutaj stan zabezpieczeń i zapisane klucze dostępu. Zmiana ustawień bezpieczeństwa wymaga lokalnego hasła.",
       twoFactor: {
@@ -771,6 +788,14 @@ const messages = {
     passwordChangeRequired: "Wymaga zmiany hasła",
     totpEnabled: "TOTP włączone",
     passkeys: "Klucze dostępu: {count}",
+    authStatus: {
+      provisioned: "Provisioned (tylko OIDC)",
+      connected: "Connected (OIDC i hasło)",
+      local: "Local (hasło)",
+      unavailable: "Brak aktywnego konta OIDC i lokalnego hasła",
+    },
+    staleOidc: "Nieaktywne połączenie OIDC",
+    oidcDisabled: "OIDC wyłączony",
   },
   createUser: {
     name: "Imię i nazwisko",
@@ -790,6 +815,11 @@ const messages = {
     save: "Zapisz",
   },
   userActions: {
+    oidcUnlink: "Rozłącz OIDC",
+    oidcUnlinkConfirmation: "Rozłączyć wszystkie konta OIDC tego użytkownika?",
+    oidcPasswordRequired: "Przed rozłączeniem wymagane jest lokalne hasło.",
+    oidcUnlinked: "Rozłączono OIDC.",
+    oidcUnlinkError: "Nie udało się rozłączyć OIDC. Sprawdź lokalne hasło użytkownika i spróbuj ponownie.",
     saving: "Zapisywanie…",
     block: "Zablokuj konto",
     unblock: "Odblokuj konto",
@@ -928,13 +958,14 @@ const messages = {
     description:
       "Skonfiguruj dostawcę OpenID Connect używanego do logowania jednokrotnego.",
     configTitle: "Konfiguracja dostawcy",
+    identityChangeWarning: "Zmiana dostawcy zachowuje istniejące połączenia. Ten sam identyfikator użytkownika u nowego dostawcy może dać dostęp do tego samego konta.",
     enabled: "Włącz logowanie OpenID Connect",
     issuer: "Adres URL wystawcy",
     issuerDescription:
       "Użyj dokładnego adresu issuer z dokumentu discovery. Wymagany jest HTTPS, także dla dostawców w sieci prywatnej.",
     redirectUri: "Adres przekierowania (callback URL)",
     redirectUriDescription:
-      "Zarejestruj ten adres w dostawcy tożsamości. Zmienia się po każdym zapisie ustawień.",
+      "Zarejestruj ten stały adres w dostawcy tożsamości.",
     redirectUriUnavailable:
       "Skonfiguruj prawidłowy BETTER_AUTH_URL, aby wyświetlić adres callbacku.",
     clientId: "Identyfikator klienta",
