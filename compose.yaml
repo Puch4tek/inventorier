@@ -1,6 +1,6 @@
 services:
   app:
-    image: ${APP_IMAGE:-ghcr.io/puch4tek/inventorier:dev}
+    image: ghcr.io/puch4tek/inventorier:latest
     env_file: .env
     environment:
       DATABASE_HOST: postgres
@@ -16,7 +16,6 @@ services:
     restart: unless-stopped
   postgres:
     image: postgres:18
-    container_name: postgres
     restart: unless-stopped
     command: ["postgres", "-p", "${DATABASE_PORT:-5432}"]
     environment:
@@ -29,10 +28,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
-    ports:
-      - "${DATABASE_PORT:-5432}:${DATABASE_PORT:-5432}"
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - db:/var/lib/postgresql
 
 volumes:
-  postgres_data:
+  db:
